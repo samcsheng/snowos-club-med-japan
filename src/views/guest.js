@@ -24,20 +24,16 @@ export function renderGuestDashboard(container, { session }) {
   container.innerHTML = `
     ${pageHead(`${greeting()},`, session.name.split(' ')[0])}
 
-    <!-- Today's lesson (expanded) -->
+    <!-- Today's lesson (expanded) or empty state -->
     ${todayLesson ? `
       <div style="padding:0 12px 20px;">
         ${_todayCard(todayLesson)}
       </div>
-    ` : ''}
-
-    <!-- Empty state when no lessons at all -->
-    ${!hasAny ? `
-      <div style="padding:0 12px;">
-        ${emptyState('🏔️', 'No upcoming lessons',
-            'Book a group lesson to get started on the mountain.')}
+    ` : `
+      <div style="padding:0 12px 20px;">
+        ${emptyState('📅', 'No lessons booked today', '')}
       </div>
-    ` : ''}
+    `}
 
     <!-- View all bookings -->
     ${hasAny ? `
