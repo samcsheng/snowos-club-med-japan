@@ -1,6 +1,6 @@
 import { seed, resetSeed }              from './data.js';
 import { getSession, logout }       from './auth.js';
-import { renderNav, closeModal, setupStickyHeader } from './ui.js';
+import { renderNav, closeModal } from './ui.js';
 import { renderLogin, renderRegister } from './views/login.js';
 import {
   renderGuestDashboard,
@@ -98,7 +98,6 @@ function router() {
     }
 
     route.view(content, { params, session });
-    setupStickyHeader();
     content.style.opacity = '1';
     content.classList.add('fade-up');
     setTimeout(() => content.classList.remove('fade-up'), 250);

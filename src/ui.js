@@ -186,32 +186,9 @@ export function pageHead(title, subtitle = '', backHref = null) {
         <h1 class="page-title" style="flex:1;">${title}</h1>
       </div>
       ${subtitle ? `<p class="page-sub">${subtitle}</p>` : ''}
-    </div>
-    <div class="page-head-sentinel"></div>`;
+    </div>`;
 }
 
-// ── Sticky header collapse (Apple large-title) ───────────────────────────────
-let _stickyObserver = null;
-
-export function setupStickyHeader() {
-  _stickyObserver?.disconnect();
-  _stickyObserver = null;
-
-  const head     = document.querySelector('.page-head');
-  const sentinel = document.querySelector('.page-head-sentinel');
-  if (!head || !sentinel) return;
-
-  head.classList.remove('collapsed');
-
-  _stickyObserver = new IntersectionObserver(
-    ([entry]) => {
-      // Collapse when sentinel has scrolled above the viewport
-      head.classList.toggle('collapsed', !entry.isIntersecting && entry.boundingClientRect.top < 0);
-    },
-    { threshold: 0 }
-  );
-  _stickyObserver.observe(sentinel);
-}
 
 // ── Badges ───────────────────────────────────────────────────────────────────
 export function statusBadge(status) {

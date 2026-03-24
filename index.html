@@ -345,46 +345,10 @@
     /* ── Divider ──────────────────────────────────────── */
     .div { height: 1px; background: rgba(30,38,67,0.07); }
 
-    /* ── Page header (sticky, collapses on scroll) ───────── */
-    .page-head {
-      padding: 52px 20px 12px;
-      position: sticky; top: 0; z-index: 40;
-      background: transparent;
-      backdrop-filter: blur(0px);
-      -webkit-backdrop-filter: blur(0px);
-      border-bottom: 1px solid transparent;
-      transition: padding 0.32s cubic-bezier(0.32,0.72,0,1),
-                  background 0.28s ease,
-                  backdrop-filter 0.28s ease,
-                  -webkit-backdrop-filter 0.28s ease,
-                  border-color 0.28s ease;
-    }
-    .page-head.collapsed {
-      padding: calc(env(safe-area-inset-top,0px) + 10px) 20px 10px;
-      background: rgba(240,235,228,0.88);
-      backdrop-filter: blur(20px) saturate(1.5);
-      -webkit-backdrop-filter: blur(20px) saturate(1.5);
-      border-color: rgba(30,38,67,0.09);
-    }
-    .page-title {
-      font-family: 'Newsreader', serif; font-size: 30px; font-weight: 700;
-      color: #000; line-height: 1.15; margin: 0;
-      transition: font-size 0.32s cubic-bezier(0.32,0.72,0,1);
-    }
-    .page-head.collapsed .page-title { font-size: 17px; }
-    .page-sub {
-      color: #777; font-size: 14px; margin: 5px 0 0;
-      overflow: hidden; max-height: 40px; opacity: 1;
-      transition: max-height 0.3s cubic-bezier(0.32,0.72,0,1),
-                  opacity 0.2s ease, margin-top 0.3s;
-    }
-    .page-head.collapsed .page-sub { max-height: 0; opacity: 0; margin-top: 0; }
-    .page-head-sentinel { height: 0; }
-    @media (prefers-reduced-motion: reduce) {
-      .page-head { transition: background 0.15s ease, border-color 0.15s ease; }
-      .page-title { transition: none; }
-      .page-sub { transition: opacity 0.15s ease; }
-    }
+    /* ── Page header ──────────────────────────────────── */
+    .page-head { padding: 52px 20px 4px; }
+    .page-title { font-family: 'Newsreader', serif; font-size: 30px; font-weight: 700; color: #000; line-height: 1.15; margin: 0; }
+    .page-sub { color: #777; font-size: 14px; margin: 5px 0 0; }
 
     /* ── Section label ────────────────────────────────── */
     .sec-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.2px; color: #888; }
