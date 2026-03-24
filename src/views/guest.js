@@ -425,14 +425,12 @@ export function renderMyBookings(container, { session }) {
       ${pageHead('My Bookings')}
 
       <!-- Filter pills -->
-      <div class="sticky-filter-row">
-        <div class="sx" style="display:flex;gap:8px;">
+      <div class="sx" style="display:flex;gap:8px;padding:0 20px 20px;">
         ${['upcoming','past','cancelled','all'].map(f =>
           `<button class="pill-filter${filter===f?' active':''}" data-filter="${f}" style="white-space:nowrap;">
             ${f.charAt(0).toUpperCase()+f.slice(1)}
           </button>`
         ).join('')}
-        </div>
       </div>
 
       <!-- Bookings list -->
