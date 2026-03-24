@@ -165,16 +165,16 @@ export function closeModal(id) {
 export function pageHead(title, subtitle = '', backHref = null) {
   const trailing = window.__snowPageTrailing || '';
   return `
-    <div class="page-head" style="display:flex;align-items:flex-start;gap:10px;">
-      ${backHref ? `
-        <a href="#${backHref}" style="flex-shrink:0;margin-top:4px;padding:6px;background:rgba(30,38,67,0.07);border-radius:999px;display:inline-flex;color:#1E2643;text-decoration:none;" aria-label="Back">
-          ${iBack()}
-        </a>` : ''}
-      <div style="flex:1;">
-        <h1 class="page-title">${title}</h1>
-        ${subtitle ? `<p class="page-sub">${subtitle}</p>` : ''}
+    <div class="page-head">
+      <div style="display:flex;align-items:flex-end;gap:10px;">
+        ${backHref ? `
+          <a href="#${backHref}" style="flex-shrink:0;margin-bottom:2px;padding:6px;background:rgba(30,38,67,0.07);border-radius:999px;display:inline-flex;color:#1E2643;text-decoration:none;" aria-label="Back">
+            ${iBack()}
+          </a>` : ''}
+        <h1 class="page-title" style="flex:1;">${title}</h1>
+        ${trailing}
       </div>
-      ${trailing}
+      ${subtitle ? `<p class="page-sub">${subtitle}</p>` : ''}
     </div>`;
 }
 
