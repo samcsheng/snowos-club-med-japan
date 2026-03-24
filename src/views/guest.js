@@ -535,11 +535,11 @@ function _bookingCard(b, today) {
           background:rgba(253,190,0,0.08);border:none;cursor:pointer;color:#875700;
           font-size:14px;font-weight:600;font-family:'Inter',sans-serif;text-align:left;">
           <span style="display:flex;align-items:center;gap:8px;">
-            ${iClipboard()} Submit lesson report
+            ${iClipboard()} Check lesson report
           </span>
           <span style="display:flex;align-items:center;gap:6px;min-width:0;flex-shrink:0;">
             <span style="font-size:12px;font-weight:700;letter-spacing:0.02em;text-transform:uppercase;
-              color:#1E2643;background:rgba(30,38,67,0.10);padding:5px 8px;border-radius:999px;">
+              color:#000;background:#FDBE00;padding:5px 8px;border-radius:999px;box-shadow:inset 0 0 0 1px rgba(0,0,0,0.06);">
               ${nextClassLabel}
             </span>
           </span>
@@ -619,17 +619,18 @@ function _openReportCardModal(booking) {
       </div>
 
       <div class="glass" style="padding:16px;border-radius:12px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           <div style="font-size:12px;color:#888;">Recommended Next Class</div>
           ${nextClassLabel ? `
             <div style="font-size:12px;font-weight:700;letter-spacing:0.02em;text-transform:uppercase;
-              color:#1E2643;background:rgba(30,38,67,0.10);padding:5px 8px;border-radius:999px;">
+              color:#000;background:#FDBE00;padding:5px 8px;border-radius:999px;box-shadow:inset 0 0 0 1px rgba(0,0,0,0.06);">
               ${nextClassLabel}
             </div>` : ''}
         </div>
-        <div style="font-size:14px;color:#000;line-height:1.5;">
-          ${nextClassLabel || 'No next class recommendation yet.'}
-        </div>
+        ${!nextClassLabel ? `
+          <div style="font-size:14px;color:#000;line-height:1.5;margin-top:8px;">
+            No next class recommendation yet.
+          </div>` : ''}
       </div>
 
       <div class="glass" style="padding:16px;border-radius:12px;">
