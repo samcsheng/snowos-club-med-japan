@@ -186,7 +186,8 @@ export function pageHead(title, subtitle = '', backHref = null) {
         <h1 class="page-title" style="flex:1;">${title}</h1>
       </div>
       ${subtitle ? `<p class="page-sub">${subtitle}</p>` : ''}
-    </div>`;
+    </div>
+    <div style="height:28px;"></div>`;
 }
 
 
