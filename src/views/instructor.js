@@ -207,16 +207,21 @@ function _instructorLessonCard(lesson) {
 
 // ── Instructor Lesson Detail Modal ────────────────────────────────────────────
 function _openInstructorLessonModal(lesson, session, onReportSuccess = null) {
-  const tmpl  = getTemplate(lesson.templateId);
-  const report = DB.getReportByLesson(lesson.id);
-  const bkgs  = DB.getConfirmedByLesson(lesson.id);
-  const guests = bkgs.map(b => ({ ...b, guest: DB.getUserById(b.guestId) }));
+  const tmpl       = getTemplate(lesson.templateId);
+  const report     = DB.getReportByLesson(lesson.id);
+  const bkgs       = DB.getConfirmedByLesson(lesson.id);
+  const guests     = bkgs.map(b => ({ ...b, guest: DB.getUserById(b.guestId) }));
   const needsReport = lesson.status === 'completed' && !report;
-  const spotsLabel = tmpl ? `${guests.length} of ${tmpl.maxGuests} spots filled` : null;
+  const spotsLabel  = tmpl ? `${guests.length} of ${tmpl.maxGuests} spots filled` : null;
+
+  // Label lookup maps (TERRAINS/SKILLS defined later in module, available at call time)
+  const terrainLabels = Object.fromEntries(TERRAINS.map(t => [t.id, t.label]));
+  const skillLabels   = Object.fromEntries(SKILLS.map(s => [s.id, s.label]));
 
   openModal('instructor-lesson-detail', tmpl ? tmpl.name : lesson.id, `
     <div style="display:flex;flex-direction:column;gap:16px;">
 
+      <!-- Lesson info -->
       <div class="glass" style="padding:16px;border-radius:14px;">
         <div style="display:flex;flex-direction:column;gap:12px;">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
@@ -243,19 +248,68 @@ function _openInstructorLessonModal(lesson, session, onReportSuccess = null) {
         </div>
       </div>
 
+      <!-- Guests (with per-guest report button when report exists) -->
       ${guests.length > 0 ? `
       <div>
-        <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#8A6B53;margin-bottom:10px;">Guests</div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
+          color:#8A6B53;margin-bottom:10px;">Guests</div>
         <div class="glass" style="border-radius:14px;overflow:hidden;">
-          ${guests.map((b, i) => `
-            <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;
-              ${i > 0 ? 'border-top:1px solid rgba(30,38,67,0.06);' : ''}">
-              ${av((b.guest?.name ?? '?').slice(0,2))}
-              <div style="font-weight:600;font-size:14px;color:#000;">${b.guest?.name ?? 'Guest'}</div>
-            </div>`).join('')}
+          ${guests.map((b, i) => {
+            const gr = report?.guestReports?.find(g => g.guestId === b.guestId);
+            return `
+              <div style="display:flex;align-items:center;gap:12px;padding:11px 16px;
+                ${i > 0 ? 'border-top:1px solid rgba(30,38,67,0.06);' : ''}">
+                ${av((b.guest?.name ?? '?').slice(0, 2))}
+                <div style="flex:1;font-weight:600;font-size:14px;color:#000;">${b.guest?.name ?? 'Guest'}</div>
+                ${gr ? `
+                  <button data-guest-report="${b.guestId}"
+                    style="font-size:12px;font-weight:600;color:#1E2643;
+                    background:var(--bg-section-soft);border:1px solid var(--line-soft);
+                    border-radius:999px;padding:5px 12px;cursor:pointer;
+                    font-family:'Inter',sans-serif;flex-shrink:0;white-space:nowrap;">
+                    Report ${iChevR()}
+                  </button>` : ''}
+              </div>`;
+          }).join('')}
         </div>
       </div>` : ''}
 
+      <!-- Lesson Report: terrain + skills pills -->
+      ${report ? `
+      <div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
+          color:#8A6B53;margin-bottom:10px;">Lesson Report</div>
+        <div class="glass" style="padding:14px 16px;border-radius:14px;display:flex;flex-direction:column;gap:12px;">
+          ${report.terrains?.length > 0 ? `
+          <div>
+            <div style="font-size:11px;color:#888;font-weight:600;letter-spacing:0.05em;
+              text-transform:uppercase;margin-bottom:7px;">Terrain</div>
+            <div style="display:flex;flex-wrap:wrap;gap:5px;">
+              ${report.terrains.map(t => `
+                <span style="font-size:12px;font-weight:500;color:#1E2643;
+                  background:rgba(30,38,67,0.07);border:1px solid rgba(30,38,67,0.1);
+                  border-radius:999px;padding:3px 10px;">${terrainLabels[t] ?? t}</span>`).join('')}
+            </div>
+          </div>` : ''}
+          ${report.skills?.length > 0 ? `
+          <div>
+            <div style="font-size:11px;color:#888;font-weight:600;letter-spacing:0.05em;
+              text-transform:uppercase;margin-bottom:7px;">Skills</div>
+            <div style="display:flex;flex-wrap:wrap;gap:5px;">
+              ${report.skills.map(s => `
+                <span style="font-size:12px;font-weight:500;color:#5b3fa0;
+                  background:rgba(91,63,160,0.07);border:1px solid rgba(91,63,160,0.11);
+                  border-radius:999px;padding:3px 10px;">${skillLabels[s] ?? s}</span>`).join('')}
+            </div>
+          </div>` : ''}
+          <div style="padding-top:2px;border-top:1px solid rgba(30,38,67,0.06);
+            font-size:12px;color:#888;display:flex;align-items:center;gap:5px;">
+            ${iCheck()} Submitted ${new Date(report.submittedAt).toLocaleDateString()}
+          </div>
+        </div>
+      </div>` : ''}
+
+      <!-- CTA: submit report / pending state -->
       ${needsReport ? `
       <button id="modal-report-btn"
         style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;width:100%;
@@ -263,19 +317,62 @@ function _openInstructorLessonModal(lesson, session, onReportSuccess = null) {
         font-size:14px;font-weight:600;font-family:'Inter',sans-serif;text-align:left;">
         <span style="display:flex;align-items:center;gap:8px;">${iClipboard()} Submit lesson report</span>
         <span style="color:#B07A00;">${iChevR()}</span>
-      </button>` : report ? `
-      <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;
-        background:var(--bg-success-soft);border-radius:14px;color:#076b1a;font-size:14px;font-weight:500;">
-        ${iCheck()} Report submitted on ${new Date(report.submittedAt).toLocaleDateString()}
-      </div>` : ''}
+      </button>` : ''}
 
     </div>
   `);
+
+  // Guest report drill-down buttons
+  const modalBody = document.getElementById('modal-instructor-lesson-detail-body');
+  modalBody?.querySelectorAll('[data-guest-report]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const gr    = report?.guestReports?.find(g => g.guestId === btn.dataset.guestReport);
+      const guest = DB.getUserById(btn.dataset.guestReport);
+      if (gr && guest) _openGuestReportModal(guest, gr);
+    });
+  });
 
   document.getElementById('modal-report-btn')?.addEventListener('click', () => {
     closeModal('instructor-lesson-detail');
     openReportModal(lesson, session, onReportSuccess);
   });
+}
+
+// ── Per-guest report detail modal ─────────────────────────────────────────────
+function _openGuestReportModal(guest, gr) {
+  const nextTemplate = gr.nextClass ? getTemplate(gr.nextClass) : null;
+  const attColors = { AM: '#e6ebfb,#1E2643', PM: '#e6ebfb,#1E2643', BOTH: '#dcf5e2,#076b1a' };
+  const [attBg, attColor] = (attColors[gr.attendance] ?? attColors.BOTH).split(',');
+
+  openModal('guest-report-detail', guest.name, `
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div class="glass" style="padding:16px;border-radius:14px;">
+        <div style="display:flex;flex-direction:column;gap:11px;">
+
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+            <span style="font-size:13px;color:#888;">Attendance</span>
+            <span style="font-size:12px;font-weight:700;padding:4px 12px;border-radius:999px;
+              background:${attBg};color:${attColor};">${gr.attendance}</span>
+          </div>
+
+          ${nextTemplate ? `
+          <div class="div"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+            <span style="font-size:13px;color:#888;">Recommended next</span>
+            <span style="font-weight:600;font-size:14px;color:#000;">${nextTemplate.name}</span>
+          </div>` : ''}
+
+          ${gr.notes ? `
+          <div class="div"></div>
+          <div>
+            <div style="font-size:13px;color:#888;margin-bottom:6px;">Notes</div>
+            <div style="font-size:14px;color:#000;line-height:1.55;">${gr.notes}</div>
+          </div>` : ''}
+
+        </div>
+      </div>
+    </div>
+  `);
 }
 
 // ── My Schedule ───────────────────────────────────────────────────────────────
