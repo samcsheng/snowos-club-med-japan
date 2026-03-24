@@ -48,6 +48,9 @@
 	      --bg-card-strong: rgba(252, 248, 242, 0.9);
 	      --bg-section: rgba(246, 239, 231, 0.92);
 	      --bg-section-soft: rgba(246, 239, 231, 0.74);
+	      --bg-tile: rgba(237, 230, 220, 0.92);
+	      --bg-action-soft: rgba(255, 248, 236, 0.9);
+	      --bg-success-soft: rgba(230, 242, 233, 0.9);
 	      --line-soft: rgba(98, 82, 66, 0.12);
 	      --line-strong: rgba(98, 82, 66, 0.18);
 	      --text-main: #1f2435;
@@ -203,13 +206,13 @@
     .btn-outline { background: transparent; color: #1E2643; border: 1.5px solid #1E2643; border-radius: 999px; }
     .btn-danger { background: #BF2F17; color: #fff; border-radius: 999px; }
     .btn-danger:hover { background: #a82713; }
-    .btn-white  { background: rgba(255,255,255,0.7); color: #1E2643; border: 1px solid rgba(255,255,255,0.9); border-radius: 999px; }
+    .btn-white  { background: rgba(250,245,238,0.86); color: #1E2643; border: 1px solid rgba(255,255,255,0.76); border-radius: 999px; }
     .btn-lg { padding: 14px 28px; font-size: 16px; }
     .btn-md { padding: 10px 22px; font-size: 14px; }
     .btn-sm { padding: 7px 16px; font-size: 13px; }
     .btn-xs { padding: 5px 12px; font-size: 12px; }
     .btn-full { width: 100%; }
-    .btn-icon { padding: 9px; border-radius: 999px; background: rgba(30,38,67,0.07); border: none; color: #1E2643; }
+    .btn-icon { padding: 9px; border-radius: 999px; background: var(--bg-section-soft); border: 1px solid var(--line-soft); color: #1E2643; }
 
     /* ── Inputs ───────────────────────────────────────── */
     .field-label {
@@ -286,11 +289,12 @@
 	    }
 
     /* ── Avatar ───────────────────────────────────────── */
-    .av {
-      display: inline-flex; align-items: center; justify-content: center;
-      background: rgba(30,38,67,0.12); color: #1E2643; font-weight: 600; font-family: 'Inter', sans-serif;
-      border-radius: 50%; flex-shrink: 0; letter-spacing: -0.5px;
-    }
+	    .av {
+	      display: inline-flex; align-items: center; justify-content: center;
+	      background: linear-gradient(180deg, rgba(255,255,255,0.34), rgba(255,255,255,0.08)), var(--bg-tile);
+	      color: #1E2643; font-weight: 600; font-family: 'Inter', sans-serif;
+	      border-radius: 50%; flex-shrink: 0; letter-spacing: -0.5px;
+	    }
     .av-lg { width: 52px; height: 52px; font-size: 18px; }
     .av-md { width: 40px; height: 40px; font-size: 14px; }
     .av-sm { width: 32px; height: 32px; font-size: 11px; }
@@ -315,7 +319,7 @@
       padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
     }
     .modal-handle-wrap { display: flex; justify-content: center; padding: 12px 0 4px; }
-    .modal-handle { width: 36px; height: 4px; background: rgba(30,38,67,0.15); border-radius: 2px; }
+    .modal-handle { width: 36px; height: 4px; background: rgba(116,99,82,0.24); border-radius: 2px; }
     @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
@@ -432,29 +436,32 @@
 	    .empty-body  { color: var(--text-muted); font-size: 14px; line-height: 1.55; }
 
     /* ── Error box ────────────────────────────────────── */
-    .err-box { background: #fde8e4; border: 1px solid #f5c6c0; border-radius: 8px; padding: 12px 14px; color: #992414; font-size: 14px; }
+    .err-box { background: rgba(253,232,228,0.92); border: 1px solid rgba(191,47,23,0.16); border-radius: 8px; padding: 12px 14px; color: #992414; font-size: 14px; }
 
     /* ── Stat card ────────────────────────────────────── */
     .stat-num { font-family: 'Newsreader', serif; font-size: 38px; font-weight: 700; color: #FDBE00; line-height: 1; }
-    .stat-lbl  { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: #888; margin-top: 4px; }
+    .stat-lbl  { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: #85786f; margin-top: 4px; }
 
     /* ── Splash ───────────────────────────────────────── */
     #splash {
       position: fixed; inset: 0; z-index: 999;
       display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
-      background: linear-gradient(150deg, #F6EFE7 0%, #EAECf6 45%, #D9D4EC 100%);
+      background:
+        radial-gradient(circle at top left, rgba(253,190,0,0.18), transparent 30%),
+        radial-gradient(circle at top right, rgba(172,190,185,0.18), transparent 28%),
+        linear-gradient(160deg, #f8f2e8 0%, #f4ede5 42%, #eee7dc 100%);
       transition: opacity 0.4s ease;
     }
     #splash .s-logo  { font-family: 'Newsreader', serif; font-size: 76px; font-weight: 800; color: #1E2643; line-height: 1; }
     #splash .s-brand { font-family: 'Newsreader', serif; font-size: 22px; font-weight: 600; color: #1E2643; }
-    #splash .s-sub   { font-size: 11px; color: #999; letter-spacing: 1.8px; text-transform: uppercase; margin-top: 4px; }
+    #splash .s-sub   { font-size: 11px; color: #7f756d; letter-spacing: 1.8px; text-transform: uppercase; margin-top: 4px; }
 
     /* ── Card row ─────────────────────────────────────── */
     .card-row {
       display: flex; align-items: center; gap: 12px; padding: 14px 16px;
       cursor: pointer; transition: background 0.12s; -webkit-tap-highlight-color: transparent;
     }
-    .card-row:active { background: rgba(30,38,67,0.03); }
+    .card-row:active { background: rgba(246,239,231,0.78); }
     .book-lesson-card {
       transform-origin: center bottom;
       transition:
@@ -464,7 +471,7 @@
     }
     .book-lesson-card:active {
       transform: scale(0.985);
-      box-shadow: 0 12px 28px rgba(30,38,67,0.12);
+      box-shadow: 0 12px 28px rgba(56,44,31,0.12);
     }
     .book-summary-card {
       border-radius: 16px;
@@ -488,7 +495,7 @@
     /* ── Progress timeline ────────────────────────────── */
     .timeline-item { display: flex; gap: 12px; padding: 14px 0; }
     .timeline-dot  { width: 10px; height: 10px; border-radius: 50%; background: #1E2643; margin-top: 5px; flex-shrink: 0; }
-    .timeline-line { width: 1px; background: rgba(30,38,67,0.1); margin: 0 4.5px; flex-shrink: 0; }
+    .timeline-line { width: 1px; background: var(--line-soft); margin: 0 4.5px; flex-shrink: 0; }
 
     /* ── Page fade ────────────────────────────────────── */
     @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }

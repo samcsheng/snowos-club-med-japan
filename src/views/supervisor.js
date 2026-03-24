@@ -31,20 +31,20 @@ export function renderSupervisorDashboard(container, { session }) {
     ${pageHead('Overview', fmtDateLong(today))}
 
     <!-- Stats row -->
-    <div style="padding:8px 20px 20px;display:flex;gap:10px;">
-      <div class="glass" style="flex:1;padding:16px 10px;text-align:center;">
-        <div class="stat-num">${todayLes.length}</div>
-        <div class="stat-lbl">Sessions</div>
-      </div>
-      <div class="glass${unassigned>0?' ':''}${unassigned>0?'':''}" style="flex:1;padding:16px 10px;text-align:center;
-        ${unassigned>0?'border:1.5px solid rgba(199,83,0,0.25);background:rgba(255,240,220,0.6);':''}">
-        <div class="stat-num" style="${unassigned>0?'color:#C75300;':''}">${unassigned}</div>
-        <div class="stat-lbl">Unassigned</div>
-      </div>
-      <div class="glass" style="flex:1;padding:16px 10px;text-align:center;
-        ${pendingRep>0?'border:1.5px solid rgba(199,83,0,0.2);background:rgba(255,240,220,0.5);':''}">
-        <div class="stat-num" style="${pendingRep>0?'color:#C75300;':''}">${pendingRep}</div>
-        <div class="stat-lbl">Pending Rep.</div>
+      <div style="padding:8px 20px 20px;display:flex;gap:10px;">
+        <div class="glass-strong" style="flex:1;padding:16px 10px;text-align:center;">
+          <div class="stat-num">${todayLes.length}</div>
+          <div class="stat-lbl">Sessions</div>
+        </div>
+        <div class="glass-strong${unassigned>0?' ':''}${unassigned>0?'':''}" style="flex:1;padding:16px 10px;text-align:center;
+          ${unassigned>0?'border:1.5px solid rgba(199,83,0,0.25);background:rgba(255,240,220,0.6);':''}">
+          <div class="stat-num" style="${unassigned>0?'color:#C75300;':''}">${unassigned}</div>
+          <div class="stat-lbl">Unassigned</div>
+        </div>
+        <div class="glass-strong" style="flex:1;padding:16px 10px;text-align:center;
+          ${pendingRep>0?'border:1.5px solid rgba(199,83,0,0.2);background:rgba(255,240,220,0.5);':''}">
+          <div class="stat-num" style="${pendingRep>0?'color:#C75300;':''}">${pendingRep}</div>
+          <div class="stat-lbl">Pending Rep.</div>
       </div>
     </div>
 
@@ -55,14 +55,14 @@ export function renderSupervisorDashboard(container, { session }) {
         { href:'/supervisor/bookings',    icon: iCalendar(),  label:'View All Bookings',    sub:`${DB.getBookings().filter(b=>b.status==='confirmed').length} confirmed` },
         { href:'/supervisor/instructors', icon: iPeople(),    label:'Manage Instructors',   sub:`${DB.getInstructors().length} instructors` },
       ].map(a => `
-        <a href="#${a.href}" class="glass card-row" style="text-decoration:none;border-radius:12px;">
-          <div style="width:40px;height:40px;background:rgba(30,38,67,0.08);border-radius:10px;
+        <a href="#${a.href}" class="glass-strong card-row" style="text-decoration:none;border-radius:12px;">
+          <div style="width:40px;height:40px;background:var(--bg-tile);border-radius:10px;
             display:flex;align-items:center;justify-content:center;color:#1E2643;flex-shrink:0;">
             ${a.icon}
           </div>
           <div style="flex:1;">
             <div style="font-weight:600;font-size:15px;color:#000;">${a.label}</div>
-            <div style="font-size:13px;color:#888;margin-top:2px;">${a.sub}</div>
+            <div style="font-size:13px;color:#6b625d;margin-top:2px;">${a.sub}</div>
           </div>
           <div style="color:#AAA;">${iChevR()}</div>
         </a>`).join('')}
@@ -71,8 +71,8 @@ export function renderSupervisorDashboard(container, { session }) {
     <!-- Unassigned sessions alert -->
     ${unassigned > 0 ? `
     <div style="padding:0 12px 20px;">
-      <div class="glass" style="padding:16px;border:1.5px solid rgba(199,83,0,0.25);
-        background:rgba(255,245,235,0.7);">
+      <div class="glass-strong" style="padding:16px;border:1.5px solid rgba(199,83,0,0.25);
+        background:var(--bg-action-soft);">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
           ${iWarn()}
           <div style="font-weight:600;color:#875700;">
@@ -100,7 +100,7 @@ export function renderSupervisorDashboard(container, { session }) {
       ${recentBkgs.length === 0
         ? emptyState('📋','No bookings yet','')
         : recentBkgs.map(b => `
-          <div class="glass" style="display:flex;align-items:center;gap:10px;
+          <div class="glass-strong" style="display:flex;align-items:center;gap:10px;
             padding:12px 14px;border-radius:12px;">
             ${av(b.guest?.avatar, 'sm')}
             <div style="flex:1;min-width:0;">
@@ -108,7 +108,7 @@ export function renderSupervisorDashboard(container, { session }) {
                 white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                 ${b.guest?.name ?? 'Guest'}
               </div>
-              <div style="font-size:12px;color:#888;">
+              <div style="font-size:12px;color:#6b625d;">
                 ${b.lesson ? getTemplate(b.lesson.templateId)?.name ?? '' : ''}
                 · ${b.lesson ? fmtDate(b.lesson.date) : ''}
               </div>
@@ -165,7 +165,7 @@ export function renderAllBookings(container, { session }) {
       <div style="padding:0 20px 8px;display:flex;align-items:center;justify-content:space-between;">
         ${secLabel(`${all.length} booking${all.length!==1?'s':''}`)}
         <button id="clear-date" style="background:none;border:none;cursor:pointer;
-          font-size:12px;color:#888;font-family:'Inter',sans-serif;">
+          font-size:12px;color:#6b625d;font-family:'Inter',sans-serif;">
           ${dateFilter ? 'Clear date ×' : ''}
         </button>
       </div>
@@ -178,7 +178,7 @@ export function renderAllBookings(container, { session }) {
             const tmpl = b.lesson ? getTemplate(b.lesson.templateId) : null;
             const inst = b.lesson?.instructorId ? DB.getUserById(b.lesson.instructorId) : null;
             return `
-              <div class="glass" style="border-radius:12px;overflow:hidden;">
+              <div class="glass-strong" style="border-radius:12px;overflow:hidden;">
                 <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;">
                   ${av(b.guest?.avatar, 'md')}
                   <div style="flex:1;min-width:0;">
@@ -194,7 +194,7 @@ export function renderAllBookings(container, { session }) {
                   ${statusBadge(bookingDisplayStatus(b, b.lesson))}
                 </div>
                 <div class="div"></div>
-                <div style="padding:10px 16px;font-size:12px;color:#888;
+                <div style="padding:10px 16px;font-size:12px;color:#6b625d;
                   display:flex;gap:16px;flex-wrap:wrap;">
                   <span>Instructor: ${inst?.name ?? 'TBD'}</span>
                   <span>${tmpl ? lessonTimes(tmpl) : ''}</span>
@@ -246,7 +246,7 @@ export function renderInstructorMgmt(container, { session }) {
             const totalBkgs = DB.getLessonsByInstructor(inst.id)
               .reduce((s,l) => s + DB.getConfirmedByLesson(l.id).length, 0);
             return `
-              <div class="glass" style="border-radius:12px;overflow:hidden;">
+              <div class="glass-strong" style="border-radius:14px;overflow:hidden;">
                 <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;">
                   ${av(inst.avatar, 'md')}
                   <div style="flex:1;">
@@ -382,12 +382,12 @@ export function renderAssign(container, { params, session }) {
 
       <!-- Lesson summary -->
       <div style="padding:0 20px 20px;">
-        <div class="glass" style="padding:16px;">
+        <div class="glass-strong" style="padding:16px;">
           <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
             ${statusBadge(lesson.status)}
             ${tmpl ? `<span class="badge badge-${tmpl.sport}">${tmpl.sport==='ski'?'⛷':'🏂'} ${tmpl.sport}</span>` : ''}
           </div>
-          <div style="font-size:13px;color:#888;">
+          <div style="font-size:13px;color:#6b625d;">
             ${tmpl ? lessonTimes(tmpl) : '—'}
             &nbsp;·&nbsp;
             ${DB.getConfirmedByLesson(lesson.id).length} / ${tmpl?.maxGuests ?? '—'} guests booked
@@ -410,7 +410,7 @@ export function renderAssign(container, { params, session }) {
           const dayLoad = DB.getLessonsByInstructor(inst.id).filter(l => l.date === today).length;
           const isCurrent = lesson.instructorId === inst.id;
           return `
-            <div class="glass" style="display:flex;align-items:center;gap:12px;
+            <div class="glass-strong" style="display:flex;align-items:center;gap:12px;
               padding:14px 16px;border-radius:12px;
               ${isCurrent?'border:1.5px solid rgba(8,138,32,0.3);background:rgba(220,245,226,0.5);':''}">
               ${av(inst.avatar, 'md')}

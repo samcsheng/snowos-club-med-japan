@@ -134,7 +134,7 @@ function _lessonCard(booking) {
     <div class="glass card-row" style="border-radius:12px;cursor:default;">
       ${_lessonDateTile(lesson.date, isToday
         ? {}
-        : { background: 'rgba(30,38,67,0.08)', monthColor: '#888', dayColor: '#1E2643' })}
+        : { background: 'var(--bg-tile)', monthColor: '#7f756d', dayColor: '#1E2643' })}
       <div style="flex:1;min-width:0;">
         <div style="font-weight:600;font-size:15px;color:#000;white-space:nowrap;
           overflow:hidden;text-overflow:ellipsis;">
@@ -183,7 +183,7 @@ function _renderWizardStep(container, ctx) {
     const backBtn = document.createElement('button');
     backBtn.id = 'wiz-back';
     backBtn.type = 'button';
-    backBtn.style.cssText = 'flex-shrink:0;margin-bottom:2px;padding:6px;background:rgba(30,38,67,0.07);border-radius:999px;display:inline-flex;color:#1E2643;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent;';
+    backBtn.style.cssText = 'flex-shrink:0;margin-bottom:2px;padding:6px;background:var(--bg-section-soft);border:1px solid var(--line-soft);border-radius:999px;display:inline-flex;color:#1E2643;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent;';
     backBtn.innerHTML = iBack();
     titleRow.prepend(backBtn);
     wrap.querySelector('#wiz-back').addEventListener('click', () => {
@@ -232,7 +232,7 @@ function _step1(body, container, ctx) {
           return `
             <div class="glass card-row book-lesson-card" style="border-radius:12px;${!hasSlots ? 'opacity:0.5;cursor:default;' : ''}"
               data-tmpl="${t.id}">
-              <div style="flex-shrink:0;width:44px;height:44px;background:rgba(30,38,67,0.08);
+              <div style="flex-shrink:0;width:44px;height:44px;background:var(--bg-tile);
                 border-radius:10px;display:flex;align-items:center;justify-content:center;
                 font-family:'Newsreader',serif;font-size:17px;font-weight:800;color:#1E2643;">
                 ${t.id}
@@ -267,7 +267,10 @@ function _step1(body, container, ctx) {
   }
 
   body.innerHTML = `
-    <div style="margin-bottom:20px;">
+    <div class="glass" style="margin-bottom:20px;padding:14px 16px;border-radius:16px;background:var(--bg-section);">
+      <div style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#8A6B53;margin-bottom:10px;">
+        Pick your lesson day
+      </div>
       <div class="sx" style="display:flex;gap:8px;padding:4px 0;">
         ${chips.map(d => {
           const ds  = isoDate(d);
@@ -289,7 +292,7 @@ function _step1(body, container, ctx) {
     <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
       <button class="pill-filter${wiz.sport === 'ski' ? ' active' : ''}" data-sport="ski">⛷ Ski</button>
       <button class="pill-filter${wiz.sport === 'snowboard' ? ' active' : ''}" data-sport="snowboard">🏂 Snowboard</button>
-      <div style="width:1px;background:rgba(0,0,0,0.12);align-self:stretch;margin:0 2px;"></div>
+      <div style="width:1px;background:var(--line-soft);align-self:stretch;margin:0 2px;"></div>
       <button class="pill-filter${wiz.audience === 'adult' ? ' active' : ''}" data-audience="adult">Adult</button>
       <button class="pill-filter${wiz.audience === 'kids' ? ' active' : ''}" data-audience="kids">Kids</button>
     </div>
@@ -372,7 +375,7 @@ function _step2(body, container, ctx) {
     </div>
 
     ${existing ? `
-      <div style="background:#fff0cc;border:1px solid #FDBE00;border-radius:8px;padding:12px 14px;
+      <div style="background:var(--bg-action-soft);border:1px solid rgba(253,190,0,0.46);border-radius:8px;padding:12px 14px;
         color:#875700;font-size:14px;margin-bottom:16px;">
         ${iWarn()} You already have a booking for this lesson.
       </div>` : ''}
@@ -504,7 +507,7 @@ function _bookingCard(b, today) {
         <!-- Date block -->
         ${_lessonDateTile(b.lesson?.date, isToday
           ? {}
-          : { background: 'rgba(30,38,67,0.08)', monthColor: '#888', dayColor: '#1E2643' })}
+          : { background: 'var(--bg-tile)', monthColor: '#7f756d', dayColor: '#1E2643' })}
         <!-- Info -->
         <div style="flex:1;min-width:0;">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -561,7 +564,7 @@ function _openBookingDetailModal(booking, onDone) {
         <div style="display:flex;align-items:flex-start;gap:14px;">
           ${_lessonDateTile(lesson.date, lesson.date === todayStr()
             ? { size: 54, radius: 14, monthSize: 10, daySize: 22, letterSpacing: 0.5 }
-            : { size: 54, radius: 14, monthSize: 10, daySize: 22, background: 'rgba(30,38,67,0.08)', monthColor: '#888', dayColor: '#1E2643', letterSpacing: 0.5 })}
+            : { size: 54, radius: 14, monthSize: 10, daySize: 22, background: 'var(--bg-tile)', monthColor: '#7f756d', dayColor: '#1E2643', letterSpacing: 0.5 })}
           <div style="flex:1;min-width:0;">
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
               <span style="font-family:'Newsreader',serif;font-size:24px;font-weight:700;color:#000;line-height:1.1;">
@@ -608,7 +611,7 @@ function _openBookingDetailModal(booking, onDone) {
         </button>` : ''}
 
       ${canCancel ? `
-        <div class="glass" style="padding:16px;border-radius:14px;background:rgba(246,239,231,0.88);">
+        <div class="glass" style="padding:16px;border-radius:14px;background:var(--bg-section);">
           <div style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#8A6B53;">
             Need to change plans?
           </div>
@@ -616,7 +619,7 @@ function _openBookingDetailModal(booking, onDone) {
             You can manage this booking here if your plans changed.
           </div>
           <button id="detail-cancel-booking" class="btn btn-ghost btn-md btn-full"
-            style="margin-top:14px;color:#8B3A2E;border-color:rgba(139,58,46,0.18);background:rgba(255,255,255,0.52);">
+            style="margin-top:14px;color:#8B3A2E;border-color:rgba(139,58,46,0.18);background:var(--bg-card-strong);">
             Cancel booking
           </button>
           <div id="detail-cancel-confirm"></div>
