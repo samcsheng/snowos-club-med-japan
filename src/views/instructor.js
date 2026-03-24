@@ -206,15 +206,15 @@ export function renderMySchedule(container, { session }) {
         </div>
 
         <!-- Fixed DOW row (always Sun–Sat since we snap to Sundays) -->
-        <div style="display:flex;margin-bottom:4px;">
+        <div style="display:flex;gap:3px;margin-bottom:4px;">
           ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(dow => `
-            <div class="date-chip-dow" style="width:var(--date-cell-w,calc((100vw - 72px)/7));
+            <div class="date-chip-dow" style="width:var(--date-cell-w,calc((100vw - 90px)/7));
               text-align:center;flex-shrink:0;">${dow}</div>
           `).join('')}
         </div>
 
         <!-- Horizontally scrollable date row, snaps to every Sunday -->
-        <div id="sched-date-row" class="sx" style="display:flex;scroll-snap-type:x mandatory;">
+        <div id="sched-date-row" class="sx" style="display:flex;gap:3px;scroll-snap-type:x mandatory;">
           ${dates.map(d => {
             const date = new Date(d + 'T00:00:00');
             const isSun  = date.getDay() === 0;
@@ -226,9 +226,9 @@ export function renderMySchedule(container, { session }) {
             return `
               <div class="sched-date-cell${isSel ? ' sel' : ''}${isToday && !isSel ? ' tod' : ''}"
                 data-date="${d}"
-                style="width:var(--date-cell-w,calc((100vw - 72px)/7));${isSun ? 'scroll-snap-align:start;' : ''}">
-                <div class="scd-num">${date.getDate()}</div>
+                style="width:var(--date-cell-w,calc((100vw - 90px)/7));${isSun ? 'scroll-snap-align:start;' : ''}">
                 <div class="scd-month-hint" style="${!isFirst ? 'visibility:hidden;' : ''}">${mon}</div>
+                <div class="scd-num">${date.getDate()}</div>
                 ${hasDot ? '<div class="scd-dot"></div>' : '<div style="height:8px;"></div>'}
               </div>`;
           }).join('')}
@@ -252,7 +252,7 @@ export function renderMySchedule(container, { session }) {
 
   // Set exact cell width from the scroll row's rendered width (no Math.floor — exact division)
   requestAnimationFrame(() => {
-    const cellW = dateRowEl.clientWidth / 7;
+    const cellW = (dateRowEl.clientWidth - 18) / 7; // 18 = 6 gaps × 3px
     container.style.setProperty('--date-cell-w', cellW + 'px');
     _scrollToSundayOf(today);
   });
