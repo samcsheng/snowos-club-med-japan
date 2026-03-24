@@ -494,8 +494,8 @@ function _bookingCard(b, today) {
             <span style="font-weight:600;font-size:15px;color:#000;">
               ${b.tmpl ? b.tmpl.name : b.lessonId}
             </span>
-            ${b.isNew ? `<span class="badge" style="background:#FDBE00;color:#000;">NEW</span>` : ''}
             ${statusBadge(displayStatus)}
+            ${b.isNew ? `<span class="badge" style="background:#E8F5E9;color:#1B5E20;">NEW</span>` : ''}
           </div>
           <div style="font-size:13px;color:#777;margin-top:4px;">
             ${b.tmpl ? lessonTimes(b.tmpl) : ''}
