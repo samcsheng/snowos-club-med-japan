@@ -21,6 +21,16 @@ export function renderGuestDashboard(container, { session }) {
   const upcoming    = confirmedFuture.filter(b => b.lesson.date > today).slice(0, 3);
   const hasAny      = todayLesson || upcoming.length > 0;
 
+  let todayLessonEnriched = null;
+  if (todayLesson) {
+    const lesson = todayLesson.lesson;
+    const tmpl = lesson ? getTemplate(lesson.templateId) : null;
+    const inst = lesson?.instructorId ? DB.getUserById(lesson.instructorId) : null;
+    const report = lesson ? DB.getReportByLesson(lesson.id) : null;
+    const guestReport = report?.guestReports?.find(gr => gr.guestId === session.id) ?? null;
+    todayLessonEnriched = { ...todayLesson, tmpl, inst, report, guestReport };
+  }
+
   container.innerHTML = `
     ${pageHead(`${greeting()},`, session.name.split(' ')[0])}
 
@@ -59,6 +69,13 @@ export function renderGuestDashboard(container, { session }) {
       </div>
     </div>
   `;
+
+  if (todayLessonEnriched) {
+    const todayCard = container.querySelector('[data-today-card]');
+    if (todayCard) {
+      todayCard.addEventListener('click', () => _openBookingDetailModal(todayLessonEnriched, () => renderGuestDashboard(container, { session })));
+    }
+  }
 }
 
 // ── Today's lesson card (expanded) ───────────────────────────────────────────
@@ -96,7 +113,7 @@ function _todayCard(booking) {
   const displayStatus = bookingDisplayStatus(booking, lesson);
 
   return `
-    <div class="glass" style="padding:22px;border-radius:16px;">
+    <div class="glass" data-today-card="${booking.id}" style="padding:22px;border-radius:16px;cursor:pointer;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
         <span class="badge badge-in-progress" style="font-size:12px;padding:5px 14px;">Today</span>
         ${statusBadge(displayStatus)}
