@@ -3,7 +3,7 @@ import { navigate } from '../app.js';
 import {
   toast, pageHead, statusBadge, levelBadge, sportBadge, av, secLabel,
   emptyState, fmtDate, fmtDateLong, todayStr, sessionTime,
-  tabBar, iCalendar, iChevR, iClipboard, iCheck,
+  tabBar, lessonTimes, iCalendar, iChevR, iClipboard, iCheck,
   iBack, iX, openModal,
 } from '../ui.js';
 
@@ -65,14 +65,10 @@ function _instructorLessonCard(lesson, instructorId) {
       <!-- Header row -->
       <a href="#/instructor/lesson/${lesson.id}" style="display:flex;align-items:center;
         gap:12px;padding:14px 16px;text-decoration:none;color:inherit;">
-        <div style="flex-shrink:0;width:44px;height:44px;
-          background:${lesson.session==='AM'?'rgba(253,190,0,0.15)':'rgba(30,38,67,0.08)'};
-          border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
-          <div style="font-size:11px;font-weight:700;color:${lesson.session==='AM'?'#875700':'#1E2643'};">
-            ${lesson.session}
-          </div>
-          <div style="font-size:11px;color:#888;margin-top:1px;">
-            ${tmpl ? (lesson.session==='AM' ? tmpl.amStart : tmpl.pmStart) : ''}
+        <div style="flex-shrink:0;width:44px;height:44px;background:rgba(30,38,67,0.08);
+          border-radius:10px;display:flex;align-items:center;justify-content:center;">
+          <div style="font-size:12px;font-weight:800;color:#1E2643;font-family:'Newsreader',serif;">
+            ${lesson.templateId}
           </div>
         </div>
         <div style="flex:1;">
@@ -238,12 +234,11 @@ export function renderLessonDetail(container, { params, session }) {
       <div class="glass" style="padding:18px 16px;">
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
           ${statusBadge(lesson.status)}
-          <span class="badge badge-${lesson.sport||'ski'}">${lesson.session} Session</span>
           ${tmpl ? `<span class="badge badge-${tmpl.sport}">${tmpl.sport==='ski'?'⛷ Ski':'🏂 Snowboard'}</span>` : ''}
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;">
-          <div><div style="color:#888;margin-bottom:2px;">Time</div>
-            <div style="font-weight:600;">${tmpl ? sessionTime(tmpl, lesson.session) : '—'}</div></div>
+          <div><div style="color:#888;margin-bottom:2px;">Schedule</div>
+            <div style="font-weight:600;">${tmpl ? lessonTimes(tmpl) : '—'}</div></div>
           <div><div style="color:#888;margin-bottom:2px;">Date</div>
             <div style="font-weight:600;">${fmtDate(lesson.date)}</div></div>
           <div><div style="color:#888;margin-bottom:2px;">Level</div>

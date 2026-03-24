@@ -5,7 +5,7 @@ export const KEYS = {
   BOOKINGS: 'snow_bookings',
   REPORTS:  'snow_reports',
   SESSION:  'snow_session',
-  SEEDED:   'snow_seeded_v2',
+  SEEDED:   'snow_seeded_v3',
 };
 
 // ── Generic helpers ──────────────────────────────────────────────────────────
@@ -200,23 +200,19 @@ function _doSeed() {
     const status  = isPast ? 'completed' : isToday ? 'in-progress' : 'scheduled';
 
     TEMPLATES.forEach((tmpl, ti) => {
-      ['AM', 'PM'].forEach(session => {
-        // Future: leave ~1-in-8 slots unassigned for supervisor demo
-        const slotIdx = ti * 2 + (session === 'PM' ? 1 : 0);
-        const isFuture = !isPast && !isToday;
-        const instructorId = (isFuture && slotIdx % 8 === 7)
-          ? null
-          : instIds[instRot % instIds.length];
-        instRot++;
+      // Future: leave ~1-in-8 slots unassigned for supervisor demo
+      const isFuture = !isPast && !isToday;
+      const instructorId = (isFuture && ti % 8 === 7)
+        ? null
+        : instIds[instRot % instIds.length];
+      instRot++;
 
-        lessons.push({
-          id:         `les-${tmpl.id}-${dateStr}-${session}`,
-          templateId: tmpl.id,
-          date:       dateStr,
-          session,
-          instructorId,
-          status,
-        });
+      lessons.push({
+        id:         `les-${tmpl.id}-${dateStr}`,
+        templateId: tmpl.id,
+        date:       dateStr,
+        instructorId,
+        status,
       });
     });
   }
@@ -230,17 +226,17 @@ function _doSeed() {
 
   const bookings = [
     // Sophie — past, today, future, cancelled
-    { id:'bkg-s1', guestId:'u-g1', lessonId:`les-C3-${past3}-AM`,    createdAt: new Date(today.getTime()-5*86400000).toISOString(), status:'confirmed' },
-    { id:'bkg-s2', guestId:'u-g1', lessonId:`les-CB-${todayStr}-AM`, createdAt: new Date(today.getTime()-1*86400000).toISOString(), status:'confirmed' },
-    { id:'bkg-s3', guestId:'u-g1', lessonId:`les-C3-${fut2}-PM`,     createdAt: new Date(today.getTime()-1*86400000).toISOString(), status:'confirmed' },
-    { id:'bkg-s4', guestId:'u-g1', lessonId:`les-C5-${fut4}-AM`,     createdAt: new Date(today.getTime()-2*86400000).toISOString(), status:'cancelled' },
+    { id:'bkg-s1', guestId:'u-g1', lessonId:`les-C3-${past3}`,    createdAt: new Date(today.getTime()-5*86400000).toISOString(), status:'confirmed' },
+    { id:'bkg-s2', guestId:'u-g1', lessonId:`les-CB-${todayStr}`, createdAt: new Date(today.getTime()-1*86400000).toISOString(), status:'confirmed' },
+    { id:'bkg-s3', guestId:'u-g1', lessonId:`les-C3-${fut2}`,     createdAt: new Date(today.getTime()-1*86400000).toISOString(), status:'confirmed' },
+    { id:'bkg-s4', guestId:'u-g1', lessonId:`les-C5-${fut4}`,     createdAt: new Date(today.getTime()-2*86400000).toISOString(), status:'cancelled' },
     // Tom — shares lessons with Sophie
-    { id:'bkg-t1', guestId:'u-g2', lessonId:`les-C3-${past3}-AM`,    createdAt: new Date(today.getTime()-5*86400000).toISOString(), status:'confirmed' },
-    { id:'bkg-t2', guestId:'u-g2', lessonId:`les-C3-${fut2}-PM`,     createdAt: new Date(today.getTime()-1*86400000).toISOString(), status:'confirmed' },
-    { id:'bkg-t3', guestId:'u-g2', lessonId:`les-C5-${todayStr}-AM`, createdAt: new Date(today.getTime()-1*86400000).toISOString(), status:'confirmed' },
+    { id:'bkg-t1', guestId:'u-g2', lessonId:`les-C3-${past3}`,    createdAt: new Date(today.getTime()-5*86400000).toISOString(), status:'confirmed' },
+    { id:'bkg-t2', guestId:'u-g2', lessonId:`les-C3-${fut2}`,     createdAt: new Date(today.getTime()-1*86400000).toISOString(), status:'confirmed' },
+    { id:'bkg-t3', guestId:'u-g2', lessonId:`les-C5-${todayStr}`, createdAt: new Date(today.getTime()-1*86400000).toISOString(), status:'confirmed' },
     // Yuki — snowboard
-    { id:'bkg-y1', guestId:'u-g3', lessonId:`les-S2-${past1}-PM`,    createdAt: new Date(today.getTime()-2*86400000).toISOString(), status:'confirmed' },
-    { id:'bkg-y2', guestId:'u-g3', lessonId:`les-S2-${fut2}-AM`,     createdAt: new Date(today.getTime()-1*86400000).toISOString(), status:'confirmed' },
+    { id:'bkg-y1', guestId:'u-g3', lessonId:`les-S2-${past1}`,    createdAt: new Date(today.getTime()-2*86400000).toISOString(), status:'confirmed' },
+    { id:'bkg-y2', guestId:'u-g3', lessonId:`les-S2-${fut2}`,     createdAt: new Date(today.getTime()-1*86400000).toISOString(), status:'confirmed' },
   ];
 
   // Background guests fill every lesson with 2–4 confirmed guests
@@ -269,7 +265,7 @@ function _doSeed() {
   // Explicit report for the Sophie/Tom lesson
   const reports = [{
     id: 'rpt-1',
-    lessonId:     `les-C3-${past3}-AM`,
+    lessonId:     `les-C3-${past3}`,
     instructorId: 'u-i1',
     terrains:     ['groomed', 'icy'],
     skills:       ['parallel-turns', 'edges', 'speed-control'],
@@ -281,7 +277,7 @@ function _doSeed() {
   }];
 
   lessons
-    .filter(l => l.status === 'completed' && l.id !== `les-C3-${past3}-AM`)
+    .filter(l => l.status === 'completed' && l.id !== `les-C3-${past3}`)
     .forEach((lesson, ri) => {
       if (ri % 5 === 4) return; // skip 20% → leaves "pending report" items for supervisor demo
       const lessonBkgs = bookings.filter(b => b.lessonId === lesson.id && b.status === 'confirmed');

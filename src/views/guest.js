@@ -3,7 +3,7 @@ import { navigate }   from '../app.js';
 import {
   toast, pageHead, statusBadge, levelBadge, sportBadge, av,
   secLabel, emptyState, fmtDate, fmtDateLong, todayStr,
-  greeting, sessionTime, iCalendar, iPlus, iChevR, iUser,
+  greeting, lessonTimes, iCalendar, iPlus, iChevR, iUser,
   iCheck, iWarn,
 } from '../ui.js';
 
@@ -93,7 +93,7 @@ function _todayCard(booking) {
         ${tmpl ? tmpl.name : lesson.templateId}
       </div>
       <div style="font-size:15px;color:#333;font-weight:500;margin-bottom:4px;">
-        ${lesson.session} Session &middot; ${tmpl ? sessionTime(tmpl, lesson.session) : ''}
+        ${tmpl ? lessonTimes(tmpl) : ''}
       </div>
       <div style="font-size:14px;color:#777;">
         ${inst ? `with ${inst.name}` : 'Instructor TBD'}
@@ -141,7 +141,7 @@ function _lessonCard(booking) {
           ${isToday ? '<span style="margin-left:6px;" class="badge badge-in-progress">Today</span>' : ''}
         </div>
         <div style="font-size:13px;color:#777;margin-top:2px;">
-          ${lesson.session} · ${tmpl ? sessionTime(tmpl, lesson.session) : ''}
+          ${tmpl ? lessonTimes(tmpl) : ''}
           · ${inst ? inst.name : 'Instructor TBD'}
         </div>
       </div>
@@ -151,9 +151,9 @@ function _lessonCard(booking) {
 
 // ── Book Lesson Wizard ────────────────────────────────────────────────────────
 // Module-level wizard state (persists across re-renders on same route)
-const wiz = { step: 1, date: null, templateId: null, session: null, sport: 'ski', audience: 'adult' };
+const wiz = { step: 1, date: null, templateId: null, sport: 'ski', audience: 'adult' };
 
-function resetWiz() { wiz.step = 1; wiz.date = null; wiz.templateId = null; wiz.session = null; }
+function resetWiz() { wiz.step = 1; wiz.date = null; wiz.templateId = null; }
 
 export function renderBook(container, ctx) {
   // Reset wizard when navigating away and back
@@ -178,16 +178,15 @@ function _renderWizardStep(container, ctx) {
   if (wiz.step === 1) _step1(body, container, ctx);
   else if (wiz.step === 2) _step2(body, container, ctx);
   else if (wiz.step === 3) _step3(body, container, ctx);
-  else if (wiz.step === 4) _step4(body, container, ctx);
 }
 
 function _wizardHeader(step) {
-  const titles = ['', 'Pick a date', 'Choose your class', 'Select a session', 'Confirm booking'];
+  const titles = ['', 'Pick a date', 'Choose your class', 'Confirm booking'];
   return `
     ${pageHead(titles[step], 'Group lesson booking')}
     <div style="padding:4px 20px 20px;">
       <div class="step-dots">
-        ${[1,2,3,4].map(s =>
+        ${[1,2,3].map(s =>
           `<div class="step-dot${s === step ? ' active' : s < step ? ' done' : ''}"></div>`
         ).join('')}
       </div>
@@ -265,11 +264,9 @@ function _step2(body, container, ctx) {
 
     <div style="display:flex;flex-direction:column;gap:8px;" id="tmpl-list">
       ${filtered.map(t => {
-        const lessons = DB.getLessonsByDateTemplate(wiz.date, t.id);
-        const hasSlots = lessons.some(l => {
-          const taken = DB.getConfirmedByLesson(l.id).length;
-          return taken < t.maxGuests;
-        });
+        const lesson = DB.getLessonsByDateTemplate(wiz.date, t.id)[0];
+        const taken  = lesson ? DB.getConfirmedByLesson(lesson.id).length : t.maxGuests;
+        const hasSlots = !!lesson && taken < t.maxGuests;
         return `
           <div class="glass card-row${!hasSlots?' opacity-50':''}" style="border-radius:12px;"
             data-tmpl="${t.id}" ${!hasSlots?'style="cursor:default;opacity:0.5"':''}>
@@ -318,9 +315,8 @@ function _step2(body, container, ctx) {
     card.addEventListener('click', () => {
       const tmpl = getTemplate(card.dataset.tmpl);
       if (!tmpl) return;
-      const lessons = DB.getLessonsByDateTemplate(wiz.date, tmpl.id);
-      const hasSlots = lessons.some(l => DB.getConfirmedByLesson(l.id).length < tmpl.maxGuests);
-      if (!hasSlots) return;
+      const lesson = DB.getLessonsByDateTemplate(wiz.date, tmpl.id)[0];
+      if (!lesson || DB.getConfirmedByLesson(lesson.id).length >= tmpl.maxGuests) return;
       wiz.templateId = card.dataset.tmpl;
       wiz.step = 3;
       _renderWizardStep(container, ctx);
@@ -332,89 +328,13 @@ function _step2(body, container, ctx) {
   });
 }
 
-// Step 3 — AM / PM session picker
+// Step 3 — Confirm
 function _step3(body, container, ctx) {
-  const tmpl   = getTemplate(wiz.templateId);
-  const lessons = DB.getLessonsByDateTemplate(wiz.date, wiz.templateId);
-  const amLesson = lessons.find(l => l.session === 'AM');
-  const pmLesson = lessons.find(l => l.session === 'PM');
-
-  function sessionCardHTML(lesson, label, startTime, endTime) {
-    if (!lesson) return `
-      <div class="session-card full">
-        <div style="font-size:22px;font-weight:700;color:#BBB;">${label}</div>
-        <div style="font-size:13px;color:#CCC;margin-top:4px;">Not available</div>
-      </div>`;
-
-    const taken = DB.getConfirmedByLesson(lesson.id).length;
-    const avail = tmpl.maxGuests - taken;
-    const full  = avail <= 0;
-    const inst  = lesson.instructorId ? DB.getUserById(lesson.instructorId) : null;
-    return `
-      <div class="session-card${full ? ' full' : wiz.session===label?' selected':''}"
-        data-sess="${label}" ${full?'':''}>
-        <div style="display:flex;align-items:center;justify-content:space-between;">
-          <div style="font-size:22px;font-weight:700;color:#1E2643;font-family:'Newsreader',serif;">${label}</div>
-          ${full ? `<span class="badge badge-cancelled">Full</span>` :
-            avail <= 2 ? `<span class="badge badge-pending">${avail} left</span>` :
-            `<span class="badge badge-confirmed">${avail} open</span>`}
-        </div>
-        <div style="font-size:14px;color:#333;margin-top:6px;font-weight:500;">
-          ${startTime} – ${endTime}
-        </div>
-        <div style="font-size:13px;color:#888;margin-top:4px;">
-          ${inst ? `Instructor: ${inst.name}` : '<span style="color:#C75300;">Instructor TBD</span>'}
-        </div>
-      </div>`;
-  }
-
-  body.innerHTML = `
-    <div style="margin-bottom:16px;">
-      <div class="glass" style="padding:14px 16px;display:flex;align-items:center;gap:10px;">
-        <div style="width:40px;height:40px;background:rgba(30,38,67,0.08);border-radius:8px;
-          display:flex;align-items:center;justify-content:center;font-family:'Newsreader',serif;
-          font-size:16px;font-weight:800;color:#1E2643;">${tmpl.id}</div>
-        <div>
-          <div style="font-weight:600;color:#000;">${tmpl.name}</div>
-          <div style="font-size:12px;color:#888;">${fmtDate(wiz.date)} · ${levelBadge(tmpl.level)}</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="sec-label" style="margin-bottom:12px;">Choose a session</div>
-    <div style="display:flex;flex-direction:column;gap:10px;" id="sess-cards">
-      ${sessionCardHTML(amLesson, 'AM', tmpl.amStart, tmpl.amEnd)}
-      ${sessionCardHTML(pmLesson, 'PM', tmpl.pmStart, tmpl.pmEnd)}
-    </div>
-
-    <button style="margin-top:20px;background:none;border:none;cursor:pointer;
-      color:#888;font-size:14px;font-family:'Inter',sans-serif;display:flex;
-      align-items:center;gap:4px;" id="back-s2">
-      ← Change class
-    </button>`;
-
-  body.querySelectorAll('[data-sess]').forEach(card => {
-    card.addEventListener('click', () => {
-      if (card.classList.contains('full')) return;
-      wiz.session = card.dataset.sess;
-      wiz.step = 4;
-      _renderWizardStep(container, ctx);
-    });
-  });
-  body.querySelector('#back-s2').addEventListener('click', () => {
-    wiz.step = 2;
-    _renderWizardStep(container, ctx);
-  });
-}
-
-// Step 4 — Confirm
-function _step4(body, container, ctx) {
   const { session } = ctx;
-  const tmpl     = getTemplate(wiz.templateId);
-  const lessons  = DB.getLessonsByDateTemplate(wiz.date, wiz.templateId);
-  const lesson   = lessons.find(l => l.session === wiz.session);
-  const inst     = lesson?.instructorId ? DB.getUserById(lesson.instructorId) : null;
-  const taken    = lesson ? DB.getConfirmedByLesson(lesson.id).length : 0;
+  const tmpl    = getTemplate(wiz.templateId);
+  const lesson  = DB.getLessonsByDateTemplate(wiz.date, wiz.templateId)[0];
+  const inst    = lesson?.instructorId ? DB.getUserById(lesson.instructorId) : null;
+  const taken   = lesson ? DB.getConfirmedByLesson(lesson.id).length : 0;
   const existing = lesson
     ? DB.getBookingsByGuest(session.id).find(b => b.lessonId === lesson.id && b.status === 'confirmed')
     : null;
@@ -436,8 +356,8 @@ function _step4(body, container, ctx) {
         </div>
         <div class="div"></div>
         <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:13px;color:#888;">Session</span>
-          <span style="font-weight:600;">${wiz.session} · ${sessionTime(tmpl, wiz.session)}</span>
+          <span style="font-size:13px;color:#888;">Schedule</span>
+          <span style="font-weight:600;">${lessonTimes(tmpl)}</span>
         </div>
         <div class="div"></div>
         <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -460,7 +380,7 @@ function _step4(body, container, ctx) {
     ${existing ? `
       <div style="background:#fff0cc;border:1px solid #FDBE00;border-radius:8px;padding:12px 14px;
         color:#875700;font-size:14px;margin-bottom:16px;">
-        ${iWarn()} You already have a booking for this session.
+        ${iWarn()} You already have a booking for this lesson.
       </div>` : ''}
 
     <button id="confirm-btn" class="btn btn-primary btn-lg btn-full"
@@ -469,8 +389,8 @@ function _step4(body, container, ctx) {
     </button>
     <button style="margin-top:12px;background:none;border:none;cursor:pointer;
       color:#888;font-size:14px;font-family:'Inter',sans-serif;display:flex;
-      align-items:center;gap:4px;margin-left:auto;margin-right:auto;" id="back-s3">
-      ← Change session
+      align-items:center;gap:4px;margin-left:auto;margin-right:auto;" id="back-s2">
+      ← Change class
     </button>`;
 
   body.querySelector('#confirm-btn')?.addEventListener('click', () => {
@@ -488,8 +408,8 @@ function _step4(body, container, ctx) {
     window._bookActive = false;
     navigate('/guest/bookings');
   });
-  body.querySelector('#back-s3').addEventListener('click', () => {
-    wiz.step = 3;
+  body.querySelector('#back-s2').addEventListener('click', () => {
+    wiz.step = 2;
     _renderWizardStep(container, ctx);
   });
 }
@@ -591,7 +511,7 @@ function _bookingCard(b, today) {
             ${statusBadge(b.status)}
           </div>
           <div style="font-size:13px;color:#777;margin-top:4px;">
-            ${b.lesson ? `${b.lesson.session} · ${b.tmpl ? sessionTime(b.tmpl, b.lesson.session) : ''}` : ''}
+            ${b.tmpl ? lessonTimes(b.tmpl) : ''}
             ${b.inst ? ` · ${b.inst.name}` : b.lesson?.instructorId ? '' : ' · Instructor TBD'}
           </div>
           ${b.lesson?.date ? `<div style="font-size:12px;color:#AAA;margin-top:2px;">${fmtDate(b.lesson.date)}</div>` : ''}

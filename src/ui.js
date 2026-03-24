@@ -263,11 +263,9 @@ export function greeting() {
   return 'Good evening';
 }
 
-export function sessionTime(tmpl, session) {
+export function lessonTimes(tmpl) {
   if (!tmpl) return '';
-  return session === 'AM'
-    ? `${tmpl.amStart} – ${tmpl.amEnd}`
-    : `${tmpl.pmStart} – ${tmpl.pmEnd}`;
+  return `AM ${tmpl.amStart}–${tmpl.amEnd} · PM ${tmpl.pmStart}–${tmpl.pmEnd}`;
 }
 
 // ── Tab bar ───────────────────────────────────────────────────────────────────
