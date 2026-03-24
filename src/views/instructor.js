@@ -266,7 +266,8 @@ function _openInstructorLessonModal(lesson, session, onReportSuccess = null) {
                     style="font-size:12px;font-weight:600;color:#1E2643;
                     background:var(--bg-section-soft);border:1px solid var(--line-soft);
                     border-radius:999px;padding:5px 12px;cursor:pointer;
-                    font-family:'Inter',sans-serif;flex-shrink:0;white-space:nowrap;">
+                    font-family:'Inter',sans-serif;flex-shrink:0;white-space:nowrap;
+                    display:inline-flex;align-items:center;gap:4px;line-height:1;">
                     Report ${iChevR()}
                   </button>` : ''}
               </div>`;
@@ -286,8 +287,8 @@ function _openInstructorLessonModal(lesson, session, onReportSuccess = null) {
               text-transform:uppercase;margin-bottom:7px;">Terrain</div>
             <div style="display:flex;flex-wrap:wrap;gap:5px;">
               ${report.terrains.map(t => `
-                <span style="font-size:12px;font-weight:500;color:#1E2643;
-                  background:rgba(30,38,67,0.07);border:1px solid rgba(30,38,67,0.1);
+                <span style="font-size:12px;font-weight:500;
+                  background:transparent;color:var(--black-coal);border:1.5px solid var(--black-coal);
                   border-radius:999px;padding:3px 10px;">${terrainLabels[t] ?? t}</span>`).join('')}
             </div>
           </div>` : ''}
@@ -297,14 +298,14 @@ function _openInstructorLessonModal(lesson, session, onReportSuccess = null) {
               text-transform:uppercase;margin-bottom:7px;">Skills</div>
             <div style="display:flex;flex-wrap:wrap;gap:5px;">
               ${report.skills.map(s => `
-                <span style="font-size:12px;font-weight:500;color:#5b3fa0;
-                  background:rgba(91,63,160,0.07);border:1px solid rgba(91,63,160,0.11);
+                <span style="font-size:12px;font-weight:500;
+                  background:transparent;color:var(--black-coal);border:1.5px solid var(--black-coal);
                   border-radius:999px;padding:3px 10px;">${skillLabels[s] ?? s}</span>`).join('')}
             </div>
           </div>` : ''}
           <div style="padding-top:2px;border-top:1px solid rgba(30,38,67,0.06);
-            font-size:12px;color:#888;display:flex;align-items:center;gap:5px;">
-            ${iCheck()} Submitted ${new Date(report.submittedAt).toLocaleDateString()}
+            font-size:12px;color:#888;">
+            Submitted ${new Date(report.submittedAt).toLocaleDateString()}
           </div>
         </div>
       </div>` : ''}
