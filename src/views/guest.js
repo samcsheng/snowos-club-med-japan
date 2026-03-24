@@ -507,8 +507,8 @@ function _bookingCard(b, today) {
     : (b.guestReport?.nextClass || 'No recommendation');
 
   return `
-    <div class="glass" style="padding:16px;border-radius:12px;${isCancelled ? 'opacity:0.56;' : ''}">
-      <div style="display:flex;align-items:flex-start;gap:12px;">
+    <div class="glass" style="border-radius:12px;overflow:hidden;${isCancelled ? 'opacity:0.56;' : ''}">
+      <div style="display:flex;align-items:flex-start;gap:12px;padding:16px;">
         <!-- Date block -->
         ${_lessonDateTile(b.lesson?.date, isToday
           ? {}
@@ -528,32 +528,29 @@ function _bookingCard(b, today) {
           </div>
         </div>
       </div>
-      ${canCancel || canCheckReportCard ? `
-        ${canCheckReportCard ? `<div class="div"></div>` : `<div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(30,38,67,0.07);">`}
-          ${canCheckReportCard ? `
-            <button data-report-card="${b.id}"
-              style="display:flex;align-items:center;justify-content:space-between;gap:12px;
-              padding:12px 16px;width:100%;background:rgba(253,190,0,0.08);border:none;
-              cursor:pointer;color:#875700;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;
-              text-align:left;">
-              <span style="display:flex;align-items:center;gap:8px;">
-                ${iClipboard()} Submit lesson report
-              </span>
-              <span style="display:flex;align-items:center;gap:6px;min-width:0;flex-shrink:0;">
-                <span style="font-size:12px;font-weight:700;letter-spacing:0.02em;text-transform:uppercase;
-                  color:#1E2643;background:rgba(30,38,67,0.10);padding:5px 8px;border-radius:999px;">
-                  ${nextClassLabel}
-                </span>
-              </span>
-            </button>
-          ${canCancel ? `<div style="padding-top:8px;">` : ''}` : ''}
-          ${canCancel ? `
-            <button data-cancel="${b.id}" class="btn btn-ghost btn-sm"
-              style="color:#BF2F17;border-color:rgba(191,47,23,0.25);">
-              Cancel booking
-            </button>
-          ${canCheckReportCard ? `</div>` : ''}` : ''}
-        ${canCheckReportCard ? '' : `</div>`}` : ''}
+      ${canCheckReportCard ? `
+        <div class="div"></div>
+        <button data-report-card="${b.id}"
+          style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;width:100%;
+          background:rgba(253,190,0,0.08);border:none;cursor:pointer;color:#875700;
+          font-size:14px;font-weight:600;font-family:'Inter',sans-serif;text-align:left;">
+          <span style="display:flex;align-items:center;gap:8px;">
+            ${iClipboard()} Submit lesson report
+          </span>
+          <span style="display:flex;align-items:center;gap:6px;min-width:0;flex-shrink:0;">
+            <span style="font-size:12px;font-weight:700;letter-spacing:0.02em;text-transform:uppercase;
+              color:#1E2643;background:rgba(30,38,67,0.10);padding:5px 8px;border-radius:999px;">
+              ${nextClassLabel}
+            </span>
+          </span>
+        </button>` : ''}
+      ${canCancel ? `
+        <div style="padding:12px 16px 16px;${canCheckReportCard ? 'border-top:1px solid rgba(30,38,67,0.07);' : ''}">
+          <button data-cancel="${b.id}" class="btn btn-ghost btn-sm"
+            style="color:#BF2F17;border-color:rgba(191,47,23,0.25);">
+            Cancel booking
+          </button>
+        </div>` : ''}
     </div>`;
 }
 
