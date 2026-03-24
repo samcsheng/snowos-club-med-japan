@@ -481,7 +481,6 @@ function _bookingCard(b, today) {
             ${b.tmpl ? lessonTimes(b.tmpl) : ''}
             ${b.inst ? ` · ${b.inst.name}` : b.lesson?.instructorId ? '' : ' · Instructor TBD'}
           </div>
-          ${b.lesson?.date ? `<div style="font-size:12px;color:#AAA;margin-top:2px;">${fmtDate(b.lesson.date)}</div>` : ''}
         </div>
       </div>
       ${canCancel ? `
