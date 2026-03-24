@@ -372,6 +372,8 @@ function openReportModal(lesson, session) {
   overlay.id        = `modal-${MODAL_ID}`;
   overlay.className = 'modal-overlay';
 
+  const sameType = TEMPLATES.filter(t => t.sport === tmpl?.sport && t.audience === tmpl?.audience);
+
   function buildBody() {
     return `
       <!-- Terrains -->
@@ -419,13 +421,14 @@ function openReportModal(lesson, session) {
                 </div>
               </div>
               <div style="margin-bottom:12px;">
-                <label class="field-label" for="nc-${guestId}">Recommended next class</label>
-                <select class="field-input" id="nc-${guestId}" data-next-class="${guestId}">
-                  <option value="">— Same class —</option>
-                  ${TEMPLATES.map(t =>
-                    `<option value="${t.id}" ${g.nextClass === t.id ? 'selected' : ''}>${t.id} — ${t.name}</option>`
-                  ).join('')}
-                </select>
+                <div class="sec-label" style="margin-bottom:8px;">Recommended next class</div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                  <button class="att-pill${g.nextClass === '' ? ' active' : ''}"
+                    data-nc-guest="${guestId}" data-nc-val="">Same class</button>
+                  ${sameType.map(t => `
+                    <button class="att-pill${g.nextClass === t.id ? ' active' : ''}"
+                      data-nc-guest="${guestId}" data-nc-val="${t.id}">${t.name}</button>`).join('')}
+                </div>
               </div>
               <div>
                 <label class="field-label" for="notes-${guestId}">Notes (optional)</label>
@@ -472,11 +475,12 @@ function openReportModal(lesson, session) {
       });
     });
 
-    body.querySelectorAll('[data-next-class]').forEach(sel => {
-      sel.addEventListener('change', () => {
-        const gid = sel.dataset.nextClass;
+    body.querySelectorAll('[data-nc-guest]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const gid = btn.dataset.ncGuest;
         if (!draft.guests[gid]) draft.guests[gid] = { attendance: 'BOTH', nextClass: '', notes: '' };
-        draft.guests[gid].nextClass = sel.value;
+        draft.guests[gid].nextClass = btn.dataset.ncVal;
+        rerender();
       });
     });
 
@@ -492,10 +496,6 @@ function openReportModal(lesson, session) {
       body.querySelectorAll('[data-notes]').forEach(ta => {
         const gid = ta.dataset.notes;
         if (draft.guests[gid]) draft.guests[gid].notes = ta.value;
-      });
-      body.querySelectorAll('[data-next-class]').forEach(sel => {
-        const gid = sel.dataset.nextClass;
-        if (draft.guests[gid]) draft.guests[gid].nextClass = sel.value;
       });
 
       const guestReports = guests.map(({ guestId }) => ({
@@ -533,9 +533,10 @@ function openReportModal(lesson, session) {
   }
 
   overlay.innerHTML = `
-    <div class="modal-sheet">
-      <div class="modal-handle-wrap"><div class="modal-handle"></div></div>
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;padding:0 2px;">
+    <div class="modal-sheet" style="display:flex;flex-direction:column;overflow:hidden;padding:0;">
+      <div class="modal-handle-wrap" style="flex-shrink:0;"><div class="modal-handle"></div></div>
+      <div style="flex-shrink:0;display:flex;align-items:flex-start;justify-content:space-between;
+        padding:0 20px 16px;">
         <div>
           <h3 style="font-family:'Newsreader',serif;font-size:22px;font-weight:700;color:#000;margin:0;">
             Lesson Report
@@ -549,7 +550,10 @@ function openReportModal(lesson, session) {
           ${iX()}
         </button>
       </div>
-      <div id="modal-${MODAL_ID}-body">${buildBody()}</div>
+      <div id="modal-${MODAL_ID}-body"
+        style="flex:1;overflow-y:auto;padding:0 20px;padding-bottom:calc(24px + env(safe-area-inset-bottom,0px));-webkit-overflow-scrolling:touch;">
+        ${buildBody()}
+      </div>
     </div>
   `;
 
