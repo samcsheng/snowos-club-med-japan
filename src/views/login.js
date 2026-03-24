@@ -44,17 +44,27 @@ export function renderLogin(container) {
 
         <!-- Demo accounts -->
         <div style="margin-top:24px;padding-top:20px;border-top:1px solid rgba(30,38,67,0.08);">
-          <button id="demo-toggle" style="background:none;border:none;cursor:pointer;
-            color:#AAA;font-size:12px;font-family:'Inter',sans-serif;width:100%;
-            display:flex;align-items:center;justify-content:center;gap:5px;padding:0;">
-            <span id="demo-arrow" style="font-size:9px;">▶</span> Demo accounts
-          </button>
-          <div id="demo-creds" style="display:none;margin-top:12px;background:rgba(30,38,67,0.04);
-            border-radius:8px;padding:14px 16px;font-size:13px;color:#333;
-            font-family:'Inter',sans-serif;line-height:2;">
-            <div><strong style="color:#1E2643;font-weight:600;">Guest</strong>&ensp;guest@snowos.com&ensp;/&ensp;guest123</div>
-            <div><strong style="color:#1E2643;font-weight:600;">Instructor</strong>&ensp;instructor@snowos.com&ensp;/&ensp;inst123</div>
-            <div><strong style="color:#1E2643;font-weight:600;">Supervisor</strong>&ensp;supervisor@snowos.com&ensp;/&ensp;sup123</div>
+          <div style="font-size:11px;color:#AAA;text-align:center;margin-bottom:10px;
+            letter-spacing:0.5px;font-family:'Inter',sans-serif;">Demo accounts</div>
+          <div style="display:flex;gap:8px;">
+            <button class="demo-btn" data-email="guest@snowos.com" data-pw="guest123"
+              style="flex:1;padding:8px 4px;border:1px solid rgba(30,38,67,0.15);border-radius:8px;
+              background:rgba(30,38,67,0.04);cursor:pointer;font-size:12px;font-weight:600;
+              color:#1E2643;font-family:'Inter',sans-serif;transition:background 0.15s;">
+              Guest
+            </button>
+            <button class="demo-btn" data-email="instructor@snowos.com" data-pw="inst123"
+              style="flex:1;padding:8px 4px;border:1px solid rgba(30,38,67,0.15);border-radius:8px;
+              background:rgba(30,38,67,0.04);cursor:pointer;font-size:12px;font-weight:600;
+              color:#1E2643;font-family:'Inter',sans-serif;transition:background 0.15s;">
+              Instructor
+            </button>
+            <button class="demo-btn" data-email="supervisor@snowos.com" data-pw="sup123"
+              style="flex:1;padding:8px 4px;border:1px solid rgba(30,38,67,0.15);border-radius:8px;
+              background:rgba(30,38,67,0.04);cursor:pointer;font-size:12px;font-weight:600;
+              color:#1E2643;font-family:'Inter',sans-serif;transition:background 0.15s;">
+              Supervisor
+            </button>
           </div>
         </div>
       </div>
@@ -78,12 +88,12 @@ export function renderLogin(container) {
   container.querySelector('#l-pw').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
   container.querySelector('#l-email').addEventListener('keydown', e => { if (e.key === 'Enter') container.querySelector('#l-pw').focus(); });
 
-  container.querySelector('#demo-toggle').addEventListener('click', () => {
-    const el  = container.querySelector('#demo-creds');
-    const arr = container.querySelector('#demo-arrow');
-    const vis = el.style.display !== 'none';
-    el.style.display  = vis ? 'none' : 'block';
-    arr.textContent   = vis ? '▶' : '▼';
+  container.querySelectorAll('.demo-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      container.querySelector('#l-email').value = btn.dataset.email;
+      container.querySelector('#l-pw').value    = btn.dataset.pw;
+      doLogin();
+    });
   });
 }
 
