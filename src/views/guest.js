@@ -376,13 +376,15 @@ function _step2(body, container, ctx) {
 
   body.querySelector('#confirm-btn')?.addEventListener('click', () => {
     if (!lesson) return;
+    const bookingId = 'bkg-' + Date.now().toString(36);
     DB.upsertBooking({
-      id:        'bkg-' + Date.now().toString(36),
+      id:        bookingId,
       guestId:   session.id,
       lessonId:  lesson.id,
       createdAt: new Date().toISOString(),
       status:    'confirmed',
     });
+    sessionStorage.setItem('snow_new_booking_id', bookingId);
     toast('Booking confirmed! See you on the mountain. ⛷', 'success');
     resetWiz();
     window._bookActive = false;
@@ -394,7 +396,8 @@ function _step2(body, container, ctx) {
 // ── My Bookings ───────────────────────────────────────────────────────────────
 export function renderMyBookings(container, { session }) {
   const today    = todayStr();
-  let   filter   = 'all';
+  let   filter   = 'upcoming';
+  const newBookingId = sessionStorage.getItem('snow_new_booking_id');
 
   function render() {
     const allBkgs = DB.getBookingsByGuest(session.id)
@@ -402,12 +405,13 @@ export function renderMyBookings(container, { session }) {
         const lesson = DB.getLessonById(b.lessonId);
         const tmpl   = lesson ? getTemplate(lesson.templateId) : null;
         const inst   = lesson?.instructorId ? DB.getUserById(lesson.instructorId) : null;
-        return { ...b, lesson, tmpl, inst };
+        return { ...b, lesson, tmpl, inst, isNew: b.id === newBookingId };
       })
       .sort((a,b) => {
         const ad = a.lesson?.date ?? '';
         const bd = b.lesson?.date ?? '';
-        return bd.localeCompare(ad); // newest first
+        if (ad !== bd) return ad.localeCompare(bd);
+        return a.createdAt.localeCompare(b.createdAt);
       });
 
     const filtered = allBkgs.filter(b => {
@@ -421,12 +425,14 @@ export function renderMyBookings(container, { session }) {
       ${pageHead('My Bookings')}
 
       <!-- Filter pills -->
-      <div class="sx" style="display:flex;gap:8px;padding:0 20px 20px;">
-        ${['all','upcoming','past','cancelled'].map(f =>
+      <div class="sticky-filter-row">
+        <div class="sx" style="display:flex;gap:8px;">
+        ${['upcoming','past','cancelled','all'].map(f =>
           `<button class="pill-filter${filter===f?' active':''}" data-filter="${f}" style="white-space:nowrap;">
             ${f.charAt(0).toUpperCase()+f.slice(1)}
           </button>`
         ).join('')}
+        </div>
       </div>
 
       <!-- Bookings list -->
@@ -458,19 +464,21 @@ export function renderMyBookings(container, { session }) {
   }
 
   render();
+  sessionStorage.removeItem('snow_new_booking_id');
 }
 
 function _bookingCard(b, today) {
   const isPast     = b.lesson && b.lesson.date < today;
   const canCancel  = b.status === 'confirmed' && !isPast;
   const displayStatus = bookingDisplayStatus(b, b.lesson);
+  const isCancelled = b.status === 'cancelled';
 
   return `
-    <div class="glass" style="padding:16px;border-radius:12px;">
+    <div class="glass" style="padding:16px;border-radius:12px;${isCancelled ? 'opacity:0.56;' : ''}">
       <div style="display:flex;align-items:flex-start;gap:12px;">
         <!-- Date block -->
         <div style="flex-shrink:0;width:44px;height:44px;
-          background:${isPast?'rgba(30,38,67,0.06)':'rgba(30,38,67,0.09)'};
+          background:${isCancelled ? 'rgba(30,38,67,0.05)' : isPast ? 'rgba(30,38,67,0.06)' : 'rgba(30,38,67,0.09)'};
           border-radius:10px;display:flex;flex-direction:column;
           align-items:center;justify-content:center;">
           <div style="font-size:9px;font-weight:700;color:#888;text-transform:uppercase;">
@@ -486,6 +494,7 @@ function _bookingCard(b, today) {
             <span style="font-weight:600;font-size:15px;color:#000;">
               ${b.tmpl ? b.tmpl.name : b.lessonId}
             </span>
+            ${b.isNew ? `<span class="badge" style="background:#FDBE00;color:#000;">NEW</span>` : ''}
             ${statusBadge(displayStatus)}
           </div>
           <div style="font-size:13px;color:#777;margin-top:4px;">
