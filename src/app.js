@@ -11,7 +11,6 @@ import {
   renderInstructorDashboard,
   renderMySchedule,
   renderLessonDetail,
-  renderSubmitReport,
 } from './views/instructor.js';
 import {
   renderSupervisorDashboard,
@@ -40,7 +39,6 @@ const ROUTES = [
   { pat: /^\/instructor\/dashboard$/,         view: renderInstructorDashboard, roles: ['instructor'] },
   { pat: /^\/instructor\/schedule$/,          view: renderMySchedule,          roles: ['instructor'] },
   { pat: /^\/instructor\/lesson\/(?<id>.+)$/, view: renderLessonDetail,        roles: ['instructor'], back: p => '/instructor/dashboard' },
-  { pat: /^\/instructor\/report\/(?<id>.+)$/, view: renderSubmitReport,        roles: ['instructor'], back: p => `/instructor/lesson/${p.id}` },
   { pat: /^\/supervisor\/dashboard$/,         view: renderSupervisorDashboard, roles: ['supervisor'] },
   { pat: /^\/supervisor\/bookings$/,          view: renderAllBookings,         roles: ['supervisor'] },
   { pat: /^\/supervisor\/instructors$/,       view: renderInstructorMgmt,      roles: ['supervisor'] },

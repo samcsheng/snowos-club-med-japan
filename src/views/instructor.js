@@ -4,7 +4,7 @@ import {
   toast, pageHead, statusBadge, levelBadge, sportBadge, av, secLabel,
   emptyState, fmtDate, fmtDateLong, todayStr, sessionTime,
   tabBar, iCalendar, iChevR, iClipboard, iCheck, iUser, iLogout,
-  iBack, openModal,
+  iBack, iX, openModal,
 } from '../ui.js';
 
 // ── Instructor Dashboard ──────────────────────────────────────────────────────
@@ -263,9 +263,9 @@ export function renderLessonDetail(container, { params, session }) {
     <!-- Report CTA -->
     ${!report && lesson.status !== 'scheduled' ? `
     <div style="padding:0 20px 16px;">
-      <a href="#/instructor/report/${lesson.id}" class="btn btn-primary btn-lg btn-full">
+      <button id="report-cta" class="btn btn-primary btn-lg btn-full">
         ${iClipboard()} Submit Lesson Report
-      </a>
+      </button>
     </div>` : report ? `
     <div style="padding:0 20px 16px;">
       <div style="background:rgba(8,138,32,0.08);border:1px solid rgba(8,138,32,0.2);
@@ -293,9 +293,13 @@ export function renderLessonDetail(container, { params, session }) {
           </div>`).join('')}
     </div>
   `;
+
+  container.querySelector('#report-cta')?.addEventListener('click', () => {
+    openReportModal(lesson, session);
+  });
 }
 
-// ── Submit Report ─────────────────────────────────────────────────────────────
+// ── Submit Report (modal) ─────────────────────────────────────────────────────
 // Module-level draft (survives re-renders within the same view)
 const draft = {
   lessonId: null,
@@ -323,12 +327,8 @@ const SKILLS = [
   { id:'jumps',          label:'Jumps' },
 ];
 
-export function renderSubmitReport(container, { params, session }) {
-  const lesson = DB.getLessonById(params.id);
-  if (!lesson) {
-    container.innerHTML = pageHead('Not Found') + emptyState('❓','Lesson not found','');
-    return;
-  }
+function openReportModal(lesson, session) {
+  const MODAL_ID = 'lesson-report';
 
   // Reset draft if this is a different lesson
   if (draft.lessonId !== lesson.id) {
@@ -336,7 +336,6 @@ export function renderSubmitReport(container, { params, session }) {
     draft.terrains = new Set();
     draft.skills   = new Set();
     draft.guests   = {};
-    // Pre-fill from existing report if any
     const existing = DB.getReportByLesson(lesson.id);
     if (existing) {
       existing.terrains.forEach(t => draft.terrains.add(t));
@@ -349,184 +348,198 @@ export function renderSubmitReport(container, { params, session }) {
   const bkgs   = DB.getConfirmedByLesson(lesson.id);
   const guests = bkgs.map(b => ({ ...b, guest: DB.getUserById(b.guestId) }));
 
-  // Ensure all guests have a draft entry
   guests.forEach(({ guestId }) => {
     if (!draft.guests[guestId]) draft.guests[guestId] = { attendance: 'BOTH', nextClass: '', notes: '' };
   });
 
-  function rerender() { renderSubmitReport(container, { params, session }); }
+  document.getElementById(`modal-${MODAL_ID}`)?.remove();
 
-  container.innerHTML = `
-    ${pageHead('Lesson Report', `${tmpl?.name ?? lesson.templateId} · ${fmtDate(lesson.date)}`,
-      `/instructor/lesson/${lesson.id}`)}
+  const overlay = document.createElement('div');
+  overlay.id        = `modal-${MODAL_ID}`;
+  overlay.className = 'modal-overlay';
 
-    <!-- Terrains -->
-    <div style="padding:0 20px 6px;">${secLabel('Terrains covered')}</div>
-    <div style="padding:0 20px 20px;display:flex;flex-wrap:wrap;gap:8px;" id="terrain-pills">
-      ${TERRAINS.map(t => `
-        <label class="check-pill${draft.terrains.has(t.id)?' checked':''}">
-          <input type="checkbox" data-group="terrain" value="${t.id}"
-            ${draft.terrains.has(t.id)?'checked':''}>
-          ${draft.terrains.has(t.id) ? '✓ ' : ''}${t.label}
-        </label>`).join('')}
-    </div>
+  function buildBody() {
+    return `
+      <!-- Terrains -->
+      <div style="padding:0 2px 6px;">${secLabel('Terrains covered')}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;">
+        ${TERRAINS.map(t => `
+          <label class="check-pill${draft.terrains.has(t.id) ? ' checked' : ''}">
+            <input type="checkbox" data-group="terrain" value="${t.id}"
+              ${draft.terrains.has(t.id) ? 'checked' : ''}>
+            ${draft.terrains.has(t.id) ? '✓ ' : ''}${t.label}
+          </label>`).join('')}
+      </div>
 
-    <!-- Skills -->
-    <div style="padding:0 20px 6px;">${secLabel('Skills practiced')}</div>
-    <div style="padding:0 20px 20px;display:flex;flex-wrap:wrap;gap:8px;" id="skill-pills">
-      ${SKILLS.map(s => `
-        <label class="check-pill${draft.skills.has(s.id)?' checked':''}">
-          <input type="checkbox" data-group="skill" value="${s.id}"
-            ${draft.skills.has(s.id)?'checked':''}>
-          ${draft.skills.has(s.id) ? '✓ ' : ''}${s.label}
-        </label>`).join('')}
-    </div>
+      <!-- Skills -->
+      <div style="padding:0 2px 6px;">${secLabel('Skills practiced')}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;">
+        ${SKILLS.map(s => `
+          <label class="check-pill${draft.skills.has(s.id) ? ' checked' : ''}">
+            <input type="checkbox" data-group="skill" value="${s.id}"
+              ${draft.skills.has(s.id) ? 'checked' : ''}>
+            ${draft.skills.has(s.id) ? '✓ ' : ''}${s.label}
+          </label>`).join('')}
+      </div>
 
-    <!-- Per-guest section -->
-    <div style="padding:0 20px 8px;">${secLabel(`Per-Guest (${guests.length})`)}</div>
-    <div style="padding:0 12px 24px;display:flex;flex-direction:column;gap:10px;" id="guest-section">
-      ${guests.map(({ guestId, guest }) => {
-        const g = draft.guests[guestId] || { attendance:'BOTH', nextClass:'', notes:'' };
-        return `
-          <div class="glass" style="padding:16px;border-radius:12px;" data-guest-card="${guestId}">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-              ${av(guest?.avatar, 'md')}
+      <!-- Per-guest -->
+      <div style="padding:0 2px 8px;">${secLabel(`Per-Guest (${guests.length})`)}</div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
+        ${guests.map(({ guestId, guest }) => {
+          const g = draft.guests[guestId] || { attendance: 'BOTH', nextClass: '', notes: '' };
+          return `
+            <div class="glass" style="padding:16px;border-radius:12px;">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+                ${av(guest?.avatar, 'md')}
+                <div>
+                  <div style="font-weight:600;color:#000;">${guest?.name ?? 'Guest'}</div>
+                  ${guest?.level ? `<div style="font-size:12px;color:#888;margin-top:2px;">${levelBadge(guest.level)}</div>` : ''}
+                </div>
+              </div>
+              <div style="margin-bottom:12px;">
+                <div class="sec-label" style="margin-bottom:8px;">Attendance</div>
+                <div style="display:flex;gap:8px;">
+                  ${['AM','PM','BOTH'].map(a => `
+                    <button class="att-pill${g.attendance === a ? ' active' : ''}"
+                      data-att="${a}" data-guest="${guestId}">${a}</button>`).join('')}
+                </div>
+              </div>
+              <div style="margin-bottom:12px;">
+                <label class="field-label" for="nc-${guestId}">Recommended next class</label>
+                <select class="field-input" id="nc-${guestId}" data-next-class="${guestId}">
+                  <option value="">— Same class —</option>
+                  ${TEMPLATES.map(t =>
+                    `<option value="${t.id}" ${g.nextClass === t.id ? 'selected' : ''}>${t.id} — ${t.name}</option>`
+                  ).join('')}
+                </select>
+              </div>
               <div>
-                <div style="font-weight:600;color:#000;">${guest?.name ?? 'Guest'}</div>
-                ${guest?.level ? `<div style="font-size:12px;color:#888;margin-top:2px;">${levelBadge(guest.level)}</div>` : ''}
+                <label class="field-label" for="notes-${guestId}">Notes (optional)</label>
+                <textarea class="field-input" id="notes-${guestId}" data-notes="${guestId}"
+                  rows="2" placeholder="Progress notes, observations...">${g.notes ?? ''}</textarea>
               </div>
-            </div>
+            </div>`;
+        }).join('')}
+      </div>
 
-            <!-- Attendance -->
-            <div style="margin-bottom:12px;">
-              <div class="sec-label" style="margin-bottom:8px;">Attendance</div>
-              <div style="display:flex;gap:8px;">
-                ${['AM','PM','BOTH'].map(a => `
-                  <button class="att-pill${g.attendance===a?' active':''}"
-                    data-att="${a}" data-guest="${guestId}">${a}</button>
-                `).join('')}
-              </div>
-            </div>
-
-            <!-- Next class -->
-            <div style="margin-bottom:12px;">
-              <label class="field-label" for="nc-${guestId}">Recommended next class</label>
-              <select class="field-input" id="nc-${guestId}"
-                data-next-class="${guestId}">
-                <option value="">— Same class —</option>
-                ${TEMPLATES.map(t =>
-                  `<option value="${t.id}" ${g.nextClass===t.id?'selected':''}>
-                    ${t.id} — ${t.name}
-                  </option>`
-                ).join('')}
-              </select>
-            </div>
-
-            <!-- Notes -->
-            <div>
-              <label class="field-label" for="notes-${guestId}">Notes (optional)</label>
-              <textarea class="field-input" id="notes-${guestId}"
-                data-notes="${guestId}" rows="2"
-                placeholder="Progress notes, observations...">${g.notes ?? ''}</textarea>
-            </div>
-          </div>`;
-      }).join('')}
-    </div>
-
-    <!-- Submit -->
-    <div style="padding:0 20px 40px;">
-      <button id="submit-report" class="btn btn-primary btn-lg btn-full">
+      <!-- Submit -->
+      <button id="submit-report" class="btn btn-primary btn-lg btn-full" style="margin-bottom:8px;">
         ${iClipboard()} Submit Report
       </button>
-      <div style="text-align:center;margin-top:10px;">
-        <a href="#/instructor/lesson/${lesson.id}"
-          style="color:#888;font-size:14px;text-decoration:none;">Cancel</a>
+    `;
+  }
+
+  function attach() {
+    const body = document.getElementById(`modal-${MODAL_ID}-body`);
+    if (!body) return;
+
+    body.querySelectorAll('[data-group="terrain"]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        if (cb.checked) draft.terrains.add(cb.value);
+        else draft.terrains.delete(cb.value);
+        rerender();
+      });
+    });
+
+    body.querySelectorAll('[data-group="skill"]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        if (cb.checked) draft.skills.add(cb.value);
+        else draft.skills.delete(cb.value);
+        rerender();
+      });
+    });
+
+    body.querySelectorAll('[data-att]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const gid = btn.dataset.guest;
+        if (!draft.guests[gid]) draft.guests[gid] = { attendance: 'BOTH', nextClass: '', notes: '' };
+        draft.guests[gid].attendance = btn.dataset.att;
+        rerender();
+      });
+    });
+
+    body.querySelectorAll('[data-next-class]').forEach(sel => {
+      sel.addEventListener('change', () => {
+        const gid = sel.dataset.nextClass;
+        if (!draft.guests[gid]) draft.guests[gid] = { attendance: 'BOTH', nextClass: '', notes: '' };
+        draft.guests[gid].nextClass = sel.value;
+      });
+    });
+
+    body.querySelectorAll('[data-notes]').forEach(ta => {
+      ta.addEventListener('blur', () => {
+        const gid = ta.dataset.notes;
+        if (!draft.guests[gid]) draft.guests[gid] = { attendance: 'BOTH', nextClass: '', notes: '' };
+        draft.guests[gid].notes = ta.value;
+      });
+    });
+
+    body.querySelector('#submit-report')?.addEventListener('click', () => {
+      body.querySelectorAll('[data-notes]').forEach(ta => {
+        const gid = ta.dataset.notes;
+        if (draft.guests[gid]) draft.guests[gid].notes = ta.value;
+      });
+      body.querySelectorAll('[data-next-class]').forEach(sel => {
+        const gid = sel.dataset.nextClass;
+        if (draft.guests[gid]) draft.guests[gid].nextClass = sel.value;
+      });
+
+      const guestReports = guests.map(({ guestId }) => ({
+        guestId,
+        attendance: draft.guests[guestId]?.attendance ?? 'BOTH',
+        nextClass:  draft.guests[guestId]?.nextClass  ?? '',
+        notes:      draft.guests[guestId]?.notes      ?? '',
+      }));
+
+      const report = {
+        id:           DB.getReportByLesson(lesson.id)?.id ?? ('rpt-' + Date.now().toString(36)),
+        lessonId:     lesson.id,
+        instructorId: session.id,
+        terrains:     [...draft.terrains],
+        skills:       [...draft.skills],
+        guestReports,
+        submittedAt:  new Date().toISOString(),
+      };
+
+      DB.upsertReport(report);
+      DB.upsertLesson({ ...lesson, status: 'completed' });
+      draft.lessonId = null;
+
+      overlay.remove();
+      toast('Report submitted successfully!', 'success');
+      navigate('/instructor/dashboard');
+    });
+  }
+
+  function rerender() {
+    const body = document.getElementById(`modal-${MODAL_ID}-body`);
+    if (!body) return;
+    body.innerHTML = buildBody();
+    attach();
+  }
+
+  overlay.innerHTML = `
+    <div class="modal-sheet">
+      <div class="modal-handle-wrap"><div class="modal-handle"></div></div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;padding:0 2px;">
+        <div>
+          <h3 style="font-family:'Newsreader',serif;font-size:22px;font-weight:700;color:#000;margin:0;">
+            Lesson Report
+          </h3>
+          <p style="margin:4px 0 0;font-size:13px;color:#888;">
+            ${tmpl?.name ?? lesson.templateId} · ${fmtDate(lesson.date)}
+          </p>
+        </div>
+        <button onclick="document.getElementById('modal-${MODAL_ID}')?.remove()"
+          style="background:none;border:none;padding:6px;cursor:pointer;color:#888;border-radius:50%;display:flex;flex-shrink:0;">
+          ${iX()}
+        </button>
       </div>
+      <div id="modal-${MODAL_ID}-body">${buildBody()}</div>
     </div>
   `;
 
-  // Terrain checkboxes
-  container.querySelectorAll('[data-group="terrain"]').forEach(cb => {
-    cb.addEventListener('change', () => {
-      if (cb.checked) draft.terrains.add(cb.value);
-      else draft.terrains.delete(cb.value);
-      rerender();
-    });
-  });
-
-  // Skill checkboxes
-  container.querySelectorAll('[data-group="skill"]').forEach(cb => {
-    cb.addEventListener('change', () => {
-      if (cb.checked) draft.skills.add(cb.value);
-      else draft.skills.delete(cb.value);
-      rerender();
-    });
-  });
-
-  // Attendance pills
-  container.querySelectorAll('[data-att]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const gid = btn.dataset.guest;
-      if (!draft.guests[gid]) draft.guests[gid] = { attendance:'BOTH', nextClass:'', notes:'' };
-      draft.guests[gid].attendance = btn.dataset.att;
-      rerender();
-    });
-  });
-
-  // Next class selects (save immediately on change, no re-render needed)
-  container.querySelectorAll('[data-next-class]').forEach(sel => {
-    sel.addEventListener('change', () => {
-      const gid = sel.dataset.nextClass;
-      if (!draft.guests[gid]) draft.guests[gid] = { attendance:'BOTH', nextClass:'', notes:'' };
-      draft.guests[gid].nextClass = sel.value;
-    });
-  });
-
-  // Notes textareas (save on blur)
-  container.querySelectorAll('[data-notes]').forEach(ta => {
-    ta.addEventListener('blur', () => {
-      const gid = ta.dataset.notes;
-      if (!draft.guests[gid]) draft.guests[gid] = { attendance:'BOTH', nextClass:'', notes:'' };
-      draft.guests[gid].notes = ta.value;
-    });
-  });
-
-  // Submit
-  container.querySelector('#submit-report').addEventListener('click', () => {
-    // Save textarea content before submitting
-    container.querySelectorAll('[data-notes]').forEach(ta => {
-      const gid = ta.dataset.notes;
-      if (draft.guests[gid]) draft.guests[gid].notes = ta.value;
-    });
-    container.querySelectorAll('[data-next-class]').forEach(sel => {
-      const gid = sel.dataset.nextClass;
-      if (draft.guests[gid]) draft.guests[gid].nextClass = sel.value;
-    });
-
-    const guestReports = guests.map(({ guestId }) => ({
-      guestId,
-      attendance: draft.guests[guestId]?.attendance ?? 'BOTH',
-      nextClass:  draft.guests[guestId]?.nextClass  ?? '',
-      notes:      draft.guests[guestId]?.notes      ?? '',
-    }));
-
-    const report = {
-      id:           DB.getReportByLesson(lesson.id)?.id ?? ('rpt-' + Date.now().toString(36)),
-      lessonId:     lesson.id,
-      instructorId: session.id,
-      terrains:     [...draft.terrains],
-      skills:       [...draft.skills],
-      guestReports,
-      submittedAt:  new Date().toISOString(),
-    };
-
-    DB.upsertReport(report);
-    DB.upsertLesson({ ...lesson, status: 'completed' });
-
-    // Clear draft for this lesson
-    draft.lessonId = null;
-
-    toast('Report submitted successfully!', 'success');
-    navigate(`/instructor/dashboard`);
-  });
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+  attach();
 }
