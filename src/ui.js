@@ -1,8 +1,9 @@
 import { navigate } from './app.js';
 
-// ── Top-right avatar (all roles, fixed position) ─────────────────────────────
-function _renderTopAvatar(session) {
-  document.getElementById('top-avatar-btn')?.remove();
+// ── Avatar injected into .page-head after view renders ───────────────────────
+export function injectHeadAvatar(session, content) {
+  const head = content.querySelector('.page-head');
+  if (!head) return;
 
   const roleLabel = { instructor: 'Ski Instructor', supervisor: 'Supervisor' }[session.role] ?? null;
 
@@ -29,22 +30,12 @@ function _renderTopAvatar(session) {
     </button>
   `);
 
+  head.style.position = 'relative';
   const btn = document.createElement('button');
-  btn.id = 'top-avatar-btn';
-  btn.style.cssText = [
-    'position:fixed',
-    'top:calc(env(safe-area-inset-top,0px) + 8px)',
-    'right:16px',
-    'z-index:50',
-    'background:none',
-    'border:none',
-    'cursor:pointer',
-    'padding:0',
-    '-webkit-tap-highlight-color:transparent',
-  ].join(';');
+  btn.style.cssText = 'position:absolute;top:calc(env(safe-area-inset-top,0px)+10px);right:16px;background:none;border:none;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent;';
   btn.innerHTML = av(session.avatar, 'md');
   btn.addEventListener('click', () => window.__snowShowAccount());
-  document.getElementById('app').appendChild(btn);
+  head.appendChild(btn);
 }
 
 // ── Bottom navigation ────────────────────────────────────────────────────────
@@ -77,8 +68,6 @@ function positionIndicator(nav) {
 export function renderNav(session, backHref = null) {
   const tabs = NAV_CONFIG[session.role];
   if (!tabs) return;
-
-  _renderTopAvatar(session);
 
   const hash       = window.location.hash.slice(1);
   const existing   = document.getElementById('bottom-nav');
