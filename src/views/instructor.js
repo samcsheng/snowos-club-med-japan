@@ -42,49 +42,50 @@ export function renderInstructorDashboard(container, { session }) {
 }
 
 function _instructorLessonCard(lesson, instructorId) {
-  const tmpl    = getTemplate(lesson.templateId);
-  const guests  = DB.getConfirmedByLesson(lesson.id).length;
-  const report  = DB.getReportByLesson(lesson.id);
+  const tmpl       = getTemplate(lesson.templateId);
+  const bkgs       = DB.getConfirmedByLesson(lesson.id);
+  const guestList  = bkgs.map(b => ({ ...b, guest: DB.getUserById(b.guestId) }));
+  const guestCount = guestList.length;
+  const maxGuests  = tmpl?.maxGuests ?? null;
+  const report     = DB.getReportByLesson(lesson.id);
   const needsReport = lesson.status !== 'scheduled' && !report;
-  const maxGuests = tmpl?.maxGuests ?? null;
 
   return `
-    <div class="glass-strong" style="border-radius:12px;overflow:hidden;">
-      <!-- Header row -->
-      <button data-lesson-id="${lesson.id}" style="display:flex;align-items:flex-start;
-        gap:12px;padding:14px 16px;width:100%;background:none;border:none;cursor:pointer;text-align:left;">
-        <div style="flex-shrink:0;width:44px;height:44px;background:var(--bg-tile);
-          border-radius:10px;display:flex;align-items:center;justify-content:center;">
-          <div style="font-size:12px;font-weight:800;color:#1E2643;font-family:'Newsreader',serif;">
-            ${lesson.templateId}
-          </div>
+    <div class="glass" style="border-radius:16px;overflow:hidden;">
+      <!-- Card body — clickable, opens detail modal -->
+      <div data-lesson-id="${lesson.id}" style="padding:22px;cursor:pointer;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+          <span class="badge badge-in-progress" style="font-size:12px;padding:5px 14px;">Today</span>
+          ${statusBadge(lesson.status)}
         </div>
-        <div style="flex:1;">
-          <div style="font-weight:600;font-size:15px;color:#000;">
-            ${tmpl ? tmpl.name : lesson.templateId}
-          </div>
-          ${tmpl ? `
-          <div style="font-size:13px;color:#777;margin-top:2px;">
-            ${lessonTimes(tmpl)}
-          </div>` : ''}
-          <div style="font-size:13px;color:#777;margin-top:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-            <span>${guests}${maxGuests ? ` / ${maxGuests}` : ''} guest${guests!==1?'s':''}</span>
-            <span style="color:rgba(0,0,0,0.15);">·</span>
-            ${statusBadge(lesson.status)}
-          </div>
+        <div style="font-family:'Newsreader',serif;font-size:26px;font-weight:700;color:#000;
+          margin-bottom:8px;line-height:1.2;">
+          ${tmpl ? tmpl.name : lesson.templateId}
         </div>
-        <div style="color:#1E2643;margin-top:2px;">${iChevR()}</div>
-      </button>
+        <div style="font-size:15px;color:#333;font-weight:500;margin-bottom:4px;">
+          ${tmpl ? lessonTimes(tmpl) : ''}
+        </div>
+        <div style="font-size:14px;color:#777;">
+          ${guestCount}${maxGuests ? ` / ${maxGuests}` : ''} guest${guestCount !== 1 ? 's' : ''} confirmed
+        </div>
+        <div class="div" style="margin:18px 0;"></div>
+        ${guestCount > 0 ? `
+        <div style="display:flex;align-items:center;gap:-6px;flex-wrap:wrap;gap:6px;">
+          ${guestList.slice(0, 6).map(b => av((b.guest?.name ?? '?').slice(0, 2))).join('')}
+          ${guestCount > 6 ? `<span style="font-size:13px;color:#888;margin-left:2px;">+${guestCount - 6} more</span>` : ''}
+        </div>` : `
+        <div style="font-size:14px;color:#aaa;font-style:italic;">No guests confirmed yet</div>`}
+      </div>
       ${needsReport ? `
-        <div class="div"></div>
         <button data-report-id="${lesson.id}"
-          style="display:flex;align-items:center;gap:8px;padding:12px 16px;width:100%;
-          background:rgba(253,190,0,0.08);border:none;cursor:pointer;color:#875700;
-          font-size:14px;font-weight:600;font-family:'Inter',sans-serif;">
+          style="display:flex;align-items:center;gap:8px;padding:13px 22px;width:100%;
+          background:rgba(253,190,0,0.1);border:none;border-top:1px solid rgba(253,190,0,0.18);
+          cursor:pointer;color:#875700;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;">
           ${iClipboard()} Submit lesson report
         </button>` : report ? `
-        <div style="display:flex;align-items:center;gap:8px;padding:10px 16px;
-          background:var(--bg-success-soft);color:#076b1a;font-size:13px;">
+        <div style="display:flex;align-items:center;gap:8px;padding:12px 22px;
+          background:var(--bg-success-soft);border-top:1px solid rgba(8,138,32,0.12);
+          color:#076b1a;font-size:13px;font-weight:500;">
           ${iCheck()} Report submitted
         </div>` : ''}
     </div>`;
