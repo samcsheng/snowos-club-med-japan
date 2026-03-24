@@ -379,6 +379,23 @@
     .date-chip.today .date-chip-dow { color: #B88700; }
     .date-chip.today.selected .date-chip-dow { color: rgba(255,255,255,0.8); }
 
+    /* ── Schedule date picker ─────────────────────────── */
+    .sched-date-cell {
+      display: flex; flex-direction: column; align-items: center;
+      border-radius: 10px; cursor: pointer; transition: background 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .sched-date-cell.sel { background: #1E2643; }
+    .sched-date-cell.tod { outline: 1.5px solid #FDBE00; outline-offset: -1.5px; }
+    .scd-month-hint { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; height: 12px; line-height: 12px; color: #bbb; text-align: center; }
+    .sched-date-cell.sel .scd-month-hint { color: rgba(255,255,255,0.5); }
+    .scd-num { font-size: 18px; font-weight: 700; color: #333; line-height: 1.2; }
+    .sched-date-cell.sel .scd-num { color: #fff; }
+    .sched-date-cell.tod .scd-num { color: #1E2643; font-weight: 800; }
+    .scd-dot { width: 5px; height: 5px; border-radius: 50%; background: #FDBE00; }
+    .sched-date-cell.sel .scd-dot { background: rgba(255,255,255,0.65); }
+    #sched-date-row::-webkit-scrollbar { display: none; }
+
     /* ── Session card (AM/PM picker) ──────────────────── */
 	    .session-card {
 	      border: 1.5px solid var(--line-soft); border-radius: 12px;

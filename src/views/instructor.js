@@ -3,7 +3,7 @@ import { navigate } from '../app.js';
 import {
   toast, pageHead, statusBadge, sportBadge, av, secLabel,
   emptyState, fmtDate, fmtDateLong, todayStr,
-  tabBar, lessonTimes, iCalendar, iChevR, iClipboard, iCheck,
+  lessonTimes, iCalendar, iChevR, iClipboard, iCheck,
   iBack, iX, openModal, closeModal,
 } from '../ui.js';
 
@@ -166,126 +166,208 @@ function _openInstructorLessonModal(lesson, session) {
 
 // ── My Schedule ───────────────────────────────────────────────────────────────
 export function renderMySchedule(container, { session }) {
-  let view     = 'week'; // 'week' | 'day'
-  let selDate  = todayStr();
-  let weekStart = _weekStart(new Date());
+  const today      = todayStr();
+  let selDate      = today;
+  const allLessons = DB.getLessonsByInstructor(session.id);
+  const lessonDates = new Set(allLessons.map(l => l.date));
 
-  function render() {
-    const today = todayStr();
-    const days  = Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(weekStart);
-      d.setDate(d.getDate() + i);
-      return isoDate(d);
-    });
+  // Build date range: Sunday before (today − 7d) through today + 84d
+  function _sunOf(dateStr) {
+    const d = new Date(dateStr + 'T00:00:00');
+    d.setDate(d.getDate() - d.getDay());
+    return d;
+  }
+  const rangeStart = _sunOf(today);
+  rangeStart.setDate(rangeStart.getDate() - 7);
+  const rangeEnd = new Date(today + 'T00:00:00');
+  rangeEnd.setDate(rangeEnd.getDate() + 84);
 
-    const allLessons = DB.getLessonsByInstructor(session.id);
+  const dates = [];
+  const cur = new Date(rangeStart);
+  while (cur <= rangeEnd) { dates.push(isoDate(cur)); cur.setDate(cur.getDate() + 1); }
 
-    container.innerHTML = `
-      ${pageHead('My Schedule')}
+  function _monthLabel(dateStr) {
+    return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  }
 
-      <!-- Week nav -->
-      <div style="padding:0 20px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
-        <button id="prev-wk" class="btn btn-ghost btn-sm">← Prev</button>
-        <div style="font-size:13px;color:#555;font-weight:500;">
-          ${fmtDate(days[0])} – ${fmtDate(days[6])}
+  container.innerHTML = `
+    ${pageHead('My Schedule')}
+
+    <div style="padding:0 20px 16px;">
+      <div class="glass" id="date-picker" style="border-radius:16px;overflow:hidden;">
+
+        <!-- Header: month + Today -->
+        <div style="padding:14px 16px 10px;display:flex;align-items:center;justify-content:space-between;">
+          <div id="sched-month" style="font-family:'Newsreader',serif;font-size:17px;font-weight:700;color:#000;">
+            ${_monthLabel(today)}
+          </div>
+          <button id="sched-today-btn" style="font-size:12px;font-weight:600;color:#1E2643;
+            background:rgba(30,38,67,0.07);border:none;padding:5px 12px;border-radius:999px;
+            cursor:pointer;font-family:'Inter',sans-serif;">Today</button>
         </div>
-        <button id="next-wk" class="btn btn-ghost btn-sm">Next →</button>
+
+        <!-- Fixed DOW row (always Sun–Sat since we snap to Sundays) -->
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);padding:0 12px 6px;">
+          ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(dow => `
+            <div style="text-align:center;font-size:10px;font-weight:600;color:#aaa;
+              letter-spacing:0.4px;text-transform:uppercase;">${dow}</div>
+          `).join('')}
+        </div>
+
+        <!-- Horizontally scrollable date row, snaps to every Sunday -->
+        <div id="sched-date-row" style="display:flex;overflow-x:auto;scroll-snap-type:x mandatory;
+          padding:4px 12px 14px;-webkit-overflow-scrolling:touch;">
+          ${dates.map(d => {
+            const date = new Date(d + 'T00:00:00');
+            const isSun  = date.getDay() === 0;
+            const isToday = d === today;
+            const isSel   = d === selDate;
+            const hasDot  = lessonDates.has(d);
+            const isFirst = date.getDate() === 1;
+            return `
+              <div class="sched-date-cell${isSel ? ' sel' : ''}${isToday && !isSel ? ' tod' : ''}"
+                data-date="${d}"
+                style="width:var(--date-cell-w,calc((100vw - 64px)/7));padding:5px 0;
+                  ${isSun ? 'scroll-snap-align:start;' : ''}">
+                <div class="scd-month-hint">${isFirst ? date.toLocaleDateString('en-US',{month:'short'}) : ''}</div>
+                <div class="scd-num">${date.getDate()}</div>
+                <div style="height:9px;display:flex;align-items:center;justify-content:center;margin-top:3px;">
+                  ${hasDot ? '<div class="scd-dot"></div>' : ''}
+                </div>
+              </div>`;
+          }).join('')}
+        </div>
+
       </div>
+    </div>
 
-      <!-- View switcher -->
-      <div style="padding:0 20px 16px;">
-        ${tabBar([{id:'week',label:'Week'},{id:'day',label:'Day'}], view)}
-      </div>
+    <!-- Lesson list -->
+    <div style="padding:0 20px 8px;">
+      <div id="sched-date-label" style="font-size:11px;font-weight:700;text-transform:uppercase;
+        letter-spacing:0.08em;color:#8A6B53;">${fmtDateLong(today)}</div>
+    </div>
+    <div id="sched-lessons" style="padding:0 20px 32px;display:flex;flex-direction:column;gap:8px;"></div>
+  `;
 
-      ${view === 'week'
-        ? _weekView(days, allLessons, today, selDate)
-        : _dayView(selDate, allLessons, session.id)}
-    `;
+  const pickerEl   = container.querySelector('#date-picker');
+  const dateRowEl  = container.querySelector('#sched-date-row');
+  const monthEl    = container.querySelector('#sched-month');
+  const dateLabelEl = container.querySelector('#sched-date-label');
 
-    container.querySelectorAll('[data-tab]').forEach(btn => {
-      btn.addEventListener('click', () => { view = btn.dataset.tab; render(); });
-    });
-    container.querySelector('#prev-wk').addEventListener('click', () => {
-      weekStart.setDate(weekStart.getDate() - 7); render();
-    });
-    container.querySelector('#next-wk').addEventListener('click', () => {
-      weekStart.setDate(weekStart.getDate() + 7); render();
-    });
-    container.querySelectorAll('[data-daysel]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        selDate = btn.dataset.daysel; view = 'day'; render();
+  // Set exact cell width once layout is known
+  requestAnimationFrame(() => {
+    const cellW = Math.floor((pickerEl.clientWidth - 24) / 7);
+    container.style.setProperty('--date-cell-w', cellW + 'px');
+    _scrollToSundayOf(today);
+  });
+
+  function _scrollToSundayOf(dateStr) {
+    const d = new Date(dateStr + 'T00:00:00');
+    d.setDate(d.getDate() - d.getDay());
+    const cell = dateRowEl.querySelector(`[data-date="${isoDate(d)}"]`);
+    if (cell) dateRowEl.scrollLeft = cell.offsetLeft - 12;
+  }
+
+  function _renderLessons() {
+    const el = container.querySelector('#sched-lessons');
+    if (!el) return;
+    const dayLessons = allLessons
+      .filter(l => l.date === selDate)
+      .sort((a, b) => a.session.localeCompare(b.session));
+    el.innerHTML = dayLessons.length === 0
+      ? emptyState('😌', 'Rest day', 'No sessions scheduled.')
+      : dayLessons.map(l => _schedLessonCard(l)).join('');
+    el.querySelectorAll('[data-lesson-id]').forEach(el => {
+      el.addEventListener('click', () => {
+        const lesson = DB.getLessonById(el.dataset.lessonId);
+        if (lesson) _openInstructorLessonModal(lesson, session);
       });
     });
-
-    container.querySelectorAll('[data-report-id]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const lesson = DB.getLessonById(btn.dataset.reportId);
+    el.querySelectorAll('[data-report-id]').forEach(el => {
+      el.addEventListener('click', () => {
+        const lesson = DB.getLessonById(el.dataset.reportId);
         if (lesson) openReportModal(lesson, session);
       });
     });
   }
 
-  render();
+  function _selectDate(dateStr) {
+    const prev = dateRowEl.querySelector('.sched-date-cell.sel');
+    if (prev) {
+      prev.classList.remove('sel');
+      if (prev.dataset.date === today) prev.classList.add('tod');
+    }
+    const next = dateRowEl.querySelector(`[data-date="${dateStr}"]`);
+    if (next) { next.classList.remove('tod'); next.classList.add('sel'); }
+    selDate = dateStr;
+    if (dateLabelEl) dateLabelEl.textContent = fmtDateLong(dateStr);
+    _renderLessons();
+  }
+
+  // Update month label on scroll
+  dateRowEl.addEventListener('scroll', () => {
+    const sl = dateRowEl.scrollLeft;
+    for (const cell of dateRowEl.querySelectorAll('.sched-date-cell')) {
+      if (cell.offsetLeft - 12 >= sl - 2) {
+        if (monthEl) monthEl.textContent = _monthLabel(cell.dataset.date);
+        break;
+      }
+    }
+  }, { passive: true });
+
+  // Date cell taps
+  dateRowEl.querySelectorAll('.sched-date-cell').forEach(cell => {
+    cell.addEventListener('click', () => _selectDate(cell.dataset.date));
+  });
+
+  // Today button
+  container.querySelector('#sched-today-btn').addEventListener('click', () => {
+    _selectDate(today);
+    _scrollToSundayOf(today);
+  });
+
+  _renderLessons();
 }
 
-function _weekStart(date) {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = day === 0 ? -6 : 1 - day; // Monday
-  d.setDate(d.getDate() + diff);
-  d.setHours(0,0,0,0);
-  return d;
-}
+// ── Schedule lesson card (compact, not the same as today-tab expanded card) ───
+function _schedLessonCard(lesson) {
+  const tmpl       = getTemplate(lesson.templateId);
+  const bkgs       = DB.getConfirmedByLesson(lesson.id);
+  const guestCount = bkgs.length;
+  const maxGuests  = tmpl?.maxGuests ?? null;
+  const report     = DB.getReportByLesson(lesson.id);
+  const needsReport = lesson.status !== 'scheduled' && !report;
 
-function _weekView(days, allLessons, today, selDate) {
   return `
-    <div style="padding:0 12px 20px;">
-      <div class="glass" style="padding:14px 16px;border-radius:16px;background:var(--bg-section);">
-        <div style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#8A6B53;margin-bottom:10px;">
-          This week's dates
+    <div class="glass-strong" style="border-radius:12px;overflow:hidden;">
+      <div data-lesson-id="${lesson.id}" style="padding:14px 16px;cursor:pointer;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <span style="font-size:11px;font-weight:700;letter-spacing:0.6px;text-transform:uppercase;
+            background:rgba(30,38,67,0.08);color:#1E2643;padding:3px 10px;border-radius:999px;">
+            ${lesson.session}
+          </span>
+          ${statusBadge(lesson.status)}
         </div>
-        <div style="display:flex;gap:6px;">
-          ${days.map(d => {
-            const count = allLessons.filter(l => l.date === d).length;
-            const isToday = d === today;
-            const isSel   = d === selDate;
-            return `
-              <div class="date-chip${isSel?' selected':isToday?' today':''}"
-                data-daysel="${d}" style="flex:1;min-width:0;padding:10px 6px;">
-                <div class="date-chip-dow">${new Date(d+'T00:00:00').toLocaleDateString('en-US',{weekday:'short'})}</div>
-                <div class="date-chip-day">${new Date(d+'T00:00:00').getDate()}</div>
-                ${count > 0
-                  ? `<div style="font-size:10px;margin-top:3px;font-weight:700;
-                      color:${isSel?'rgba(255,255,255,0.8)':'#FDBE00'};">${count}</div>`
-                  : `<div style="font-size:10px;margin-top:3px;color:transparent;">·</div>`}
-              </div>`;
-          }).join('')}
+        <div style="font-family:'Newsreader',serif;font-size:18px;font-weight:700;color:#000;
+          line-height:1.2;margin-bottom:4px;">
+          ${tmpl ? tmpl.name : lesson.templateId}
+        </div>
+        <div style="font-size:13px;color:#666;">
+          ${tmpl ? lessonTimes(tmpl) : ''}${guestCount > 0 ? ` · ${guestCount}${maxGuests ? `/${maxGuests}` : ''} guest${guestCount !== 1 ? 's' : ''}` : ''}
         </div>
       </div>
-    </div>
-    <div style="padding:0 20px;color:#6b625d;font-size:13px;text-align:center;">
-      Tap a day to see details
-    </div>`;
-}
-
-function _dayView(date, allLessons, instructorId) {
-  const dayLessons = allLessons
-    .filter(l => l.date === date)
-    .sort((a,b) => a.session.localeCompare(b.session));
-
-  if (dayLessons.length === 0) {
-    return `
-      <div style="padding:0 12px;">
-        <div class="sec-label" style="margin-bottom:12px;">${fmtDateLong(date)}</div>
-        ${emptyState('😌', 'Rest day', 'No sessions scheduled for this day.')}
-      </div>`;
-  }
-  return `
-    <div style="padding:0 20px 8px;">
-      <div class="sec-label">${fmtDateLong(date)}</div>
-    </div>
-    <div style="padding:0 12px 32px;display:flex;flex-direction:column;gap:8px;">
-      ${dayLessons.map(l => _instructorLessonCard(l, instructorId)).join('')}
+      ${needsReport ? `
+        <button data-report-id="${lesson.id}"
+          style="display:flex;align-items:center;gap:8px;padding:10px 16px;width:100%;
+          background:rgba(253,190,0,0.1);border:none;border-top:1px solid rgba(253,190,0,0.18);
+          cursor:pointer;color:#875700;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;">
+          ${iClipboard()} Submit report
+        </button>` : report ? `
+        <div style="display:flex;align-items:center;gap:8px;padding:9px 16px;
+          background:var(--bg-success-soft);border-top:1px solid rgba(8,138,32,0.12);
+          color:#076b1a;font-size:12px;font-weight:500;">
+          ${iCheck()} Report submitted
+        </div>` : ''}
     </div>`;
 }
 
