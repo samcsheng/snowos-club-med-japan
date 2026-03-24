@@ -508,7 +508,7 @@ function _bookingCard(b, today) {
   const isCancelled = b.status === 'cancelled';
   const canCheckReportCard = (
     b.status === 'confirmed' &&
-    b.lesson?.status === 'completed' &&
+    b.lesson?.status === 'reported' &&
     !!b.report?.submittedAt &&
     !!b.guestReport
   );
