@@ -83,6 +83,18 @@
       display: flex; justify-content: center; align-items: flex-end;
       padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
       pointer-events: none;
+      opacity: 1;
+      transform: translateY(0);
+      transition:
+        transform 0.26s cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+      will-change: transform, opacity;
+      view-transition-name: none;
+    }
+    #bottom-nav.is-hidden {
+      opacity: 0;
+      transform: translateY(calc(100% + env(safe-area-inset-bottom, 0px) + 24px));
+      pointer-events: none;
     }
     .nav-inner {
       pointer-events: all;
@@ -101,7 +113,7 @@
       border-radius: 9999px;
       background: #1E2643;
       box-shadow: 0 2px 12px rgba(0,0,0,0.18);
-      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
       pointer-events: none; z-index: 0;
     }
     .nav-tab {
@@ -126,8 +138,8 @@
       from { opacity: 0; transform: translateX(28px) scale(0.88); }
       to   { opacity: 1; transform: translateX(0)    scale(1); }
     }
-    .nav-inner     { animation: navTabsIn 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
-    .nav-inner-back{ animation: navBackIn 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+    .nav-inner     { animation: navTabsIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) both; }
+    .nav-inner-back{ animation: navBackIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
     /* ── Back button nav mode ──────────────────────────── */
     #bottom-nav.nav-back { justify-content: flex-end; padding-right: 20px; }
@@ -290,6 +302,9 @@
       min-height: 100vh;
       transition: opacity 0.12s ease;
     }
+    #content.nav-hidden-offset {
+      padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px));
+    }
 
     /* ── Step dots ────────────────────────────────────── */
     .step-dots { display: flex; gap: 5px; justify-content: center; align-items: center; }
@@ -400,6 +415,21 @@
       cursor: pointer; transition: background 0.12s; -webkit-tap-highlight-color: transparent;
     }
     .card-row:active { background: rgba(30,38,67,0.03); }
+    .book-lesson-card {
+      transform-origin: center bottom;
+      transition:
+        transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+        box-shadow 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+        background 0.12s ease;
+    }
+    .book-lesson-card:active {
+      transform: scale(0.985);
+      box-shadow: 0 12px 28px rgba(30,38,67,0.12);
+    }
+    .book-summary-card {
+      border-radius: 16px;
+      overflow: hidden;
+    }
 
     /* ── Progress timeline ────────────────────────────── */
     .timeline-item { display: flex; gap: 12px; padding: 14px 0; }
@@ -410,8 +440,45 @@
     @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
     .fade-up { animation: fadeUp 0.22s ease; }
 
+    /* ── View transitions ─────────────────────────────── */
+    ::view-transition-group(lesson-expand-card) {
+      animation-duration: 0.42s;
+      animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    ::view-transition-old(lesson-expand-card),
+    ::view-transition-new(lesson-expand-card) {
+      animation-duration: 0.42s;
+      animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+      animation-duration: 0.2s;
+      animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
     /* ── Accent saffron bar ───────────────────────────── */
     .accent-bar { height: 3px; border-radius: 999px; background: #FDBE00; }
+
+    @media (prefers-reduced-motion: reduce) {
+      #bottom-nav,
+      .nav-indicator,
+      .nav-tab,
+      .btn,
+      .pill-filter,
+      .date-chip,
+      .card-row,
+      .book-lesson-card {
+        transition: none !important;
+        animation: none !important;
+      }
+      ::view-transition-group(lesson-expand-card),
+      ::view-transition-old(lesson-expand-card),
+      ::view-transition-new(lesson-expand-card),
+      ::view-transition-old(root),
+      ::view-transition-new(root) {
+        animation-duration: 0.01ms;
+      }
+    }
   </style>
 </head>
 <body>

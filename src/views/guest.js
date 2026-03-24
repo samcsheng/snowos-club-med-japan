@@ -4,7 +4,7 @@ import {
   toast, pageHead, statusBadge, levelBadge, sportBadge, av,
   secLabel, emptyState, fmtDate, fmtDateLong, todayStr,
   greeting, lessonTimes, iCalendar, iPlus, iChevR, iUser,
-  iCheck, iWarn, iBack,
+  iCheck, iWarn, iBack, setNavHidden,
 } from '../ui.js';
 
 // ── Guest Dashboard ──────────────────────────────────────────────────────────
@@ -141,12 +141,23 @@ const wiz = { step: 1, date: null, templateId: null, sport: 'ski', audience: 'ad
 
 function resetWiz() { wiz.step = 1; wiz.date = null; wiz.templateId = null; }
 
-function _showNav()  { document.getElementById('bottom-nav')?.style.removeProperty('display'); }
-function _hideNav()  { const n = document.getElementById('bottom-nav'); if (n) n.style.display = 'none'; }
+function _runWizardTransition(container, ctx, mutate) {
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!reduceMotion && typeof document.startViewTransition === 'function') {
+    document.startViewTransition(() => {
+      mutate();
+      _renderWizardStep(container, ctx);
+    });
+    return;
+  }
+  mutate();
+  _renderWizardStep(container, ctx);
+}
 
 export function renderBook(container, ctx) {
   if (!window._bookActive) { resetWiz(); window._bookActive = true; }
-  window.addEventListener('hashchange', () => { window._bookActive = false; _showNav(); }, { once: true });
+  window.addEventListener('hashchange', () => { window._bookActive = false; setNavHidden(false); }, { once: true });
+  setNavHidden(wiz.step === 2);
   _renderWizardStep(container, ctx);
 }
 
@@ -156,25 +167,25 @@ function _renderWizardStep(container, ctx) {
   const wrap = document.createElement('div');
 
   if (wiz.step === 2) {
-    _hideNav();
-    wrap.innerHTML = `
-      <div class="page-head">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <button id="wiz-back" style="flex-shrink:0;padding:6px;background:rgba(30,38,67,0.07);
-            border-radius:999px;display:inline-flex;color:#1E2643;border:none;cursor:pointer;
-            -webkit-tap-highlight-color:transparent;">${iBack()}</button>
-          <h1 class="page-title" style="flex:1;">Confirm booking</h1>
-        </div>
-      </div>
-      <div style="height:28px;"></div>`;
+    setNavHidden(true);
+    wrap.innerHTML = pageHead('Confirm booking');
     container.appendChild(wrap);
+    const titleRow = wrap.querySelector('.page-head > div');
+    titleRow.style.alignItems = 'center';
+    const backBtn = document.createElement('button');
+    backBtn.id = 'wiz-back';
+    backBtn.type = 'button';
+    backBtn.style.cssText = 'flex-shrink:0;margin-bottom:2px;padding:6px;background:rgba(30,38,67,0.07);border-radius:999px;display:inline-flex;color:#1E2643;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent;';
+    backBtn.innerHTML = iBack();
+    titleRow.prepend(backBtn);
     wrap.querySelector('#wiz-back').addEventListener('click', () => {
-      wiz.step = 1;
-      _showNav();
-      _renderWizardStep(container, ctx);
+      _runWizardTransition(container, ctx, () => {
+        wiz.step = 1;
+        setNavHidden(false);
+      });
     });
   } else {
-    _showNav();
+    setNavHidden(false);
     wrap.innerHTML = pageHead('Book a lesson', 'Group lesson booking');
     container.appendChild(wrap);
   }
@@ -209,8 +220,9 @@ function _step1(body, container, ctx) {
           const lesson   = DB.getLessonsByDateTemplate(wiz.date, t.id)[0];
           const taken    = lesson ? DB.getConfirmedByLesson(lesson.id).length : t.maxGuests;
           const hasSlots = !!lesson && taken < t.maxGuests;
+          const isSelected = wiz.templateId === t.id;
           return `
-            <div class="glass card-row" style="border-radius:12px;${!hasSlots ? 'opacity:0.5;cursor:default;' : ''}"
+            <div class="glass card-row book-lesson-card" style="border-radius:12px;view-transition-name:${isSelected ? 'lesson-expand-card' : 'none'};${!hasSlots ? 'opacity:0.5;cursor:default;' : ''}"
               data-tmpl="${t.id}">
               <div style="flex-shrink:0;width:44px;height:44px;background:rgba(30,38,67,0.08);
                 border-radius:10px;display:flex;align-items:center;justify-content:center;
@@ -237,9 +249,12 @@ function _step1(body, container, ctx) {
       const lesson = DB.getLessonsByDateTemplate(wiz.date, tmpl.id)[0];
       if (!lesson || DB.getConfirmedByLesson(lesson.id).length >= tmpl.maxGuests) return;
       card.addEventListener('click', () => {
-        wiz.templateId = card.dataset.tmpl;
-        wiz.step = 2;
-        _renderWizardStep(container, ctx);
+        card.style.viewTransitionName = 'lesson-expand-card';
+        _runWizardTransition(container, ctx, () => {
+          wiz.templateId = card.dataset.tmpl;
+          wiz.step = 2;
+          setNavHidden(true);
+        });
       });
     });
   }
@@ -320,7 +335,7 @@ function _step2(body, container, ctx) {
 
   body.innerHTML = `
     <div class="sec-label" style="margin-bottom:12px;">Booking summary</div>
-    <div class="glass" style="padding:20px;margin-bottom:20px;">
+    <div class="glass book-summary-card" style="padding:20px;margin-bottom:20px;view-transition-name:${wiz.templateId ? 'lesson-expand-card' : 'none'};">
       <div style="display:flex;flex-direction:column;gap:14px;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <span style="font-size:13px;color:#888;">Class</span>
@@ -376,7 +391,7 @@ function _step2(body, container, ctx) {
     toast('Booking confirmed! See you on the mountain. ⛷', 'success');
     resetWiz();
     window._bookActive = false;
-    _showNav();
+    setNavHidden(false);
     navigate('/guest/bookings');
   });
 }

@@ -73,6 +73,7 @@ export function renderNav(session, backHref = null) {
   const hash       = window.location.hash.slice(1);
   const existing   = document.getElementById('bottom-nav');
   const isBackMode = !!backHref;
+  document.getElementById('content')?.classList.remove('nav-hidden-offset');
 
   // Nav already exists for this role — update in place if mode hasn't changed.
   if (existing && existing.dataset.role === session.role) {
@@ -122,6 +123,13 @@ export function renderNav(session, backHref = null) {
   indicator.style.transition = 'none';
   positionIndicator(nav);
   requestAnimationFrame(() => { indicator.style.transition = ''; });
+}
+
+export function setNavHidden(hidden) {
+  const nav = document.getElementById('bottom-nav');
+  if (!nav) return;
+  nav.classList.toggle('is-hidden', hidden);
+  document.getElementById('content')?.classList.toggle('nav-hidden-offset', hidden);
 }
 
 // ── Toast ────────────────────────────────────────────────────────────────────
