@@ -3,7 +3,7 @@ import { navigate } from '../app.js';
 import {
   toast, pageHead, statusBadge, levelBadge, sportBadge, audienceBadge,
   av, secLabel, emptyState, openModal, closeModal,
-  fmtDate, fmtDateLong, todayStr, sessionTime,
+  fmtDate, fmtDateLong, todayStr,
   tabBar, lessonTimes, iChevR, iCalendar, iPeople, iPlus,
   iClipboard, iCheck, iWarn, iEdit,
 } from '../ui.js';

@@ -2,7 +2,7 @@ import { DB, TEMPLATES, getTemplate, isoDate } from '../data.js';
 import { navigate } from '../app.js';
 import {
   toast, pageHead, statusBadge, levelBadge, sportBadge, av, secLabel,
-  emptyState, fmtDate, fmtDateLong, todayStr, sessionTime,
+  emptyState, fmtDate, fmtDateLong, todayStr,
   tabBar, lessonTimes, iCalendar, iChevR, iClipboard, iCheck,
   iBack, iX, openModal,
 } from '../ui.js';
