@@ -1,7 +1,7 @@
 import { DB, TEMPLATES, getTemplate, isoDate } from '../data.js';
 import { navigate }   from '../app.js';
 import {
-  toast, pageHead, statusBadge, levelBadge, sportBadge, av,
+  toast, pageHead, injectHeadAvatar, statusBadge, bookingDisplayStatus, levelBadge, sportBadge, av,
   secLabel, emptyState, fmtDate, fmtDateLong, todayStr,
   greeting, lessonTimes, iCalendar, iPlus, iChevR, iUser,
   iCheck, iWarn, iBack, setNavHidden,
@@ -68,12 +68,13 @@ function _todayCard(booking) {
   const inst   = lesson.instructorId ? DB.getUserById(lesson.instructorId) : null;
   const month  = new Date(lesson.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short' });
   const day    = new Date(lesson.date + 'T00:00:00').getDate();
+  const displayStatus = bookingDisplayStatus(booking, lesson);
 
   return `
     <div class="glass" style="padding:22px;border-radius:16px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
         <span class="badge badge-in-progress" style="font-size:12px;padding:5px 14px;">Today</span>
-        <span class="badge badge-confirmed">✓ Confirmed</span>
+        ${statusBadge(displayStatus)}
       </div>
       <div style="font-family:'Newsreader',serif;font-size:26px;font-weight:700;color:#000;
         margin-bottom:8px;line-height:1.2;">
@@ -107,6 +108,7 @@ function _lessonCard(booking) {
   const tmpl   = getTemplate(lesson.templateId);
   const inst   = lesson.instructorId ? DB.getUserById(lesson.instructorId) : null;
   const isToday = lesson.date === todayStr();
+  const displayStatus = bookingDisplayStatus(booking, lesson);
 
   return `
     <div class="glass card-row" style="border-radius:12px;cursor:default;">
@@ -132,7 +134,7 @@ function _lessonCard(booking) {
           · ${inst ? inst.name : 'Instructor TBD'}
         </div>
       </div>
-      <span class="badge badge-confirmed" style="flex-shrink:0;">✓</span>
+      ${statusBadge(displayStatus)}
     </div>`;
 }
 
@@ -374,13 +376,15 @@ function _step2(body, container, ctx) {
 
   body.querySelector('#confirm-btn')?.addEventListener('click', () => {
     if (!lesson) return;
+    const bookingId = 'bkg-' + Date.now().toString(36);
     DB.upsertBooking({
-      id:        'bkg-' + Date.now().toString(36),
+      id:        bookingId,
       guestId:   session.id,
       lessonId:  lesson.id,
       createdAt: new Date().toISOString(),
       status:    'confirmed',
     });
+    sessionStorage.setItem('snow_new_booking_id', bookingId);
     toast('Booking confirmed! See you on the mountain. ⛷', 'success');
     resetWiz();
     window._bookActive = false;
@@ -392,7 +396,8 @@ function _step2(body, container, ctx) {
 // ── My Bookings ───────────────────────────────────────────────────────────────
 export function renderMyBookings(container, { session }) {
   const today    = todayStr();
-  let   filter   = 'all';
+  let   filter   = 'upcoming';
+  const newBookingId = sessionStorage.getItem('snow_new_booking_id');
 
   function render() {
     const allBkgs = DB.getBookingsByGuest(session.id)
@@ -400,12 +405,13 @@ export function renderMyBookings(container, { session }) {
         const lesson = DB.getLessonById(b.lessonId);
         const tmpl   = lesson ? getTemplate(lesson.templateId) : null;
         const inst   = lesson?.instructorId ? DB.getUserById(lesson.instructorId) : null;
-        return { ...b, lesson, tmpl, inst };
+        return { ...b, lesson, tmpl, inst, isNew: b.id === newBookingId };
       })
       .sort((a,b) => {
         const ad = a.lesson?.date ?? '';
         const bd = b.lesson?.date ?? '';
-        return bd.localeCompare(ad); // newest first
+        if (ad !== bd) return ad.localeCompare(bd);
+        return a.createdAt.localeCompare(b.createdAt);
       });
 
     const filtered = allBkgs.filter(b => {
@@ -420,7 +426,7 @@ export function renderMyBookings(container, { session }) {
 
       <!-- Filter pills -->
       <div class="sx" style="display:flex;gap:8px;padding:0 20px 20px;">
-        ${['all','upcoming','past','cancelled'].map(f =>
+        ${['upcoming','past','cancelled','all'].map(f =>
           `<button class="pill-filter${filter===f?' active':''}" data-filter="${f}" style="white-space:nowrap;">
             ${f.charAt(0).toUpperCase()+f.slice(1)}
           </button>`
@@ -440,6 +446,8 @@ export function renderMyBookings(container, { session }) {
           : filtered.map(b => _bookingCard(b, today)).join('')}
       </div>`;
 
+    injectHeadAvatar(session, container);
+
     // Filter buttons
     container.querySelectorAll('[data-filter]').forEach(btn => {
       btn.addEventListener('click', () => { filter = btn.dataset.filter; render(); });
@@ -456,18 +464,21 @@ export function renderMyBookings(container, { session }) {
   }
 
   render();
+  sessionStorage.removeItem('snow_new_booking_id');
 }
 
 function _bookingCard(b, today) {
   const isPast     = b.lesson && b.lesson.date < today;
   const canCancel  = b.status === 'confirmed' && !isPast;
+  const displayStatus = bookingDisplayStatus(b, b.lesson);
+  const isCancelled = b.status === 'cancelled';
 
   return `
-    <div class="glass" style="padding:16px;border-radius:12px;">
+    <div class="glass" style="padding:16px;border-radius:12px;${isCancelled ? 'opacity:0.56;' : ''}">
       <div style="display:flex;align-items:flex-start;gap:12px;">
         <!-- Date block -->
         <div style="flex-shrink:0;width:44px;height:44px;
-          background:${isPast?'rgba(30,38,67,0.06)':'rgba(30,38,67,0.09)'};
+          background:${isCancelled ? 'rgba(30,38,67,0.05)' : isPast ? 'rgba(30,38,67,0.06)' : 'rgba(30,38,67,0.09)'};
           border-radius:10px;display:flex;flex-direction:column;
           align-items:center;justify-content:center;">
           <div style="font-size:9px;font-weight:700;color:#888;text-transform:uppercase;">
@@ -483,7 +494,8 @@ function _bookingCard(b, today) {
             <span style="font-weight:600;font-size:15px;color:#000;">
               ${b.tmpl ? b.tmpl.name : b.lessonId}
             </span>
-            ${statusBadge(b.status)}
+            ${statusBadge(displayStatus)}
+            ${b.isNew ? `<span class="badge" style="background:#E8F5E9;color:#1B5E20;">NEW</span>` : ''}
           </div>
           <div style="font-size:13px;color:#777;margin-top:4px;">
             ${b.tmpl ? lessonTimes(b.tmpl) : ''}

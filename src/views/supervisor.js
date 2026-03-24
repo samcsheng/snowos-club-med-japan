@@ -1,7 +1,7 @@
 import { DB, TEMPLATES, getTemplate, isoDate } from '../data.js';
 import { navigate } from '../app.js';
 import {
-  toast, pageHead, statusBadge, levelBadge, sportBadge, audienceBadge,
+  toast, pageHead, statusBadge, bookingDisplayStatus, levelBadge, sportBadge, audienceBadge,
   av, secLabel, emptyState, openModal, closeModal,
   fmtDate, fmtDateLong, todayStr,
   tabBar, lessonTimes, iChevR, iCalendar, iPeople, iPlus,
@@ -113,7 +113,7 @@ export function renderSupervisorDashboard(container, { session }) {
                 · ${b.lesson ? fmtDate(b.lesson.date) : ''}
               </div>
             </div>
-            ${statusBadge(b.status)}
+            ${statusBadge(bookingDisplayStatus(b, b.lesson))}
           </div>`).join('')}
     </div>
 
@@ -191,7 +191,7 @@ export function renderAllBookings(container, { session }) {
                       · ${b.lesson ? fmtDate(b.lesson.date) : ''}
                     </div>
                   </div>
-                  ${statusBadge(b.status)}
+                  ${statusBadge(bookingDisplayStatus(b, b.lesson))}
                 </div>
                 <div class="div"></div>
                 <div style="padding:10px 16px;font-size:12px;color:#888;

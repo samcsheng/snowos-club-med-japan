@@ -4,6 +4,7 @@ import { navigate } from './app.js';
 export function injectHeadAvatar(session, content) {
   const head = content.querySelector('.page-head');
   if (!head) return;
+  head.querySelector('[data-account-avatar]')?.remove();
 
   const roleLabel = { instructor: 'Ski Instructor', supervisor: 'Supervisor' }[session.role] ?? null;
 
@@ -33,6 +34,7 @@ export function injectHeadAvatar(session, content) {
   const titleRow = head.querySelector('div');
   titleRow.style.alignItems = 'center';
   const btn = document.createElement('button');
+  btn.dataset.accountAvatar = 'true';
   btn.style.cssText = 'margin-left:auto;flex-shrink:0;background:none;border:none;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent;';
   btn.innerHTML = av(session.avatar, 'md');
   btn.addEventListener('click', () => window.__snowShowAccount());
@@ -201,6 +203,12 @@ export function statusBadge(status) {
   };
   const [cls, lbl] = map[status] || ['badge-scheduled', status];
   return `<span class="badge ${cls}">${lbl}</span>`;
+}
+
+export function bookingDisplayStatus(booking, lesson = null) {
+  if (!booking) return 'scheduled';
+  if (booking.status === 'cancelled') return 'cancelled';
+  return lesson?.status || 'scheduled';
 }
 
 export function levelBadge(level) {
