@@ -683,7 +683,7 @@ function openReportModal(lesson, session, onSuccess = null) {
   const guests = bkgs.map(b => ({ ...b, guest: DB.getUserById(b.guestId) }));
 
   guests.forEach(({ guestId }) => {
-    if (!draft.guests[guestId]) draft.guests[guestId] = { attendance: 'BOTH', nextClass: '', notes: '' };
+    if (!draft.guests[guestId]) draft.guests[guestId] = { attendance: 'BOTH', nextClass: lesson.templateId, notes: '' };
   });
 
   document.getElementById(`modal-${MODAL_ID}`)?.remove();
@@ -722,7 +722,7 @@ function openReportModal(lesson, session, onSuccess = null) {
       <div style="padding:0 2px 8px;">${secLabel(`Per-Guest (${guests.length})`)}</div>
       <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
         ${guests.map(({ guestId, guest }) => {
-          const g = draft.guests[guestId] || { attendance: 'BOTH', nextClass: '', notes: '' };
+          const g = draft.guests[guestId] || { attendance: 'BOTH', nextClass: lesson.templateId, notes: '' };
           return `
             <div class="glass" style="padding:16px;border-radius:12px;">
               <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
@@ -742,8 +742,6 @@ function openReportModal(lesson, session, onSuccess = null) {
               <div style="margin-bottom:12px;">
                 <div class="sec-label" style="margin-bottom:8px;">Recommended next class</div>
                 <div style="display:flex;flex-wrap:wrap;gap:8px;">
-                  <button class="att-pill${g.nextClass === '' ? ' active' : ''}"
-                    data-nc-guest="${guestId}" data-nc-val="">Same class</button>
                   ${sameType.map(t => `
                     <button class="att-pill${g.nextClass === t.id ? ' active' : ''}"
                       data-nc-guest="${guestId}" data-nc-val="${t.id}">${t.name}</button>`).join('')}
@@ -788,7 +786,7 @@ function openReportModal(lesson, session, onSuccess = null) {
     body.querySelectorAll('[data-att]').forEach(btn => {
       btn.addEventListener('click', () => {
         const gid = btn.dataset.guest;
-        if (!draft.guests[gid]) draft.guests[gid] = { attendance: 'BOTH', nextClass: '', notes: '' };
+        if (!draft.guests[gid]) draft.guests[gid] = { attendance: 'BOTH', nextClass: lesson.templateId, notes: '' };
         draft.guests[gid].attendance = btn.dataset.att;
         rerender();
       });
@@ -797,7 +795,7 @@ function openReportModal(lesson, session, onSuccess = null) {
     body.querySelectorAll('[data-nc-guest]').forEach(btn => {
       btn.addEventListener('click', () => {
         const gid = btn.dataset.ncGuest;
-        if (!draft.guests[gid]) draft.guests[gid] = { attendance: 'BOTH', nextClass: '', notes: '' };
+        if (!draft.guests[gid]) draft.guests[gid] = { attendance: 'BOTH', nextClass: lesson.templateId, notes: '' };
         draft.guests[gid].nextClass = btn.dataset.ncVal;
         rerender();
       });
@@ -806,7 +804,7 @@ function openReportModal(lesson, session, onSuccess = null) {
     body.querySelectorAll('[data-notes]').forEach(ta => {
       ta.addEventListener('blur', () => {
         const gid = ta.dataset.notes;
-        if (!draft.guests[gid]) draft.guests[gid] = { attendance: 'BOTH', nextClass: '', notes: '' };
+        if (!draft.guests[gid]) draft.guests[gid] = { attendance: 'BOTH', nextClass: lesson.templateId, notes: '' };
         draft.guests[gid].notes = ta.value;
       });
     });
@@ -820,7 +818,7 @@ function openReportModal(lesson, session, onSuccess = null) {
       const guestReports = guests.map(({ guestId }) => ({
         guestId,
         attendance: draft.guests[guestId]?.attendance ?? 'BOTH',
-        nextClass:  draft.guests[guestId]?.nextClass  ?? '',
+        nextClass:  draft.guests[guestId]?.nextClass  ?? lesson.templateId,
         notes:      draft.guests[guestId]?.notes      ?? '',
       }));
 
