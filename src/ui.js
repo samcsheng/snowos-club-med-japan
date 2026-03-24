@@ -19,14 +19,27 @@ const NAV_CONFIG = {
 };
 
 export function renderNav(session) {
-  document.getElementById('bottom-nav')?.remove();
-
-  const tabs  = NAV_CONFIG[session.role];
+  const tabs = NAV_CONFIG[session.role];
   if (!tabs) return;
 
-  const hash  = window.location.hash.slice(1); // e.g. "/guest/dashboard"
-  const nav   = document.createElement('nav');
-  nav.id      = 'bottom-nav';
+  const hash     = window.location.hash.slice(1);
+  const existing = document.getElementById('bottom-nav');
+
+  // If the nav already exists for this role, just update active classes in-place
+  // so CSS transitions animate the indicator change.
+  if (existing && existing.dataset.role === session.role) {
+    existing.querySelectorAll('.nav-tab').forEach(a => {
+      const href = a.getAttribute('href').slice(1); // strip leading #
+      a.classList.toggle('active', hash === href || hash.startsWith(href + '/'));
+    });
+    return;
+  }
+
+  // First render for this role — build the nav from scratch.
+  existing?.remove();
+  const nav    = document.createElement('nav');
+  nav.id       = 'bottom-nav';
+  nav.dataset.role = session.role;
 
   nav.innerHTML = `
     <div class="nav-inner">
