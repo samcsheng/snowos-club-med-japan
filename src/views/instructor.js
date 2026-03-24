@@ -4,7 +4,7 @@ import {
   toast, pageHead, statusBadge, sportBadge, av, secLabel,
   emptyState, fmtDate, fmtDateLong, todayStr,
   tabBar, lessonTimes, iCalendar, iChevR, iClipboard, iCheck,
-  iBack, iX, openModal,
+  iBack, iX, openModal, closeModal,
 } from '../ui.js';
 
 // ── Instructor Dashboard ──────────────────────────────────────────────────────
@@ -17,26 +17,6 @@ export function renderInstructorDashboard(container, { session }) {
   container.innerHTML = `
     ${pageHead('Today\'s Sessions', fmtDateLong(today))}
 
-    <!-- Quick stats -->
-    <div style="padding:8px 20px 20px;display:flex;gap:10px;">
-      <div class="glass-strong" style="flex:1;padding:14px;text-align:center;">
-        <div class="stat-num">${lessons.length}</div>
-        <div class="stat-lbl">Sessions</div>
-      </div>
-      <div class="glass-strong" style="flex:1;padding:14px;text-align:center;">
-        <div class="stat-num">
-          ${lessons.reduce((s,l)=>s+DB.getConfirmedByLesson(l.id).length,0)}
-        </div>
-        <div class="stat-lbl">Guests</div>
-      </div>
-      <div class="glass-strong" style="flex:1;padding:14px;text-align:center;">
-        <div class="stat-num">
-          ${lessons.filter(l=>DB.getReportByLesson(l.id)).length}
-        </div>
-        <div class="stat-lbl">Reported</div>
-      </div>
-    </div>
-
     <div style="padding:0 20px 8px;">${secLabel('Today\'s Schedule')}</div>
     <div style="padding:0 12px 20px;display:flex;flex-direction:column;gap:8px;" id="today-list">
       ${lessons.length === 0
@@ -45,6 +25,13 @@ export function renderInstructorDashboard(container, { session }) {
     </div>
 
   `;
+
+  container.querySelectorAll('[data-lesson-id]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const lesson = DB.getLessonById(btn.dataset.lessonId);
+      if (lesson) _openInstructorLessonModal(lesson, session);
+    });
+  });
 
   container.querySelectorAll('[data-report-id]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -59,12 +46,13 @@ function _instructorLessonCard(lesson, instructorId) {
   const guests  = DB.getConfirmedByLesson(lesson.id).length;
   const report  = DB.getReportByLesson(lesson.id);
   const needsReport = lesson.status !== 'scheduled' && !report;
+  const maxGuests = tmpl?.maxGuests ?? null;
 
   return `
     <div class="glass-strong" style="border-radius:12px;overflow:hidden;">
       <!-- Header row -->
-      <a href="#/instructor/lesson/${lesson.id}" style="display:flex;align-items:center;
-        gap:12px;padding:14px 16px;text-decoration:none;color:inherit;">
+      <button data-lesson-id="${lesson.id}" style="display:flex;align-items:flex-start;
+        gap:12px;padding:14px 16px;width:100%;background:none;border:none;cursor:pointer;text-align:left;">
         <div style="flex-shrink:0;width:44px;height:44px;background:var(--bg-tile);
           border-radius:10px;display:flex;align-items:center;justify-content:center;">
           <div style="font-size:12px;font-weight:800;color:#1E2643;font-family:'Newsreader',serif;">
@@ -75,12 +63,18 @@ function _instructorLessonCard(lesson, instructorId) {
           <div style="font-weight:600;font-size:15px;color:#000;">
             ${tmpl ? tmpl.name : lesson.templateId}
           </div>
+          ${tmpl ? `
           <div style="font-size:13px;color:#777;margin-top:2px;">
-            ${guests} guest${guests!==1?'s':''} · ${statusBadge(lesson.status)}
+            ${lessonTimes(tmpl)}
+          </div>` : ''}
+          <div style="font-size:13px;color:#777;margin-top:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <span>${guests}${maxGuests ? ` / ${maxGuests}` : ''} guest${guests!==1?'s':''}</span>
+            <span style="color:rgba(0,0,0,0.15);">·</span>
+            ${statusBadge(lesson.status)}
           </div>
         </div>
-        <div style="color:#1E2643;">${iChevR()}</div>
-      </a>
+        <div style="color:#1E2643;margin-top:2px;">${iChevR()}</div>
+      </button>
       ${needsReport ? `
         <div class="div"></div>
         <button data-report-id="${lesson.id}"
@@ -94,6 +88,79 @@ function _instructorLessonCard(lesson, instructorId) {
           ${iCheck()} Report submitted
         </div>` : ''}
     </div>`;
+}
+
+// ── Instructor Lesson Detail Modal ────────────────────────────────────────────
+function _openInstructorLessonModal(lesson, session) {
+  const tmpl  = getTemplate(lesson.templateId);
+  const report = DB.getReportByLesson(lesson.id);
+  const bkgs  = DB.getConfirmedByLesson(lesson.id);
+  const guests = bkgs.map(b => ({ ...b, guest: DB.getUserById(b.guestId) }));
+  const needsReport = lesson.status !== 'scheduled' && !report;
+  const spotsLabel = tmpl ? `${guests.length} of ${tmpl.maxGuests} spots filled` : null;
+
+  openModal('instructor-lesson-detail', tmpl ? tmpl.name : lesson.id, `
+    <div style="display:flex;flex-direction:column;gap:16px;">
+
+      <div class="glass" style="padding:16px;border-radius:14px;">
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+            <span style="font-size:13px;color:#888;">Schedule</span>
+            <span style="font-weight:600;color:#000;text-align:right;">${tmpl ? lessonTimes(tmpl) : '—'}</span>
+          </div>
+          <div class="div"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+            <span style="font-size:13px;color:#888;">Status</span>
+            <span>${statusBadge(lesson.status)}</span>
+          </div>
+          ${tmpl ? `
+          <div class="div"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+            <span style="font-size:13px;color:#888;">Sport</span>
+            <span style="font-weight:600;color:#000;">${tmpl.sport === 'ski' ? '⛷ Ski' : '🏂 Snowboard'}</span>
+          </div>` : ''}
+          ${spotsLabel ? `
+          <div class="div"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+            <span style="font-size:13px;color:#888;">Group size</span>
+            <span style="font-weight:600;color:#000;text-align:right;">${spotsLabel}</span>
+          </div>` : ''}
+        </div>
+      </div>
+
+      ${guests.length > 0 ? `
+      <div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#8A6B53;margin-bottom:10px;">Guests</div>
+        <div class="glass" style="border-radius:14px;overflow:hidden;">
+          ${guests.map((b, i) => `
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;
+              ${i > 0 ? 'border-top:1px solid rgba(30,38,67,0.06);' : ''}">
+              ${av((b.guest?.name ?? '?').slice(0,2))}
+              <div style="font-weight:600;font-size:14px;color:#000;">${b.guest?.name ?? 'Guest'}</div>
+            </div>`).join('')}
+        </div>
+      </div>` : ''}
+
+      ${needsReport ? `
+      <button id="modal-report-btn"
+        style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;width:100%;
+        background:rgba(253,190,0,0.1);border:none;border-radius:14px;cursor:pointer;color:#875700;
+        font-size:14px;font-weight:600;font-family:'Inter',sans-serif;text-align:left;">
+        <span style="display:flex;align-items:center;gap:8px;">${iClipboard()} Submit lesson report</span>
+        <span style="color:#B07A00;">${iChevR()}</span>
+      </button>` : report ? `
+      <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;
+        background:var(--bg-success-soft);border-radius:14px;color:#076b1a;font-size:14px;font-weight:500;">
+        ${iCheck()} Report submitted on ${new Date(report.submittedAt).toLocaleDateString()}
+      </div>` : ''}
+
+    </div>
+  `);
+
+  document.getElementById('modal-report-btn')?.addEventListener('click', () => {
+    closeModal('instructor-lesson-detail');
+    openReportModal(lesson, session);
+  });
 }
 
 // ── My Schedule ───────────────────────────────────────────────────────────────
