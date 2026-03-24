@@ -63,7 +63,8 @@ export function renderNav(session, backHref = null) {
     nav.classList.add('nav-back');
     nav.innerHTML = `
       <div class="nav-inner nav-inner-back">
-        <a href="#${backHref}" class="nav-back-pill">${iBack()}<span>Back</span></a>
+        <div class="nav-indicator"></div>
+        <a href="#${backHref}" class="nav-tab active">${iBack()}<span>Back</span></a>
       </div>`;
   } else {
     nav.innerHTML = `
@@ -78,12 +79,10 @@ export function renderNav(session, backHref = null) {
 
   document.getElementById('app').appendChild(nav);
 
-  if (!isBackMode) {
-    const indicator = nav.querySelector('.nav-indicator');
-    indicator.style.transition = 'none';
-    positionIndicator(nav);
-    requestAnimationFrame(() => { indicator.style.transition = ''; });
-  }
+  const indicator = nav.querySelector('.nav-indicator');
+  indicator.style.transition = 'none';
+  positionIndicator(nav);
+  requestAnimationFrame(() => { indicator.style.transition = ''; });
 }
 
 // ── Toast ────────────────────────────────────────────────────────────────────
