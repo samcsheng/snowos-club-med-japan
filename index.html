@@ -379,6 +379,25 @@
     .date-chip.today .date-chip-dow { color: #B88700; }
     .date-chip.today.selected .date-chip-dow { color: rgba(255,255,255,0.8); }
 
+    /* ── Schedule date picker ─────────────────────────── */
+    .sched-date-cell {
+      flex-shrink: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 9px 4px; border-radius: 12px; cursor: pointer;
+      border: 1.5px solid transparent; transition: all 0.15s;
+      background: linear-gradient(180deg, rgba(255,255,255,0.32), rgba(255,255,255,0.08)), var(--bg-section-soft);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .sched-date-cell:active { transform: scale(0.95); }
+    .sched-date-cell.sel { background: #1E2643; border-color: #1E2643; }
+    .sched-date-cell.tod { border-color: #FDBE00; }
+    .scd-month-hint { font-size: 9px; font-weight: 600; color: #AAA; line-height: 1; margin-bottom: 1px; }
+    .sched-date-cell.sel .scd-month-hint { color: rgba(255,255,255,0.7); }
+    .scd-num { font-size: 20px; font-weight: 700; color: #1E2643; line-height: 1.15; }
+    .sched-date-cell.sel .scd-num { color: #fff; }
+    .scd-dot { width: 5px; height: 5px; border-radius: 50%; background: #FDBE00; margin-top: 3px; }
+    .sched-date-cell.sel .scd-dot { background: rgba(255,255,255,0.65); }
+    #sched-date-row::-webkit-scrollbar { display: none; }
+
     /* ── Session card (AM/PM picker) ──────────────────── */
 	    .session-card {
 	      border: 1.5px solid var(--line-soft); border-radius: 12px;
