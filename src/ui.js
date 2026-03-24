@@ -14,7 +14,6 @@ export function injectHeadAvatar(session, content) {
       <div style="font-weight:600;font-size:18px;color:#000;margin-top:14px;">${session.name}</div>
       <div style="font-size:14px;color:#777;margin-top:4px;">${session.email}</div>
       ${roleLabel ? `<div style="font-size:13px;color:#888;margin-top:4px;">${roleLabel}</div>` : ''}
-      ${session.level ? `<div style="margin-top:10px;">${levelBadge(session.level)}</div>` : ''}
     </div>
     <div class="div" style="margin-bottom:4px;"></div>
     <button onclick="window.__snowLogout()"
@@ -209,16 +208,6 @@ export function bookingDisplayStatus(booking, lesson = null) {
   if (!booking) return 'scheduled';
   if (booking.status === 'cancelled') return 'cancelled';
   return lesson?.status || 'scheduled';
-}
-
-export function levelBadge(level) {
-  const map = {
-    beginner:     ['badge-beginner',     'Beginner'],
-    intermediate: ['badge-intermediate', 'Intermediate'],
-    advanced:     ['badge-advanced',     'Advanced'],
-  };
-  const [cls, lbl] = map[level] || ['badge-scheduled', level];
-  return `<span class="badge ${cls}">${lbl}</span>`;
 }
 
 export function sportBadge(sport) {

@@ -1,7 +1,7 @@
 import { DB, TEMPLATES, getTemplate, isoDate } from '../data.js';
 import { navigate } from '../app.js';
 import {
-  toast, pageHead, statusBadge, levelBadge, sportBadge, av, secLabel,
+  toast, pageHead, statusBadge, sportBadge, av, secLabel,
   emptyState, fmtDate, fmtDateLong, todayStr,
   tabBar, lessonTimes, iCalendar, iChevR, iClipboard, iCheck,
   iBack, iX, openModal,
@@ -241,8 +241,6 @@ export function renderLessonDetail(container, { params, session }) {
             <div style="font-weight:600;">${tmpl ? lessonTimes(tmpl) : '—'}</div></div>
           <div><div style="color:#888;margin-bottom:2px;">Date</div>
             <div style="font-weight:600;">${fmtDate(lesson.date)}</div></div>
-          <div><div style="color:#888;margin-bottom:2px;">Level</div>
-            <div style="font-weight:600;">${tmpl ? tmpl.level.charAt(0).toUpperCase()+tmpl.level.slice(1) : '—'}</div></div>
           <div><div style="color:#888;margin-bottom:2px;">Guests</div>
             <div style="font-weight:600;">${guests.length} / ${tmpl?.maxGuests ?? '—'}</div></div>
         </div>
@@ -275,8 +273,7 @@ export function renderLessonDetail(container, { params, session }) {
             <div style="flex:1;">
               <div style="font-weight:600;font-size:15px;color:#000;">${guest?.name ?? 'Guest'}</div>
               <div style="font-size:13px;color:#777;margin-top:2px;">
-                ${guest?.level ? levelBadge(guest.level) : ''}
-                ${guest?.sport ? `&nbsp;${sportBadge(guest.sport)}` : ''}
+                ${guest?.sport ? `${sportBadge(guest.sport)}` : ''}
               </div>
             </div>
           </div>`).join('')}
@@ -384,7 +381,6 @@ function openReportModal(lesson, session) {
                 ${av(guest?.avatar, 'md')}
                 <div>
                   <div style="font-weight:600;color:#000;">${guest?.name ?? 'Guest'}</div>
-                  ${guest?.level ? `<div style="font-size:12px;color:#888;margin-top:2px;">${levelBadge(guest.level)}</div>` : ''}
                 </div>
               </div>
               <div style="margin-bottom:12px;">

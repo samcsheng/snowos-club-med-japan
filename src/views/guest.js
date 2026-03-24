@@ -1,10 +1,10 @@
 import { DB, TEMPLATES, getTemplate, isoDate } from '../data.js';
 import { navigate }   from '../app.js';
 import {
-  toast, pageHead, injectHeadAvatar, statusBadge, bookingDisplayStatus, levelBadge, sportBadge, av,
+  toast, pageHead, injectHeadAvatar, statusBadge, bookingDisplayStatus, sportBadge, av,
   secLabel, emptyState, fmtDate, fmtDateLong, todayStr,
   greeting, lessonTimes, iCalendar, iPlus, iChevR, iUser,
-  iCheck, iWarn, iBack, setNavHidden, openModal, iClipboard,
+  iCheck, iWarn, iBack, setNavHidden, openModal, closeModal, iClipboard,
 } from '../ui.js';
 
 // ── Guest Dashboard ──────────────────────────────────────────────────────────
@@ -240,7 +240,7 @@ function _step1(body, container, ctx) {
               <div style="flex:1;">
                 <div style="font-weight:600;font-size:15px;color:#000;">${t.name}</div>
                 <div style="font-size:12px;color:#888;margin-top:2px;">
-                  ${levelBadge(t.level)} &nbsp;·&nbsp; ${lessonTimes(t)}
+                  ${lessonTimes(t)}
                 </div>
               </div>
               ${hasSlots
@@ -365,11 +365,6 @@ function _step2(body, container, ctx) {
         </div>
         <div class="div"></div>
         <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:13px;color:#888;">Level</span>
-          ${levelBadge(tmpl.level)}
-        </div>
-        <div class="div"></div>
-        <div style="display:flex;justify-content:space-between;align-items:center;">
           <span style="font-size:13px;color:#888;">Availability</span>
           <span style="font-weight:600;">${tmpl.maxGuests - taken} of ${tmpl.maxGuests} spots left</span>
         </div>
@@ -467,12 +462,10 @@ export function renderMyBookings(container, { session }) {
       btn.addEventListener('click', () => { filter = btn.dataset.filter; render(); });
     });
 
-    // Cancel buttons
-    container.querySelectorAll('[data-cancel]').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        const id = btn.dataset.cancel;
-        _confirmCancel(id, render);
+    container.querySelectorAll('[data-booking-card]').forEach(card => {
+      card.addEventListener('click', () => {
+        const booking = filtered.find(b => b.id === card.dataset.bookingCard);
+        if (booking) _openBookingDetailModal(booking, render);
       });
     });
 
@@ -491,8 +484,6 @@ export function renderMyBookings(container, { session }) {
 
 function _bookingCard(b, today) {
   const isToday    = b.lesson?.date === today;
-  const isPast     = b.lesson && b.lesson.date < today;
-  const canCancel  = b.status === 'confirmed' && !isPast;
   const displayStatus = bookingDisplayStatus(b, b.lesson);
   const isCancelled = b.status === 'cancelled';
   const canCheckReportCard = (
@@ -507,8 +498,9 @@ function _bookingCard(b, today) {
     : (b.guestReport?.nextClass || 'No recommendation');
 
   return `
-    <div class="glass" style="border-radius:12px;overflow:hidden;${isCancelled ? 'opacity:0.56;' : ''}">
-      <div style="display:flex;align-items:flex-start;gap:12px;padding:16px;">
+    <div class="glass" data-booking-card="${b.id}"
+      style="border-radius:12px;overflow:hidden;cursor:pointer;${isCancelled ? 'opacity:0.56;' : ''}">
+      <div class="card-row" style="align-items:flex-start;padding:16px;">
         <!-- Date block -->
         ${_lessonDateTile(b.lesson?.date, isToday
           ? {}
@@ -527,6 +519,7 @@ function _bookingCard(b, today) {
             ${b.inst ? ` · ${b.inst.name}` : b.lesson?.instructorId ? '' : ' · Instructor TBD'}
           </div>
         </div>
+        <div style="flex-shrink:0;color:#9AA0B5;padding-top:2px;">${iChevR()}</div>
       </div>
       ${canCheckReportCard ? `
         <div class="div"></div>
@@ -544,23 +537,124 @@ function _bookingCard(b, today) {
             </span>
           </span>
         </button>` : ''}
-      ${canCancel ? `
-        <div data-cancel-wrap="${b.id}" style="${canCheckReportCard ? 'border-top:1px solid rgba(30,38,67,0.07);' : ''}">
-          <button data-cancel="${b.id}"
-            style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;width:100%;
-            background:rgba(191,47,23,0.08);border:none;cursor:pointer;color:#A12B18;
-            font-size:14px;font-weight:600;font-family:'Inter',sans-serif;text-align:left;">
-            <span style="display:flex;align-items:center;gap:8px;">
-              ${iWarn()} Cancel booking
-            </span>
-            <span style="font-size:12px;font-weight:700;letter-spacing:0.02em;text-transform:uppercase;
-              color:#BF2F17;background:rgba(191,47,23,0.12);padding:5px 8px;border-radius:999px;
-              box-shadow:inset 0 0 0 1px rgba(191,47,23,0.14);">
-              Action
-            </span>
-          </button>
-        </div>` : ''}
     </div>`;
+}
+
+function _openBookingDetailModal(booking, onDone) {
+  const { lesson, tmpl, inst, report, guestReport } = booking;
+  if (!lesson) return;
+
+  const isPast = lesson.date < todayStr();
+  const canCancel = booking.status === 'confirmed' && !isPast;
+  const canCheckReportCard = (
+    booking.status === 'confirmed' &&
+    lesson.status === 'completed' &&
+    !!report?.submittedAt &&
+    !!guestReport
+  );
+  const spotsTaken = DB.getConfirmedByLesson(lesson.id).length;
+  const spotsLabel = tmpl ? `${spotsTaken} of ${tmpl.maxGuests} spots filled` : null;
+
+  openModal('guest-booking-detail', 'Lesson Details', `
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div class="glass" style="padding:18px;border-radius:14px;">
+        <div style="display:flex;align-items:flex-start;gap:14px;">
+          ${_lessonDateTile(lesson.date, lesson.date === todayStr()
+            ? { size: 54, radius: 14, monthSize: 10, daySize: 22, letterSpacing: 0.5 }
+            : { size: 54, radius: 14, monthSize: 10, daySize: 22, background: 'rgba(30,38,67,0.08)', monthColor: '#888', dayColor: '#1E2643', letterSpacing: 0.5 })}
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span style="font-family:'Newsreader',serif;font-size:24px;font-weight:700;color:#000;line-height:1.1;">
+                ${tmpl ? tmpl.name : booking.lessonId}
+              </span>
+              ${statusBadge(bookingDisplayStatus(booking, lesson))}
+            </div>
+            <div style="font-size:13px;color:#777;margin-top:6px;">
+              ${fmtDateLong(lesson.date)}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="glass" style="padding:16px;border-radius:14px;">
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+            <span style="font-size:13px;color:#888;">Schedule</span>
+            <span style="font-weight:600;color:#000;text-align:right;">${tmpl ? lessonTimes(tmpl) : '—'}</span>
+          </div>
+          <div class="div"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+            <span style="font-size:13px;color:#888;">Instructor</span>
+            <span style="font-weight:600;color:#000;text-align:right;">${inst ? inst.name : 'To be assigned'}</span>
+          </div>
+          ${spotsLabel ? `
+            <div class="div"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+              <span style="font-size:13px;color:#888;">Group size</span>
+              <span style="font-weight:600;color:#000;text-align:right;">${spotsLabel}</span>
+            </div>` : ''}
+        </div>
+      </div>
+
+      ${canCheckReportCard ? `
+        <button id="detail-report-card"
+          style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;width:100%;
+          background:rgba(253,190,0,0.1);border:none;border-radius:14px;cursor:pointer;color:#875700;
+          font-size:14px;font-weight:600;font-family:'Inter',sans-serif;text-align:left;">
+          <span style="display:flex;align-items:center;gap:8px;">
+            ${iClipboard()} Check lesson report
+          </span>
+          <span style="color:#B07A00;">${iChevR()}</span>
+        </button>` : ''}
+
+      ${canCancel ? `
+        <div class="glass" style="padding:16px;border-radius:14px;background:rgba(246,239,231,0.88);">
+          <div style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#8A6B53;">
+            Need to change plans?
+          </div>
+          <div style="font-size:14px;color:#5D4B40;line-height:1.55;margin-top:8px;">
+            You can manage this booking here if your plans changed.
+          </div>
+          <button id="detail-cancel-booking" class="btn btn-ghost btn-md btn-full"
+            style="margin-top:14px;color:#8B3A2E;border-color:rgba(139,58,46,0.18);background:rgba(255,255,255,0.52);">
+            Cancel booking
+          </button>
+          <div id="detail-cancel-confirm"></div>
+        </div>` : ''}
+    </div>
+  `);
+
+  document.getElementById('detail-report-card')?.addEventListener('click', () => {
+    closeModal('guest-booking-detail');
+    _openReportCardModal(booking);
+  });
+
+  document.getElementById('detail-cancel-booking')?.addEventListener('click', () => {
+    const confirmEl = document.getElementById('detail-cancel-confirm');
+    if (!confirmEl) return;
+
+    confirmEl.innerHTML = `
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(30,38,67,0.07);">
+        <div style="font-size:13px;color:#6C5146;line-height:1.45;margin-bottom:12px;">
+          Cancel this booking and release your spot?
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-danger btn-sm" id="detail-cancel-confirm-yes">Yes, cancel</button>
+          <button class="btn btn-ghost btn-sm" id="detail-cancel-confirm-no">Keep booking</button>
+        </div>
+      </div>`;
+
+    document.getElementById('detail-cancel-confirm-yes')?.addEventListener('click', () => {
+      DB.cancelBooking(booking.id);
+      closeModal('guest-booking-detail');
+      toast('Booking cancelled.', 'info');
+      onDone();
+    });
+
+    document.getElementById('detail-cancel-confirm-no')?.addEventListener('click', () => {
+      confirmEl.innerHTML = '';
+    });
+  });
 }
 
 function _openReportCardModal(booking) {
@@ -650,39 +744,4 @@ function _openReportCardModal(booking) {
       </div>
     </div>
   `);
-}
-
-function _confirmCancel(bookingId, onDone) {
-  // Inline confirmation strip injected into the cancel section
-  const wrap = document.querySelector(`[data-cancel-wrap="${bookingId}"]`);
-  if (!wrap) return;
-
-  wrap.querySelector('[data-cancel-confirm]')?.remove();
-
-  const strip = document.createElement('div');
-  strip.dataset.cancelConfirm = 'true';
-  strip.style.cssText = 'display:flex;flex-direction:column;gap:12px;padding:0 16px 16px;background:rgba(191,47,23,0.08);';
-  strip.innerHTML = `
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
-      <span style="font-size:13px;color:#6B3026;line-height:1.45;flex:1;">
-        Cancel this booking? This will release your spot in the lesson.
-      </span>
-      <span style="font-size:12px;font-weight:700;letter-spacing:0.02em;text-transform:uppercase;
-        color:#BF2F17;background:rgba(255,255,255,0.56);padding:5px 8px;border-radius:999px;
-        box-shadow:inset 0 0 0 1px rgba(191,47,23,0.12);">
-        Confirm
-      </span>
-    </div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-      <button class="btn btn-danger btn-sm" id="yes-cancel">Yes, cancel</button>
-      <button class="btn btn-ghost btn-sm" id="no-cancel" style="border-color:rgba(191,47,23,0.2);color:#7C2D20;">Keep booking</button>
-    </div>`;
-  wrap.appendChild(strip);
-
-  strip.querySelector('#yes-cancel').addEventListener('click', () => {
-    DB.cancelBooking(bookingId);
-    toast('Booking cancelled.', 'info');
-    onDone();
-  });
-  strip.querySelector('#no-cancel').addEventListener('click', () => strip.remove());
 }

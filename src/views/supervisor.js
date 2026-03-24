@@ -1,7 +1,7 @@
 import { DB, TEMPLATES, getTemplate, isoDate } from '../data.js';
 import { navigate } from '../app.js';
 import {
-  toast, pageHead, statusBadge, bookingDisplayStatus, levelBadge, sportBadge, audienceBadge,
+  toast, pageHead, statusBadge, bookingDisplayStatus, sportBadge, audienceBadge,
   av, secLabel, emptyState, openModal, closeModal,
   fmtDate, fmtDateLong, todayStr,
   tabBar, lessonTimes, iChevR, iCalendar, iPeople, iPlus,
@@ -196,7 +196,6 @@ export function renderAllBookings(container, { session }) {
                 <div class="div"></div>
                 <div style="padding:10px 16px;font-size:12px;color:#888;
                   display:flex;gap:16px;flex-wrap:wrap;">
-                  ${b.guest?.level ? `<span>${levelBadge(b.guest.level)}</span>` : ''}
                   <span>Instructor: ${inst?.name ?? 'TBD'}</span>
                   <span>${tmpl ? lessonTimes(tmpl) : ''}</span>
                 </div>
@@ -387,7 +386,6 @@ export function renderAssign(container, { params, session }) {
           <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
             ${statusBadge(lesson.status)}
             ${tmpl ? `<span class="badge badge-${tmpl.sport}">${tmpl.sport==='ski'?'⛷':'🏂'} ${tmpl.sport}</span>` : ''}
-            ${tmpl ? levelBadge(tmpl.level) : ''}
           </div>
           <div style="font-size:13px;color:#888;">
             ${tmpl ? lessonTimes(tmpl) : '—'}
