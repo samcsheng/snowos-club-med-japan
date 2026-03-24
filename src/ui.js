@@ -18,6 +18,15 @@ const NAV_CONFIG = {
   ],
 };
 
+function positionIndicator(nav) {
+  const indicator = nav.querySelector('.nav-indicator');
+  const activeTab = nav.querySelector('.nav-tab.active');
+  if (!indicator || !activeTab) return;
+  indicator.style.width     = activeTab.offsetWidth  + 'px';
+  indicator.style.height    = activeTab.offsetHeight + 'px';
+  indicator.style.transform = `translate(${activeTab.offsetLeft}px, ${activeTab.offsetTop}px)`;
+}
+
 export function renderNav(session) {
   const tabs = NAV_CONFIG[session.role];
   if (!tabs) return;
@@ -25,24 +34,25 @@ export function renderNav(session) {
   const hash     = window.location.hash.slice(1);
   const existing = document.getElementById('bottom-nav');
 
-  // If the nav already exists for this role, just update active classes in-place
-  // so CSS transitions animate the indicator change.
+  // Nav already exists for this role — update active classes then slide indicator.
   if (existing && existing.dataset.role === session.role) {
     existing.querySelectorAll('.nav-tab').forEach(a => {
-      const href = a.getAttribute('href').slice(1); // strip leading #
+      const href = a.getAttribute('href').slice(1);
       a.classList.toggle('active', hash === href || hash.startsWith(href + '/'));
     });
+    positionIndicator(existing);
     return;
   }
 
-  // First render for this role — build the nav from scratch.
+  // First render for this role — build from scratch.
   existing?.remove();
-  const nav    = document.createElement('nav');
-  nav.id       = 'bottom-nav';
+  const nav        = document.createElement('nav');
+  nav.id           = 'bottom-nav';
   nav.dataset.role = session.role;
 
   nav.innerHTML = `
     <div class="nav-inner">
+      <div class="nav-indicator"></div>
       ${tabs.map(t => {
         const active = hash === t.href || hash.startsWith(t.href + '/');
         return `
@@ -54,6 +64,12 @@ export function renderNav(session) {
     </div>
   `;
   document.getElementById('app').appendChild(nav);
+
+  // Snap into position without transition on first paint, then re-enable it.
+  const indicator = nav.querySelector('.nav-indicator');
+  indicator.style.transition = 'none';
+  positionIndicator(nav);
+  requestAnimationFrame(() => { indicator.style.transition = ''; });
 }
 
 // ── Toast ────────────────────────────────────────────────────────────────────
