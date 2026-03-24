@@ -5,7 +5,7 @@ export const KEYS = {
   BOOKINGS: 'snow_bookings',
   REPORTS:  'snow_reports',
   SESSION:  'snow_session',
-  SEEDED:   'snow_seeded_v1',
+  SEEDED:   'snow_seeded_v3',
 };
 
 // ── Generic helpers ──────────────────────────────────────────────────────────
@@ -120,98 +120,202 @@ export const DB = {
   },
 };
 
-// ── Seed (idempotent) ────────────────────────────────────────────────────────
-export function seed() {
-  if (localStorage.getItem(KEYS.SEEDED)) return;
+// ── Seed helpers ─────────────────────────────────────────────────────────────
+const _FIRST = [
+  'Akira','Yuta','Haruki','Sora','Ren','Kai','Hana','Mika','Naoki','Yui',
+  'Sophie','Emma','Léa','Chloé','Camille','Jules','Thomas','Hugo','Lena','Nina',
+  'James','Oliver','Liam','Noah','Ava','William','Benjamin','Grace','Henry','Ella',
+  'Mei','Lin','Wei','Jun','Yuna','Ji-ho','Min','Seo','Da-eun','Tae',
+  'Marco','Giulia','Luca','Anna','Matteo','Chiara','Alessandro','Valentina','Lorenzo','Francesca',
+];
+const _LAST = [
+  'Yamamoto','Tanaka','Suzuki','Sato','Kobayashi','Ito','Watanabe','Nakamura','Matsumoto','Ogawa',
+  'Martin','Bernard','Dubois','Simon','Laurent','Moreau','Petit','Leroy','Roux','Girard',
+  'Smith','Johnson','Williams','Brown','Davis','Miller','Wilson','Taylor','Anderson','Thomas',
+  'Kim','Park','Lee','Chen','Wang','Zhang','Müller','Fischer','García','Rossi',
+  'Bernardi','Ferrari','Esposito','Romano','Colombo','Ricci','Marino','Greco','Bruno','Conti',
+];
+function _seedName(i) {
+  return `${_FIRST[i % _FIRST.length]} ${_LAST[(i * 7 + 3) % _LAST.length]}`;
+}
+function _initials(name) {
+  return name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+}
 
+// ── Core seed logic ──────────────────────────────────────────────────────────
+function _doSeed() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const todayStr = isoDate(today);
 
   // ── Users ──────────────────────────────────────────────────────────────────
+  // 3 named demo guests + 97 generated guests
+  // 3 named demo instructors + 27 generated instructors
+  // 1 supervisor
+  const SPORTS = ['ski', 'ski', 'ski', 'snowboard', 'snowboard'];
+  const LEVELS = ['beginner', 'beginner', 'intermediate', 'intermediate', 'advanced'];
+
   const users = [
-    { id:'u-g1',  name:'Sophie Laurent',  email:'guest@snowos.com',      password:'guest123', role:'guest',      level:'beginner',     sport:'ski',       avatar:'SL' },
-    { id:'u-g2',  name:'Tom Bradley',     email:'tom@snowos.com',        password:'tom123',   role:'guest',      level:'intermediate', sport:'ski',       avatar:'TB' },
-    { id:'u-g3',  name:'Yuki Tanaka',     email:'yuki@snowos.com',       password:'yuki123',  role:'guest',      level:'beginner',     sport:'snowboard', avatar:'YT' },
-    { id:'u-i1',  name:'Kenji Yamamoto',  email:'instructor@snowos.com', password:'inst123',  role:'instructor', avatar:'KY' },
-    { id:'u-i2',  name:'Marie Dubois',    email:'marie@snowos.com',      password:'marie123', role:'instructor', avatar:'MD' },
-    { id:'u-i3',  name:'Lucas Moreau',    email:'lucas@snowos.com',      password:'lucas123', role:'instructor', avatar:'LM' },
-    { id:'u-s1',  name:'Alex Chen',       email:'supervisor@snowos.com', password:'sup123',   role:'supervisor', avatar:'AC' },
+    { id:'u-g1', name:'Sophie Laurent', email:'guest@snowos.com',      password:'guest123', role:'guest',      level:'beginner',     sport:'ski',       avatar:'SL' },
+    { id:'u-g2', name:'Tom Bradley',    email:'tom@snowos.com',        password:'tom123',   role:'guest',      level:'intermediate', sport:'ski',       avatar:'TB' },
+    { id:'u-g3', name:'Yuki Tanaka',    email:'yuki@snowos.com',       password:'yuki123',  role:'guest',      level:'beginner',     sport:'snowboard', avatar:'YT' },
+    { id:'u-i1', name:'Kenji Yamamoto', email:'instructor@snowos.com', password:'inst123',  role:'instructor', avatar:'KY' },
+    { id:'u-i2', name:'Marie Dubois',   email:'marie@snowos.com',      password:'marie123', role:'instructor', avatar:'MD' },
+    { id:'u-i3', name:'Lucas Moreau',   email:'lucas@snowos.com',      password:'lucas123', role:'instructor', avatar:'LM' },
+    { id:'u-s1', name:'Alex Chen',      email:'supervisor@snowos.com', password:'sup123',   role:'supervisor', avatar:'AC' },
   ];
+
+  for (let i = 0; i < 97; i++) {
+    const name = _seedName(i);
+    users.push({
+      id: `u-g${i + 4}`, name,
+      email: `guest${i + 4}@snowos.com`, password: 'guest123',
+      role: 'guest', level: LEVELS[i % LEVELS.length], sport: SPORTS[i % SPORTS.length],
+      avatar: _initials(name),
+    });
+  }
+
+  for (let i = 0; i < 27; i++) {
+    const name = _seedName(i + 120); // offset avoids name clashes with guests
+    users.push({
+      id: `u-i${i + 4}`, name,
+      email: `instructor${i + 4}@snowos.com`, password: 'inst123',
+      role: 'instructor', avatar: _initials(name),
+    });
+  }
+
   write(KEYS.USERS, users);
 
-  // ── Lessons: 6 seed templates × 14 days × AM+PM ───────────────────────────
-  // Seed templates chosen to give good variety in the UI
-  const seedTmplIds = ['C3', 'C5', 'CB', 'S2', 'T2', 'R1'];
-  // Instructor rotation for seed lessons
-  const instMap = { C3:'u-i1', C5:'u-i1', CB:'u-i2', S2:'u-i3', T2:'u-i2', R1:null };
-
+  // ── Lessons: all 24 templates × 14 days (−7…+6) × AM + PM ─────────────────
+  const instIds = users.filter(u => u.role === 'instructor').map(u => u.id);
   const lessons = [];
+  let instRot = 0;
+
   for (let offset = -7; offset <= 6; offset++) {
     const d = new Date(today);
     d.setDate(d.getDate() + offset);
     const dateStr = isoDate(d);
-    const isPast   = offset < 0;
-    const isToday  = offset === 0;
-    const status   = isPast ? 'completed' : isToday ? 'in-progress' : 'scheduled';
+    const isPast  = offset < 0;
+    const isToday = offset === 0;
+    const status  = isPast ? 'completed' : isToday ? 'in-progress' : 'scheduled';
 
-    seedTmplIds.forEach((tmplId, idx) => {
-      ['AM', 'PM'].forEach((session) => {
-        // For future dates, leave some unassigned (supervisor has work to do)
-        let instructorId = instMap[tmplId];
-        if (!isPast && !isToday && idx >= 4) instructorId = null; // last 2 templates unassigned in future
+    TEMPLATES.forEach((tmpl, ti) => {
+      // Future: leave ~1-in-8 slots unassigned for supervisor demo
+      const isFuture = !isPast && !isToday;
+      const instructorId = (isFuture && ti % 8 === 7)
+        ? null
+        : instIds[instRot % instIds.length];
+      instRot++;
 
-        lessons.push({
-          id: `les-${tmplId}-${dateStr}-${session}`,
-          templateId: tmplId,
-          date: dateStr,
-          session,
-          instructorId,
-          status,
-        });
+      lessons.push({
+        id:         `les-${tmpl.id}-${dateStr}`,
+        templateId: tmpl.id,
+        date:       dateStr,
+        instructorId,
+        status,
       });
     });
   }
   write(KEYS.LESSONS, lessons);
 
   // ── Bookings ───────────────────────────────────────────────────────────────
-  const past3  = isoDate(new Date(today.getTime() - 3 * 86400000));
-  const past1  = isoDate(new Date(today.getTime() - 1 * 86400000));
-  const fut2   = isoDate(new Date(today.getTime() + 2 * 86400000));
-  const fut4   = isoDate(new Date(today.getTime() + 4 * 86400000));
+  const past3 = isoDate(new Date(today.getTime() - 3 * 86400000));
+  const past1 = isoDate(new Date(today.getTime() - 1 * 86400000));
+  const fut2  = isoDate(new Date(today.getTime() + 2 * 86400000));
+  const fut4  = isoDate(new Date(today.getTime() + 4 * 86400000));
 
   const bookings = [
-    // Sophie — 4 bookings (1 past, 1 today, 1 future, 1 cancelled)
-    { id:'bkg-s1', guestId:'u-g1', lessonId:`les-C3-${past3}-AM`,   createdAt: new Date(today.getTime()-5*86400000).toISOString(), status:'confirmed' },
-    { id:'bkg-s2', guestId:'u-g1', lessonId:`les-CB-${todayStr}-AM`, createdAt: new Date(today.getTime()-1*86400000).toISOString(), status:'confirmed' },
-    { id:'bkg-s3', guestId:'u-g1', lessonId:`les-C3-${fut2}-PM`,     createdAt: new Date(today.getTime()-1*86400000).toISOString(), status:'confirmed' },
-    { id:'bkg-s4', guestId:'u-g1', lessonId:`les-C5-${fut4}-AM`,     createdAt: new Date(today.getTime()-2*86400000).toISOString(), status:'cancelled' },
-    // Tom — shares lessons with Sophie for roster demo
-    { id:'bkg-t1', guestId:'u-g2', lessonId:`les-C3-${past3}-AM`,   createdAt: new Date(today.getTime()-5*86400000).toISOString(), status:'confirmed' },
-    { id:'bkg-t2', guestId:'u-g2', lessonId:`les-C3-${fut2}-PM`,     createdAt: new Date(today.getTime()-1*86400000).toISOString(), status:'confirmed' },
-    { id:'bkg-t3', guestId:'u-g2', lessonId:`les-C5-${todayStr}-AM`, createdAt: new Date(today.getTime()-1*86400000).toISOString(), status:'confirmed' },
-    // Yuki — snowboard bookings
-    { id:'bkg-y1', guestId:'u-g3', lessonId:`les-S2-${past1}-PM`,    createdAt: new Date(today.getTime()-2*86400000).toISOString(), status:'confirmed' },
-    { id:'bkg-y2', guestId:'u-g3', lessonId:`les-S2-${fut2}-AM`,     createdAt: new Date(today.getTime()-1*86400000).toISOString(), status:'confirmed' },
+    // Sophie — past, today, future, cancelled
+    { id:'bkg-s1', guestId:'u-g1', lessonId:`les-C3-${past3}`,    createdAt: new Date(today.getTime()-5*86400000).toISOString(), status:'confirmed' },
+    { id:'bkg-s2', guestId:'u-g1', lessonId:`les-CB-${todayStr}`, createdAt: new Date(today.getTime()-1*86400000).toISOString(), status:'confirmed' },
+    { id:'bkg-s3', guestId:'u-g1', lessonId:`les-C3-${fut2}`,     createdAt: new Date(today.getTime()-1*86400000).toISOString(), status:'confirmed' },
+    { id:'bkg-s4', guestId:'u-g1', lessonId:`les-C5-${fut4}`,     createdAt: new Date(today.getTime()-2*86400000).toISOString(), status:'cancelled' },
+    // Tom — shares lessons with Sophie
+    { id:'bkg-t1', guestId:'u-g2', lessonId:`les-C3-${past3}`,    createdAt: new Date(today.getTime()-5*86400000).toISOString(), status:'confirmed' },
+    { id:'bkg-t2', guestId:'u-g2', lessonId:`les-C3-${fut2}`,     createdAt: new Date(today.getTime()-1*86400000).toISOString(), status:'confirmed' },
+    { id:'bkg-t3', guestId:'u-g2', lessonId:`les-C5-${todayStr}`, createdAt: new Date(today.getTime()-1*86400000).toISOString(), status:'confirmed' },
+    // Yuki — snowboard
+    { id:'bkg-y1', guestId:'u-g3', lessonId:`les-S2-${past1}`,    createdAt: new Date(today.getTime()-2*86400000).toISOString(), status:'confirmed' },
+    { id:'bkg-y2', guestId:'u-g3', lessonId:`les-S2-${fut2}`,     createdAt: new Date(today.getTime()-1*86400000).toISOString(), status:'confirmed' },
   ];
+
+  // Background guests fill every lesson with 2–4 confirmed guests
+  const bgGuests = users.filter(u => u.role === 'guest' && !['u-g1','u-g2','u-g3'].includes(u.id));
+  let bgRot = 0;
+  lessons.forEach((lesson, li) => {
+    const count = 2 + (li % 3);
+    for (let k = 0; k < count; k++) {
+      bookings.push({
+        id:        `bkg-bg-${lesson.id}-${k}`,
+        guestId:   bgGuests[(bgRot + k) % bgGuests.length].id,
+        lessonId:  lesson.id,
+        createdAt: new Date(today.getTime() - (1 + li % 7) * 86400000).toISOString(),
+        status:    'confirmed',
+      });
+    }
+    bgRot += 3;
+  });
+
   write(KEYS.BOOKINGS, bookings);
 
-  // ── One pre-submitted report (for the past3 C3-AM lesson) ─────────────────
-  const reports = [
-    {
-      id: 'rpt-1',
-      lessonId: `les-C3-${past3}-AM`,
-      instructorId: 'u-i1',
-      terrains: ['groomed', 'icy'],
-      skills: ['parallel-turns', 'edges', 'speed-control'],
-      guestReports: [
-        { guestId:'u-g1', attendance:'BOTH', nextClass:'C4', notes:'Great edge control progress. Recommend trying steeper groomed runs.' },
-        { guestId:'u-g2', attendance:'AM',   nextClass:'C5', notes:'' },
-      ],
-      submittedAt: new Date(today.getTime() - 3*86400000 + 16*3600000).toISOString(),
-    }
-  ];
-  write(KEYS.REPORTS, reports);
+  // ── Reports: ~80% of completed lessons ─────────────────────────────────────
+  const TERRAIN_POOL = ['groomed','powder','moguls','park','off-piste','icy','trees'];
+  const SKILL_POOL   = ['parallel-turns','carving','stopping','edges','speed-control','terrain-read','jumps'];
 
+  // Explicit report for the Sophie/Tom lesson
+  const reports = [{
+    id: 'rpt-1',
+    lessonId:     `les-C3-${past3}`,
+    instructorId: 'u-i1',
+    terrains:     ['groomed', 'icy'],
+    skills:       ['parallel-turns', 'edges', 'speed-control'],
+    guestReports: [
+      { guestId:'u-g1', attendance:'BOTH', nextClass:'C4', notes:'Great edge control progress. Recommend steeper groomed runs.' },
+      { guestId:'u-g2', attendance:'AM',   nextClass:'C5', notes:'' },
+    ],
+    submittedAt: new Date(today.getTime() - 3*86400000 + 16*3600000).toISOString(),
+  }];
+
+  lessons
+    .filter(l => l.status === 'completed' && l.id !== `les-C3-${past3}`)
+    .forEach((lesson, ri) => {
+      if (ri % 5 === 4) return; // skip 20% → leaves "pending report" items for supervisor demo
+      const lessonBkgs = bookings.filter(b => b.lessonId === lesson.id && b.status === 'confirmed');
+      reports.push({
+        id:           `rpt-auto-${lesson.id}`,
+        lessonId:     lesson.id,
+        instructorId: lesson.instructorId ?? 'u-i1',
+        terrains:     TERRAIN_POOL.filter((_, i) => (ri + i) % 3 !== 0).slice(0, 2 + (ri % 3)),
+        skills:       SKILL_POOL.filter((_, i)   => (ri + i) % 4 !== 0).slice(0, 2 + (ri % 4)),
+        guestReports: lessonBkgs.map(b => ({
+          guestId:    b.guestId,
+          attendance: ['AM','PM','BOTH'][(ri + b.guestId.charCodeAt(b.guestId.length - 1)) % 3],
+          nextClass:  '',
+          notes:      '',
+        })),
+        submittedAt: new Date(today.getTime() - (1 + ri % 6) * 86400000 + 16*3600000).toISOString(),
+      });
+    });
+
+  write(KEYS.REPORTS, reports);
+}
+
+// ── Public seed API ───────────────────────────────────────────────────────────
+export function seed() {
+  if (localStorage.getItem(KEYS.SEEDED)) return;
+  _doSeed();
   localStorage.setItem(KEYS.SEEDED, '1');
+}
+
+export function resetSeed() {
+  const sess = DB.getSession();
+  localStorage.removeItem(KEYS.USERS);
+  localStorage.removeItem(KEYS.LESSONS);
+  localStorage.removeItem(KEYS.BOOKINGS);
+  localStorage.removeItem(KEYS.REPORTS);
+  localStorage.removeItem(KEYS.SEEDED);
+  _doSeed();
+  localStorage.setItem(KEYS.SEEDED, '1');
+  // Restore session so user stays logged in
+  if (sess) DB.setSession(sess);
 }

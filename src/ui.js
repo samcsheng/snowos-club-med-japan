@@ -1,5 +1,43 @@
 import { navigate } from './app.js';
 
+// ── Top-right avatar (all roles, persists across tabs) ────────────────────────
+// Sets a global trailing-action HTML string that pageHead picks up at render time.
+// renderNav runs before the view, so the string is ready when pageHead is called.
+function _renderTopAvatar(session) {
+  const roleLabel = { instructor: 'Ski Instructor', supervisor: 'Supervisor' }[session.role] ?? null;
+
+  // Register the modal opener so the inline onclick can call it.
+  window.__snowShowAccount = () => openModal('account', 'My Account', `
+    <div style="text-align:center;padding:8px 0 24px;">
+      ${av(session.avatar, 'lg')}
+      <div style="font-weight:600;font-size:18px;color:#000;margin-top:14px;">${session.name}</div>
+      <div style="font-size:14px;color:#777;margin-top:4px;">${session.email}</div>
+      ${roleLabel ? `<div style="font-size:13px;color:#888;margin-top:4px;">${roleLabel}</div>` : ''}
+      ${session.level ? `<div style="margin-top:10px;">${levelBadge(session.level)}</div>` : ''}
+    </div>
+    <div class="div" style="margin-bottom:4px;"></div>
+    <button onclick="window.__snowLogout()"
+      style="display:flex;align-items:center;gap:10px;width:100%;padding:16px;
+      background:none;border:none;cursor:pointer;color:#BF2F17;font-size:15px;
+      font-weight:500;font-family:'Inter',sans-serif;border-radius:10px;">
+      ${iLogout()} Sign out
+    </button>
+    <button onclick="window.__snowResetData()"
+      style="display:flex;align-items:center;gap:10px;width:100%;padding:12px 16px;
+      background:none;border:none;cursor:pointer;color:#999;font-size:13px;
+      font-weight:500;font-family:'Inter',sans-serif;border-radius:10px;">
+      ${iRefresh()} Reset mock data
+    </button>
+  `);
+
+  window.__snowPageTrailing = `
+    <button onclick="window.__snowShowAccount()"
+      style="background:none;border:none;cursor:pointer;padding:4px;flex-shrink:0;
+      -webkit-tap-highlight-color:transparent;display:flex;align-items:center;">
+      ${av(session.avatar, 'md')}
+    </button>`;
+}
+
 // ── Bottom navigation ────────────────────────────────────────────────────────
 const NAV_CONFIG = {
   guest: [
@@ -30,6 +68,8 @@ function positionIndicator(nav) {
 export function renderNav(session, backHref = null) {
   const tabs = NAV_CONFIG[session.role];
   if (!tabs) return;
+
+  _renderTopAvatar(session);
 
   const hash       = window.location.hash.slice(1);
   const existing   = document.getElementById('bottom-nav');
@@ -126,10 +166,18 @@ export function closeModal(id) {
 }
 
 // ── Shared page header ───────────────────────────────────────────────────────
-export function pageHead(title, subtitle = '') {
+export function pageHead(title, subtitle = '', backHref = null) {
+  const trailing = window.__snowPageTrailing || '';
   return `
     <div class="page-head">
-      <h1 class="page-title">${title}</h1>
+      <div style="display:flex;align-items:flex-end;gap:10px;">
+        ${backHref ? `
+          <a href="#${backHref}" style="flex-shrink:0;margin-bottom:2px;padding:6px;background:rgba(30,38,67,0.07);border-radius:999px;display:inline-flex;color:#1E2643;text-decoration:none;" aria-label="Back">
+            ${iBack()}
+          </a>` : ''}
+        <h1 class="page-title" style="flex:1;">${title}</h1>
+        ${trailing}
+      </div>
       ${subtitle ? `<p class="page-sub">${subtitle}</p>` : ''}
     </div>`;
 }
@@ -215,11 +263,9 @@ export function greeting() {
   return 'Good evening';
 }
 
-export function sessionTime(tmpl, session) {
+export function lessonTimes(tmpl) {
   if (!tmpl) return '';
-  return session === 'AM'
-    ? `${tmpl.amStart} – ${tmpl.amEnd}`
-    : `${tmpl.pmStart} – ${tmpl.pmEnd}`;
+  return `AM ${tmpl.amStart}–${tmpl.amEnd} · PM ${tmpl.pmStart}–${tmpl.pmEnd}`;
 }
 
 // ── Tab bar ───────────────────────────────────────────────────────────────────
@@ -258,3 +304,4 @@ export function iWarn()     { return svg('<path d="M10.29 3.86L1.82 18a2 2 0 0 0
 export function iClipboard(){ return svg('<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>'); }
 export function iEdit()     { return svg('<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>'); }
 export function iLogout()   { return svg('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>'); }
+export function iRefresh()  { return svg('<polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>'); }

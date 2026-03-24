@@ -3,9 +3,9 @@ import { navigate } from '../app.js';
 import {
   toast, pageHead, statusBadge, levelBadge, sportBadge, audienceBadge,
   av, secLabel, emptyState, openModal, closeModal,
-  fmtDate, fmtDateLong, todayStr, sessionTime,
-  tabBar, iChevR, iCalendar, iUser, iPeople, iPlus,
-  iClipboard, iCheck, iWarn, iEdit, iLogout,
+  fmtDate, fmtDateLong, todayStr,
+  tabBar, lessonTimes, iChevR, iCalendar, iPeople, iPlus,
+  iClipboard, iCheck, iWarn, iEdit,
 } from '../ui.js';
 
 // ── Supervisor Dashboard ──────────────────────────────────────────────────────
@@ -87,7 +87,6 @@ export function renderSupervisorDashboard(container, { session }) {
               padding:8px 0;text-decoration:none;color:inherit;border-top:1px solid rgba(199,83,0,0.1);">
               <div>
                 <span style="font-weight:600;font-size:14px;color:#000;">${tmpl?.name ?? l.templateId}</span>
-                <span style="font-size:13px;color:#888;margin-left:6px;">${l.session}</span>
               </div>
               <span class="btn btn-sm btn-ghost" style="color:#875700;border-color:rgba(199,83,0,0.25);">Assign →</span>
             </a>`;
@@ -118,26 +117,6 @@ export function renderSupervisorDashboard(container, { session }) {
           </div>`).join('')}
     </div>
 
-    <!-- Account -->
-    <div style="padding:0 20px 8px;">${secLabel('Account')}</div>
-    <div style="padding:0 12px 32px;">
-      <div class="glass" style="padding:0;">
-        <div style="display:flex;align-items:center;gap:14px;padding:16px;">
-          ${av(session.avatar, 'lg')}
-          <div>
-            <div style="font-weight:600;font-size:16px;color:#000;">${session.name}</div>
-            <div style="font-size:13px;color:#777;">Supervisor</div>
-          </div>
-        </div>
-        <div class="div"></div>
-        <button onclick="window.__snowLogout()"
-          style="display:flex;align-items:center;gap:10px;width:100%;padding:16px;
-          background:none;border:none;cursor:pointer;color:#BF2F17;font-size:14px;
-          font-weight:500;font-family:'Inter',sans-serif;">
-          ${iLogout()} Sign out
-        </button>
-      </div>
-    </div>
   `;
 }
 
@@ -209,7 +188,6 @@ export function renderAllBookings(container, { session }) {
                     </div>
                     <div style="font-size:13px;color:#777;margin-top:2px;">
                       ${tmpl?.name ?? b.lessonId}
-                      · ${b.lesson?.session ?? ''}
                       · ${b.lesson ? fmtDate(b.lesson.date) : ''}
                     </div>
                   </div>
@@ -220,7 +198,7 @@ export function renderAllBookings(container, { session }) {
                   display:flex;gap:16px;flex-wrap:wrap;">
                   ${b.guest?.level ? `<span>${levelBadge(b.guest.level)}</span>` : ''}
                   <span>Instructor: ${inst?.name ?? 'TBD'}</span>
-                  <span>${tmpl ? sessionTime(tmpl, b.lesson?.session) : ''}</span>
+                  <span>${tmpl ? lessonTimes(tmpl) : ''}</span>
                 </div>
               </div>`;
           }).join('')}
@@ -400,7 +378,7 @@ export function renderAssign(container, { params, session }) {
 
     container.innerHTML = `
       ${pageHead('Assign Instructor',
-        `${tmpl?.name ?? lesson.templateId} · ${fmtDate(lesson.date)} · ${lesson.session}`,
+        `${tmpl?.name ?? lesson.templateId} · ${fmtDate(lesson.date)}`,
         '/supervisor/dashboard')}
 
       <!-- Lesson summary -->
@@ -408,12 +386,11 @@ export function renderAssign(container, { params, session }) {
         <div class="glass" style="padding:16px;">
           <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
             ${statusBadge(lesson.status)}
-            <span class="badge badge-scheduled">${lesson.session} Session</span>
             ${tmpl ? `<span class="badge badge-${tmpl.sport}">${tmpl.sport==='ski'?'⛷':'🏂'} ${tmpl.sport}</span>` : ''}
             ${tmpl ? levelBadge(tmpl.level) : ''}
           </div>
           <div style="font-size:13px;color:#888;">
-            ${tmpl ? sessionTime(tmpl, lesson.session) : '—'}
+            ${tmpl ? lessonTimes(tmpl) : '—'}
             &nbsp;·&nbsp;
             ${DB.getConfirmedByLesson(lesson.id).length} / ${tmpl?.maxGuests ?? '—'} guests booked
           </div>

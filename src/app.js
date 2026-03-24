@@ -1,6 +1,6 @@
-import { seed }                    from './data.js';
+import { seed, resetSeed }              from './data.js';
 import { getSession, logout }       from './auth.js';
-import { renderNav }                from './ui.js';
+import { renderNav, closeModal }    from './ui.js';
 import { renderLogin, renderRegister } from './views/login.js';
 import {
   renderGuestDashboard,
@@ -94,6 +94,7 @@ function router() {
       renderNav(session, backHref);
     } else {
       document.getElementById('bottom-nav')?.remove();
+      window.__snowPageTrailing = null;
     }
 
     route.view(content, { params, session });
@@ -119,6 +120,14 @@ window.addEventListener('load', () => {
 
 // Global logout helper (called from profile / nav)
 window.__snowLogout = () => {
+  closeModal('account');
   logout();
   navigate('/login');
+};
+
+// Global reset helper (called from account modal)
+window.__snowResetData = () => {
+  if (!confirm('Reset all mock data? Lessons, bookings and reports will be regenerated.')) return;
+  resetSeed();
+  window.location.reload();
 };
