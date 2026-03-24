@@ -91,11 +91,13 @@ export function renderInstructorDashboard(container, { session }) {
     </div>
   `;
 
-  // Lesson detail modal (tap on card body)
+  // Lesson detail modal (tap on card body) — pass re-render callback so report
+  // submission from inside the modal also refreshes the today view immediately.
+  const _rerender = () => renderInstructorDashboard(container, { session });
   container.querySelectorAll('[data-lesson-id]').forEach(btn => {
     btn.addEventListener('click', () => {
       const lesson = DB.getLessonById(btn.dataset.lessonId);
-      if (lesson) _openInstructorLessonModal(lesson, session);
+      if (lesson) _openInstructorLessonModal(lesson, session, _rerender);
     });
   });
 
@@ -121,11 +123,11 @@ export function renderInstructorDashboard(container, { session }) {
     });
   });
 
-  // Submit report: opens report modal
+  // Submit report: opens report modal with re-render callback
   container.querySelectorAll('[data-report-id]').forEach(btn => {
     btn.addEventListener('click', () => {
       const lesson = DB.getLessonById(btn.dataset.reportId);
-      if (lesson) openReportModal(lesson, session);
+      if (lesson) openReportModal(lesson, session, _rerender);
     });
   });
 }
@@ -204,7 +206,7 @@ function _instructorLessonCard(lesson) {
 }
 
 // ── Instructor Lesson Detail Modal ────────────────────────────────────────────
-function _openInstructorLessonModal(lesson, session) {
+function _openInstructorLessonModal(lesson, session, onReportSuccess = null) {
   const tmpl  = getTemplate(lesson.templateId);
   const report = DB.getReportByLesson(lesson.id);
   const bkgs  = DB.getConfirmedByLesson(lesson.id);
@@ -272,7 +274,7 @@ function _openInstructorLessonModal(lesson, session) {
 
   document.getElementById('modal-report-btn')?.addEventListener('click', () => {
     closeModal('instructor-lesson-detail');
-    openReportModal(lesson, session);
+    openReportModal(lesson, session, onReportSuccess);
   });
 }
 
@@ -559,7 +561,7 @@ const SKILLS = [
   { id:'jumps',          label:'Jumps' },
 ];
 
-function openReportModal(lesson, session) {
+function openReportModal(lesson, session, onSuccess = null) {
   const MODAL_ID = 'lesson-report';
 
   // Reset draft if this is a different lesson
@@ -738,7 +740,8 @@ function openReportModal(lesson, session) {
 
       overlay.remove();
       toast('Report submitted successfully!', 'success');
-      navigate('/instructor/dashboard');
+      if (onSuccess) onSuccess();
+      else navigate('/instructor/dashboard');
     });
   }
 
