@@ -4,7 +4,7 @@ import {
   toast, pageHead, statusBadge, levelBadge, sportBadge, av,
   secLabel, emptyState, fmtDate, fmtDateLong, todayStr,
   greeting, lessonTimes, iCalendar, iPlus, iChevR, iUser,
-  iCheck, iWarn,
+  iCheck, iWarn, iBack,
 } from '../ui.js';
 
 // ── Guest Dashboard ──────────────────────────────────────────────────────────
@@ -137,50 +137,57 @@ function _lessonCard(booking) {
 }
 
 // ── Book Lesson Wizard ────────────────────────────────────────────────────────
-// Module-level wizard state (persists across re-renders on same route)
 const wiz = { step: 1, date: null, templateId: null, sport: 'ski', audience: 'adult' };
 
 function resetWiz() { wiz.step = 1; wiz.date = null; wiz.templateId = null; }
 
+function _showNav()  { document.getElementById('bottom-nav')?.style.removeProperty('display'); }
+function _hideNav()  { const n = document.getElementById('bottom-nav'); if (n) n.style.display = 'none'; }
+
 export function renderBook(container, ctx) {
-  // Reset wizard when navigating away and back
   if (!window._bookActive) { resetWiz(); window._bookActive = true; }
-
-  // Detect navigation away to reset
-  window.addEventListener('hashchange', () => { window._bookActive = false; }, { once: true });
-
+  window.addEventListener('hashchange', () => { window._bookActive = false; _showNav(); }, { once: true });
   _renderWizardStep(container, ctx);
 }
 
 function _renderWizardStep(container, ctx) {
   container.innerHTML = '';
+
   const wrap = document.createElement('div');
-  wrap.innerHTML = _wizardHeader(wiz.step);
-  container.appendChild(wrap);
+
+  if (wiz.step === 2) {
+    _hideNav();
+    wrap.innerHTML = `
+      <div class="page-head">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <button id="wiz-back" style="flex-shrink:0;padding:6px;background:rgba(30,38,67,0.07);
+            border-radius:999px;display:inline-flex;color:#1E2643;border:none;cursor:pointer;
+            -webkit-tap-highlight-color:transparent;">${iBack()}</button>
+          <h1 class="page-title" style="flex:1;">Confirm booking</h1>
+        </div>
+      </div>
+      <div style="height:28px;"></div>`;
+    container.appendChild(wrap);
+    wrap.querySelector('#wiz-back').addEventListener('click', () => {
+      wiz.step = 1;
+      _showNav();
+      _renderWizardStep(container, ctx);
+    });
+  } else {
+    _showNav();
+    wrap.innerHTML = pageHead('Book a lesson', 'Group lesson booking');
+    container.appendChild(wrap);
+  }
 
   const body = document.createElement('div');
   body.style.padding = '0 20px 32px';
   container.appendChild(body);
 
   if (wiz.step === 1) _step1(body, container, ctx);
-  else if (wiz.step === 2) _step2(body, container, ctx);
-  else if (wiz.step === 3) _step3(body, container, ctx);
+  else _step2(body, container, ctx);
 }
 
-function _wizardHeader(step) {
-  const titles = ['', 'Pick a date', 'Choose your class', 'Confirm booking'];
-  return `
-    ${pageHead(titles[step], 'Group lesson booking')}
-    <div style="padding:4px 20px 20px;">
-      <div class="step-dots">
-        ${[1,2,3].map(s =>
-          `<div class="step-dot${s === step ? ' active' : s < step ? ' done' : ''}"></div>`
-        ).join('')}
-      </div>
-    </div>`;
-}
-
-// Step 1 — Date picker
+// Step 1 — Date picker + class list combined
 function _step1(body, container, ctx) {
   const chips = [];
   for (let i = 0; i < 14; i++) {
@@ -189,134 +196,119 @@ function _step1(body, container, ctx) {
     chips.push(d);
   }
 
-  body.innerHTML = `
-    <div style="margin-bottom:20px;">
-      <div class="sec-label" style="margin-bottom:12px;">Which day?</div>
-      <div class="sx" style="display:flex;gap:8px;padding:4px 2px;">
-        ${chips.map(d => {
-          const ds  = isoDate(d);
-          const dow = d.toLocaleDateString('en-US',{weekday:'short'});
-          const day = d.getDate();
-          const mon = d.toLocaleDateString('en-US',{month:'short'});
-          const sel = ds === wiz.date;
-          const isTod = i => isoDate(new Date()) === isoDate(chips[i]);
+  function renderLessonList(listEl) {
+    if (!wiz.date) {
+      listEl.innerHTML = `<div style="text-align:center;padding:40px 0;color:#AAA;font-size:14px;">Select a date to see available classes</div>`;
+      return;
+    }
+    const filtered = TEMPLATES.filter(t => t.sport === wiz.sport && t.audience === wiz.audience);
+    listEl.innerHTML = `
+      <div class="sec-label" style="margin-bottom:12px;">Classes on ${fmtDate(wiz.date)}</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        ${filtered.map(t => {
+          const lesson   = DB.getLessonsByDateTemplate(wiz.date, t.id)[0];
+          const taken    = lesson ? DB.getConfirmedByLesson(lesson.id).length : t.maxGuests;
+          const hasSlots = !!lesson && taken < t.maxGuests;
           return `
-            <div class="date-chip${sel ? ' selected' : ''}${ds===todayStr()?' today':''}"
-              data-date="${ds}" style="flex-shrink:0;">
-              <div class="date-chip-dow">${dow}</div>
-              <div class="date-chip-day">${day}</div>
-              <div style="font-size:9px;color:${sel?'rgba(255,255,255,0.7)':'#AAA'};margin-top:1px;">${mon}</div>
+            <div class="glass card-row" style="border-radius:12px;${!hasSlots ? 'opacity:0.5;cursor:default;' : ''}"
+              data-tmpl="${t.id}">
+              <div style="flex-shrink:0;width:44px;height:44px;background:rgba(30,38,67,0.08);
+                border-radius:10px;display:flex;align-items:center;justify-content:center;
+                font-family:'Newsreader',serif;font-size:17px;font-weight:800;color:#1E2643;">
+                ${t.id}
+              </div>
+              <div style="flex:1;">
+                <div style="font-weight:600;font-size:15px;color:#000;">${t.name}</div>
+                <div style="font-size:12px;color:#888;margin-top:2px;">
+                  ${levelBadge(t.level)} &nbsp;·&nbsp; ${lessonTimes(t)}
+                </div>
+              </div>
+              ${hasSlots
+                ? `<div style="color:#1E2643;">${iChevR()}</div>`
+                : `<span class="badge badge-cancelled" style="flex-shrink:0;">Full</span>`}
             </div>`;
         }).join('')}
-      </div>
-    </div>
-    <div style="color:#AAA;font-size:13px;text-align:center;margin-top:8px;">
-      Tap a date to continue
-    </div>`;
+        ${filtered.length === 0 ? `<div style="text-align:center;padding:32px 0;color:#AAA;font-size:14px;">No classes in this category.</div>` : ''}
+      </div>`;
 
-  body.querySelectorAll('.date-chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-      wiz.date = chip.dataset.date;
-      wiz.step = 2;
-      _renderWizardStep(container, ctx);
-    });
-  });
-}
-
-// Step 2 — Class selector
-function _step2(body, container, ctx) {
-  const filtered = TEMPLATES.filter(t =>
-    t.sport === wiz.sport && t.audience === wiz.audience
-  );
-
-  body.innerHTML = `
-    <!-- Sport filter -->
-    <div style="margin-bottom:12px;">
-      <div class="sec-label" style="margin-bottom:8px;">Sport</div>
-      <div style="display:flex;gap:8px;">
-        <button class="pill-filter${wiz.sport==='ski'?' active':''}" data-sport="ski">⛷ Ski</button>
-        <button class="pill-filter${wiz.sport==='snowboard'?' active':''}" data-sport="snowboard">🏂 Snowboard</button>
-      </div>
-    </div>
-    <!-- Audience filter -->
-    <div style="margin-bottom:20px;">
-      <div class="sec-label" style="margin-bottom:8px;">For</div>
-      <div style="display:flex;gap:8px;">
-        <button class="pill-filter${wiz.audience==='adult'?' active':''}" data-audience="adult">Adult</button>
-        <button class="pill-filter${wiz.audience==='kids'?' active':''}" data-audience="kids">Kids</button>
-      </div>
-    </div>
-
-    <div class="sec-label" style="margin-bottom:12px;">Classes available on ${fmtDate(wiz.date)}</div>
-
-    <div style="display:flex;flex-direction:column;gap:8px;" id="tmpl-list">
-      ${filtered.map(t => {
-        const lesson = DB.getLessonsByDateTemplate(wiz.date, t.id)[0];
-        const taken  = lesson ? DB.getConfirmedByLesson(lesson.id).length : t.maxGuests;
-        const hasSlots = !!lesson && taken < t.maxGuests;
-        return `
-          <div class="glass card-row${!hasSlots?' opacity-50':''}" style="border-radius:12px;"
-            data-tmpl="${t.id}" ${!hasSlots?'style="cursor:default;opacity:0.5"':''}>
-            <div style="flex-shrink:0;width:44px;height:44px;background:rgba(30,38,67,0.08);
-              border-radius:10px;display:flex;align-items:center;justify-content:center;
-              font-family:'Newsreader',serif;font-size:17px;font-weight:800;color:#1E2643;">
-              ${t.id}
-            </div>
-            <div style="flex:1;">
-              <div style="font-weight:600;font-size:15px;color:#000;">${t.name}</div>
-              <div style="font-size:12px;color:#888;margin-top:2px;">
-                ${levelBadge(t.level)} &nbsp;·&nbsp; Max ${t.maxGuests} guests
-              </div>
-            </div>
-            ${hasSlots
-              ? `<div style="color:#1E2643;">${iChevR()}</div>`
-              : `<span class="badge badge-cancelled" style="flex-shrink:0;">Full</span>`}
-          </div>`;
-      }).join('')}
-      ${filtered.length === 0 ? `
-        <div style="text-align:center;padding:32px 0;color:#AAA;font-size:14px;">
-          No classes in this category.
-        </div>` : ''}
-    </div>
-
-    <button style="margin-top:20px;background:none;border:none;cursor:pointer;
-      color:#888;font-size:14px;font-family:'Inter',sans-serif;display:flex;
-      align-items:center;gap:4px;" id="back-s1">
-      ← Change date
-    </button>`;
-
-  // Sport/audience filter buttons
-  body.querySelectorAll('[data-sport]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      wiz.sport = btn.dataset.sport;
-      _step2(body, container, ctx);
-    });
-  });
-  body.querySelectorAll('[data-audience]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      wiz.audience = btn.dataset.audience;
-      _step2(body, container, ctx);
-    });
-  });
-  body.querySelectorAll('[data-tmpl]').forEach(card => {
-    card.addEventListener('click', () => {
+    listEl.querySelectorAll('[data-tmpl]').forEach(card => {
       const tmpl = getTemplate(card.dataset.tmpl);
       if (!tmpl) return;
       const lesson = DB.getLessonsByDateTemplate(wiz.date, tmpl.id)[0];
       if (!lesson || DB.getConfirmedByLesson(lesson.id).length >= tmpl.maxGuests) return;
-      wiz.templateId = card.dataset.tmpl;
-      wiz.step = 3;
-      _renderWizardStep(container, ctx);
+      card.addEventListener('click', () => {
+        wiz.templateId = card.dataset.tmpl;
+        wiz.step = 2;
+        _renderWizardStep(container, ctx);
+      });
+    });
+  }
+
+  body.innerHTML = `
+    <div style="margin-bottom:20px;">
+      <div class="sx" style="display:flex;gap:8px;padding:4px 0;">
+        ${chips.map(d => {
+          const ds  = isoDate(d);
+          const dow = d.toLocaleDateString('en-US', { weekday: 'short' });
+          const day = d.getDate();
+          const mon = d.toLocaleDateString('en-US', { month: 'short' });
+          const sel = ds === wiz.date;
+          return `
+            <div class="date-chip${sel ? ' selected' : ''}${ds === todayStr() ? ' today' : ''}"
+              data-date="${ds}" style="flex-shrink:0;">
+              <div class="date-chip-dow">${dow}</div>
+              <div class="date-chip-day">${day}</div>
+              <div style="font-size:9px;color:${sel ? 'rgba(255,255,255,0.7)' : '#AAA'};margin-top:1px;">${mon}</div>
+            </div>`;
+        }).join('')}
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
+      <button class="pill-filter${wiz.sport === 'ski' ? ' active' : ''}" data-sport="ski">⛷ Ski</button>
+      <button class="pill-filter${wiz.sport === 'snowboard' ? ' active' : ''}" data-sport="snowboard">🏂 Snowboard</button>
+      <div style="width:1px;background:rgba(0,0,0,0.12);align-self:stretch;margin:0 2px;"></div>
+      <button class="pill-filter${wiz.audience === 'adult' ? ' active' : ''}" data-audience="adult">Adult</button>
+      <button class="pill-filter${wiz.audience === 'kids' ? ' active' : ''}" data-audience="kids">Kids</button>
+    </div>
+
+    <div id="lesson-list"></div>`;
+
+  const listEl = body.querySelector('#lesson-list');
+  renderLessonList(listEl);
+
+  body.querySelectorAll('.date-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      wiz.date = chip.dataset.date;
+      body.querySelectorAll('.date-chip').forEach(c => {
+        const sel = c.dataset.date === wiz.date;
+        c.classList.toggle('selected', sel);
+        const monEl = c.querySelector('div:last-child');
+        if (monEl) monEl.style.color = sel ? 'rgba(255,255,255,0.7)' : '#AAA';
+      });
+      renderLessonList(listEl);
     });
   });
-  body.querySelector('#back-s1').addEventListener('click', () => {
-    wiz.step = 1;
-    _renderWizardStep(container, ctx);
+
+  body.querySelectorAll('[data-sport]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      wiz.sport = btn.dataset.sport;
+      body.querySelectorAll('[data-sport]').forEach(b => b.classList.toggle('active', b.dataset.sport === wiz.sport));
+      renderLessonList(listEl);
+    });
+  });
+
+  body.querySelectorAll('[data-audience]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      wiz.audience = btn.dataset.audience;
+      body.querySelectorAll('[data-audience]').forEach(b => b.classList.toggle('active', b.dataset.audience === wiz.audience));
+      renderLessonList(listEl);
+    });
   });
 }
 
-// Step 3 — Confirm
-function _step3(body, container, ctx) {
+// Step 2 — Confirm booking
+function _step2(body, container, ctx) {
   const { session } = ctx;
   const tmpl    = getTemplate(wiz.templateId);
   const lesson  = DB.getLessonsByDateTemplate(wiz.date, wiz.templateId)[0];
@@ -332,9 +324,7 @@ function _step3(body, container, ctx) {
       <div style="display:flex;flex-direction:column;gap:14px;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <span style="font-size:13px;color:#888;">Class</span>
-          <span style="font-weight:600;font-size:15px;color:#000;">
-            ${tmpl.id} — ${tmpl.name}
-          </span>
+          <span style="font-weight:600;font-size:15px;color:#000;">${tmpl.id} — ${tmpl.name}</span>
         </div>
         <div class="div"></div>
         <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -370,34 +360,24 @@ function _step3(body, container, ctx) {
         ${iWarn()} You already have a booking for this lesson.
       </div>` : ''}
 
-    <button id="confirm-btn" class="btn btn-primary btn-lg btn-full"
-      ${(!lesson || existing) ? 'disabled' : ''}>
+    <button id="confirm-btn" class="btn btn-primary btn-lg btn-full" ${(!lesson || existing) ? 'disabled' : ''}>
       ${iCheck()} Confirm Booking
-    </button>
-    <button style="margin-top:12px;background:none;border:none;cursor:pointer;
-      color:#888;font-size:14px;font-family:'Inter',sans-serif;display:flex;
-      align-items:center;gap:4px;margin-left:auto;margin-right:auto;" id="back-s2">
-      ← Change class
     </button>`;
 
   body.querySelector('#confirm-btn')?.addEventListener('click', () => {
     if (!lesson) return;
-    const booking = {
+    DB.upsertBooking({
       id:        'bkg-' + Date.now().toString(36),
       guestId:   session.id,
       lessonId:  lesson.id,
       createdAt: new Date().toISOString(),
       status:    'confirmed',
-    };
-    DB.upsertBooking(booking);
+    });
     toast('Booking confirmed! See you on the mountain. ⛷', 'success');
     resetWiz();
     window._bookActive = false;
+    _showNav();
     navigate('/guest/bookings');
-  });
-  body.querySelector('#back-s2').addEventListener('click', () => {
-    wiz.step = 2;
-    _renderWizardStep(container, ctx);
   });
 }
 
