@@ -5,6 +5,7 @@ import {
   emptyState, fmtDate, fmtDateLong, todayStr,
   lessonTimes, iCalendar, iChevR, iClipboard, iCheck,
   iBack, iX, iPlay, iFlag, openModal, closeModal,
+  injectHeadAvatar,
 } from '../ui.js';
 
 // ── Instructor Dashboard ──────────────────────────────────────────────────────
@@ -129,6 +130,9 @@ export function renderInstructorDashboard(container, { session }) {
       if (lesson) openReportModal(lesson, session, _rerender);
     });
   });
+
+  // Re-inject avatar since we rebuilt container.innerHTML
+  injectHeadAvatar(session, container);
 }
 
 function _instructorLessonCard(lesson) {
@@ -312,11 +316,10 @@ function _openInstructorLessonModal(lesson, session, onReportSuccess = null) {
       <!-- CTA: submit report / pending state -->
       ${needsReport ? `
       <button id="modal-report-btn"
-        style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;width:100%;
+        style="display:flex;align-items:center;gap:8px;padding:14px 16px;width:100%;
         background:rgba(253,190,0,0.1);border:none;border-radius:14px;cursor:pointer;color:#875700;
         font-size:14px;font-weight:600;font-family:'Inter',sans-serif;text-align:left;">
-        <span style="display:flex;align-items:center;gap:8px;">${iClipboard()} Submit lesson report</span>
-        <span style="color:#B07A00;">${iChevR()}</span>
+        ${iClipboard()} Submit lesson report
       </button>` : ''}
 
     </div>
