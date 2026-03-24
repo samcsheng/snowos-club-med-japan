@@ -4,7 +4,7 @@ import {
   toast, pageHead, injectHeadAvatar, statusBadge, bookingDisplayStatus, levelBadge, sportBadge, av,
   secLabel, emptyState, fmtDate, fmtDateLong, todayStr,
   greeting, lessonTimes, iCalendar, iPlus, iChevR, iUser,
-  iCheck, iWarn, iBack, setNavHidden,
+  iCheck, iWarn, iBack, setNavHidden, openModal,
 } from '../ui.js';
 
 // ── Guest Dashboard ──────────────────────────────────────────────────────────
@@ -405,7 +405,9 @@ export function renderMyBookings(container, { session }) {
         const lesson = DB.getLessonById(b.lessonId);
         const tmpl   = lesson ? getTemplate(lesson.templateId) : null;
         const inst   = lesson?.instructorId ? DB.getUserById(lesson.instructorId) : null;
-        return { ...b, lesson, tmpl, inst, isNew: b.id === newBookingId };
+        const report = lesson ? DB.getReportByLesson(lesson.id) : null;
+        const guestReport = report?.guestReports?.find(gr => gr.guestId === session.id) ?? null;
+        return { ...b, lesson, tmpl, inst, report, guestReport, isNew: b.id === newBookingId };
       })
       .sort((a,b) => {
         const ad = a.lesson?.date ?? '';
@@ -422,7 +424,7 @@ export function renderMyBookings(container, { session }) {
     });
 
     container.innerHTML = `
-      ${pageHead('My Bookings')}
+      ${pageHead('My Lessons')}
 
       <!-- Filter pills -->
       <div class="sx" style="display:flex;gap:8px;padding:0 20px 20px;">
@@ -461,6 +463,14 @@ export function renderMyBookings(container, { session }) {
         _confirmCancel(id, render);
       });
     });
+
+    container.querySelectorAll('[data-report-card]').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const booking = filtered.find(b => b.id === btn.dataset.reportCard);
+        if (booking) _openReportCardModal(booking);
+      });
+    });
   }
 
   render();
@@ -472,6 +482,12 @@ function _bookingCard(b, today) {
   const canCancel  = b.status === 'confirmed' && !isPast;
   const displayStatus = bookingDisplayStatus(b, b.lesson);
   const isCancelled = b.status === 'cancelled';
+  const canCheckReportCard = (
+    b.status === 'confirmed' &&
+    b.lesson?.status === 'completed' &&
+    !!b.report?.submittedAt &&
+    !!b.guestReport
+  );
 
   return `
     <div class="glass" style="padding:16px;border-radius:12px;${isCancelled ? 'opacity:0.56;' : ''}">
@@ -503,14 +519,99 @@ function _bookingCard(b, today) {
           </div>
         </div>
       </div>
-      ${canCancel ? `
+      ${canCancel || canCheckReportCard ? `
         <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(30,38,67,0.07);">
-          <button data-cancel="${b.id}" class="btn btn-ghost btn-sm"
-            style="color:#BF2F17;border-color:rgba(191,47,23,0.25);">
-            Cancel booking
-          </button>
+          ${canCheckReportCard ? `
+            <button data-report-card="${b.id}" class="btn btn-ghost btn-sm"
+              style="margin-right:8px;">
+              check report card
+            </button>` : ''}
+          ${canCancel ? `
+            <button data-cancel="${b.id}" class="btn btn-ghost btn-sm"
+              style="color:#BF2F17;border-color:rgba(191,47,23,0.25);">
+              Cancel booking
+            </button>` : ''}
         </div>` : ''}
     </div>`;
+}
+
+function _openReportCardModal(booking) {
+  const { lesson, tmpl, inst, report, guestReport } = booking;
+  if (!lesson || !report || !guestReport) return;
+
+  const attendanceMap = {
+    AM: 'Morning only',
+    PM: 'Afternoon only',
+    BOTH: 'Full day',
+  };
+
+  const terrainLabels = {
+    groomed: 'Groomed runs',
+    powder: 'Powder',
+    moguls: 'Moguls',
+    park: 'Terrain park',
+    'off-piste': 'Off-piste',
+    icy: 'Icy conditions',
+    trees: 'Trees',
+  };
+
+  const skillLabels = {
+    'parallel-turns': 'Parallel turns',
+    carving: 'Carving',
+    stopping: 'Stopping',
+    edges: 'Edge control',
+    'speed-control': 'Speed control',
+    'terrain-read': 'Terrain reading',
+    jumps: 'Jumps',
+  };
+
+  openModal('guest-report-card', 'Report Card', `
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div class="glass" style="padding:16px;border-radius:12px;">
+        <div style="font-family:'Newsreader',serif;font-size:22px;font-weight:700;color:#000;">
+          ${tmpl ? tmpl.name : lesson.templateId}
+        </div>
+        <div style="font-size:13px;color:#777;margin-top:4px;">
+          ${fmtDateLong(lesson.date)}${inst ? ` · ${inst.name}` : ''}
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="glass" style="padding:14px;border-radius:12px;">
+          <div style="font-size:12px;color:#888;margin-bottom:4px;">Attendance</div>
+          <div style="font-weight:600;color:#000;">${attendanceMap[guestReport.attendance] ?? guestReport.attendance ?? 'Not recorded'}</div>
+        </div>
+        <div class="glass" style="padding:14px;border-radius:12px;">
+          <div style="font-size:12px;color:#888;margin-bottom:4px;">Submitted</div>
+          <div style="font-weight:600;color:#000;">${new Date(report.submittedAt).toLocaleDateString()}</div>
+        </div>
+      </div>
+
+      <div class="glass" style="padding:16px;border-radius:12px;">
+        <div style="font-size:12px;color:#888;margin-bottom:6px;">Lesson Focus</div>
+        <div style="font-size:14px;color:#000;line-height:1.5;">
+          ${(report.terrains?.map(t => terrainLabels[t] ?? t) ?? []).join(', ') || 'No terrain notes shared.'}
+        </div>
+        <div style="font-size:14px;color:#000;line-height:1.5;margin-top:8px;">
+          ${(report.skills?.map(s => skillLabels[s] ?? s) ?? []).join(', ') || 'No skills shared.'}
+        </div>
+      </div>
+
+      <div class="glass" style="padding:16px;border-radius:12px;">
+        <div style="font-size:12px;color:#888;margin-bottom:6px;">Recommended Next Class</div>
+        <div style="font-size:14px;color:#000;line-height:1.5;">
+          ${guestReport.nextClass || 'No next class recommendation yet.'}
+        </div>
+      </div>
+
+      <div class="glass" style="padding:16px;border-radius:12px;">
+        <div style="font-size:12px;color:#888;margin-bottom:6px;">Instructor Notes</div>
+        <div style="font-size:14px;color:#000;line-height:1.6;">
+          ${guestReport.notes || 'No written notes were included for this lesson.'}
+        </div>
+      </div>
+    </div>
+  `);
 }
 
 function _confirmCancel(bookingId, onDone) {
