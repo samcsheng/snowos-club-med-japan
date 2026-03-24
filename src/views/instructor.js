@@ -4,51 +4,176 @@ import {
   toast, pageHead, statusBadge, sportBadge, av, secLabel,
   emptyState, fmtDate, fmtDateLong, todayStr,
   lessonTimes, iCalendar, iChevR, iClipboard, iCheck,
-  iBack, iX, openModal, closeModal,
+  iBack, iX, iPlay, iFlag, openModal, closeModal,
 } from '../ui.js';
 
 // ── Instructor Dashboard ──────────────────────────────────────────────────────
 export function renderInstructorDashboard(container, { session }) {
   const today   = todayStr();
-  const lessons = DB.getLessonsByInstructor(session.id)
-    .filter(l => l.date === today)
-    .sort((a,b) => a.session.localeCompare(b.session));
+  const lessons = DB.getLessonsByInstructor(session.id).filter(l => l.date === today);
+  const firstName = session.name.split(' ')[0];
+
+  // Determine overall view state from lesson statuses
+  // Priority: on-mountain > completed (report due) > reported (done) > scheduled (neutral)
+  let viewState = 'scheduled';
+  if (lessons.some(l => l.status === 'on-mountain'))  viewState = 'on-mountain';
+  else if (lessons.some(l => l.status === 'completed')) viewState = 'completed';
+  else if (lessons.length > 0 && lessons.every(l => l.status === 'reported')) viewState = 'reported';
+
+  // State-driven header and banner
+  let headTitle, headSub, stateBanner;
+  switch (viewState) {
+    case 'on-mountain':
+      headTitle  = 'On the Mountain';
+      headSub    = fmtDateLong(today);
+      stateBanner = `
+        <div style="padding:0 12px 20px;">
+          <div class="glass-strong" style="padding:16px;border-radius:14px;
+            background:rgba(30,38,67,0.07);border:1.5px solid rgba(30,38,67,0.15);">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <span style="font-size:22px;line-height:1;">🏔</span>
+              <div>
+                <div style="font-weight:700;color:#1E2643;font-size:15px;">Lesson in progress</div>
+                <div style="font-size:13px;color:#5a6070;margin-top:2px;">Stay focused — great things happen on the mountain</div>
+              </div>
+            </div>
+          </div>
+        </div>`;
+      break;
+    case 'completed':
+      headTitle  = 'Today\'s Sessions';
+      headSub    = fmtDateLong(today);
+      stateBanner = `
+        <div style="padding:0 12px 20px;">
+          <div class="glass-strong" style="padding:16px;border-radius:14px;
+            background:rgba(253,190,0,0.09);border:1.5px solid rgba(253,190,0,0.28);">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <span style="font-size:22px;line-height:1;">📋</span>
+              <div>
+                <div style="font-weight:700;color:#875700;font-size:15px;">Lesson report due</div>
+                <div style="font-size:13px;color:#a07000;margin-top:2px;">Please submit your report before end of day</div>
+              </div>
+            </div>
+          </div>
+        </div>`;
+      break;
+    case 'reported':
+      headTitle  = `Well done, ${firstName}!`;
+      headSub    = 'Thank you for your hard work today';
+      stateBanner = `
+        <div style="padding:0 12px 20px;">
+          <div class="glass-strong" style="padding:16px;border-radius:14px;
+            background:rgba(8,138,32,0.06);border:1.5px solid rgba(8,138,32,0.17);">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <span style="font-size:22px;line-height:1;">🌟</span>
+              <div>
+                <div style="font-weight:700;color:#076b1a;font-size:15px;">All reports submitted</div>
+                <div style="font-size:13px;color:#2d8a4a;margin-top:2px;">You're all done for the day, ${firstName} — enjoy your evening!</div>
+              </div>
+            </div>
+          </div>
+        </div>`;
+      break;
+    default:
+      headTitle  = 'Today\'s Sessions';
+      headSub    = fmtDateLong(today);
+      stateBanner = '';
+  }
 
   container.innerHTML = `
-    ${pageHead('Today\'s Sessions', fmtDateLong(today))}
-
+    ${pageHead(headTitle, headSub)}
+    ${stateBanner}
     <div style="padding:0 20px 8px;">${secLabel('Today\'s Schedule')}</div>
     <div style="padding:0 12px 20px;display:flex;flex-direction:column;gap:8px;" id="today-list">
       ${lessons.length === 0
         ? emptyState('🎿', 'No sessions today', 'Check your schedule for upcoming assignments.')
-        : lessons.map(l => _instructorLessonCard(l, session.id)).join('')}
+        : lessons.map(l => _instructorLessonCard(l)).join('')}
     </div>
-
   `;
 
+  // Lesson detail modal (tap on card body) — pass re-render callback so report
+  // submission from inside the modal also refreshes the today view immediately.
+  const _rerender = () => renderInstructorDashboard(container, { session });
   container.querySelectorAll('[data-lesson-id]').forEach(btn => {
     btn.addEventListener('click', () => {
       const lesson = DB.getLessonById(btn.dataset.lessonId);
-      if (lesson) _openInstructorLessonModal(lesson, session);
+      if (lesson) _openInstructorLessonModal(lesson, session, _rerender);
     });
   });
 
+  // Start Lesson: scheduled → on-mountain
+  container.querySelectorAll('[data-start-lesson]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const lesson = DB.getLessonById(btn.dataset.startLesson);
+      if (!lesson) return;
+      DB.upsertLesson({ ...lesson, status: 'on-mountain' });
+      toast('Lesson started — have a great session! 🏔', 'success');
+      renderInstructorDashboard(container, { session });
+    });
+  });
+
+  // Complete Lesson: on-mountain → completed
+  container.querySelectorAll('[data-complete-lesson]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const lesson = DB.getLessonById(btn.dataset.completeLesson);
+      if (!lesson) return;
+      DB.upsertLesson({ ...lesson, status: 'completed' });
+      toast('Lesson complete — please submit your report', 'info');
+      renderInstructorDashboard(container, { session });
+    });
+  });
+
+  // Submit report: opens report modal with re-render callback
   container.querySelectorAll('[data-report-id]').forEach(btn => {
     btn.addEventListener('click', () => {
       const lesson = DB.getLessonById(btn.dataset.reportId);
-      if (lesson) openReportModal(lesson, session);
+      if (lesson) openReportModal(lesson, session, _rerender);
     });
   });
 }
 
-function _instructorLessonCard(lesson, instructorId) {
+function _instructorLessonCard(lesson) {
   const tmpl       = getTemplate(lesson.templateId);
   const bkgs       = DB.getConfirmedByLesson(lesson.id);
   const guestList  = bkgs.map(b => ({ ...b, guest: DB.getUserById(b.guestId) }));
   const guestCount = guestList.length;
   const maxGuests  = tmpl?.maxGuests ?? null;
   const report     = DB.getReportByLesson(lesson.id);
-  const needsReport = lesson.status !== 'scheduled' && !report;
+
+  // Action strip: drives the lesson lifecycle, shown only in today tab
+  let actionStrip = '';
+  if (lesson.status === 'scheduled') {
+    actionStrip = `
+      <button data-start-lesson="${lesson.id}"
+        style="display:flex;align-items:center;gap:8px;padding:13px 22px;width:100%;
+        background:rgba(30,38,67,0.06);border:none;border-top:1px solid rgba(30,38,67,0.1);
+        cursor:pointer;color:#1E2643;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;">
+        ${iPlay()} Start Lesson
+      </button>`;
+  } else if (lesson.status === 'on-mountain') {
+    actionStrip = `
+      <button data-complete-lesson="${lesson.id}"
+        style="display:flex;align-items:center;gap:8px;padding:13px 22px;width:100%;
+        background:rgba(253,190,0,0.12);border:none;border-top:1px solid rgba(253,190,0,0.22);
+        cursor:pointer;color:#875700;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;">
+        ${iFlag()} Complete Lesson
+      </button>`;
+  } else if (lesson.status === 'completed' && !report) {
+    actionStrip = `
+      <button data-report-id="${lesson.id}"
+        style="display:flex;align-items:center;gap:8px;padding:13px 22px;width:100%;
+        background:rgba(253,190,0,0.1);border:none;border-top:1px solid rgba(253,190,0,0.18);
+        cursor:pointer;color:#875700;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;">
+        ${iClipboard()} Submit lesson report
+      </button>`;
+  } else if (lesson.status === 'reported' || report) {
+    actionStrip = `
+      <div style="display:flex;align-items:center;gap:8px;padding:12px 22px;
+        background:var(--bg-success-soft);border-top:1px solid rgba(8,138,32,0.12);
+        color:#076b1a;font-size:13px;font-weight:500;">
+        ${iCheck()} Report submitted
+      </div>`;
+  }
 
   return `
     <div class="glass" style="border-radius:16px;overflow:hidden;">
@@ -70,39 +195,33 @@ function _instructorLessonCard(lesson, instructorId) {
         </div>
         <div class="div" style="margin:18px 0;"></div>
         ${guestCount > 0 ? `
-        <div style="display:flex;align-items:center;gap:-6px;flex-wrap:wrap;gap:6px;">
+        <div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;">
           ${guestList.slice(0, 6).map(b => av((b.guest?.name ?? '?').slice(0, 2))).join('')}
           ${guestCount > 6 ? `<span style="font-size:13px;color:#888;margin-left:2px;">+${guestCount - 6} more</span>` : ''}
         </div>` : `
         <div style="font-size:14px;color:#aaa;font-style:italic;">No guests confirmed yet</div>`}
       </div>
-      ${needsReport ? `
-        <button data-report-id="${lesson.id}"
-          style="display:flex;align-items:center;gap:8px;padding:13px 22px;width:100%;
-          background:rgba(253,190,0,0.1);border:none;border-top:1px solid rgba(253,190,0,0.18);
-          cursor:pointer;color:#875700;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;">
-          ${iClipboard()} Submit lesson report
-        </button>` : report ? `
-        <div style="display:flex;align-items:center;gap:8px;padding:12px 22px;
-          background:var(--bg-success-soft);border-top:1px solid rgba(8,138,32,0.12);
-          color:#076b1a;font-size:13px;font-weight:500;">
-          ${iCheck()} Report submitted
-        </div>` : ''}
+      ${actionStrip}
     </div>`;
 }
 
 // ── Instructor Lesson Detail Modal ────────────────────────────────────────────
-function _openInstructorLessonModal(lesson, session) {
-  const tmpl  = getTemplate(lesson.templateId);
-  const report = DB.getReportByLesson(lesson.id);
-  const bkgs  = DB.getConfirmedByLesson(lesson.id);
-  const guests = bkgs.map(b => ({ ...b, guest: DB.getUserById(b.guestId) }));
-  const needsReport = lesson.status !== 'scheduled' && !report;
-  const spotsLabel = tmpl ? `${guests.length} of ${tmpl.maxGuests} spots filled` : null;
+function _openInstructorLessonModal(lesson, session, onReportSuccess = null) {
+  const tmpl       = getTemplate(lesson.templateId);
+  const report     = DB.getReportByLesson(lesson.id);
+  const bkgs       = DB.getConfirmedByLesson(lesson.id);
+  const guests     = bkgs.map(b => ({ ...b, guest: DB.getUserById(b.guestId) }));
+  const needsReport = lesson.status === 'completed' && !report;
+  const spotsLabel  = tmpl ? `${guests.length} of ${tmpl.maxGuests} spots filled` : null;
+
+  // Label lookup maps (TERRAINS/SKILLS defined later in module, available at call time)
+  const terrainLabels = Object.fromEntries(TERRAINS.map(t => [t.id, t.label]));
+  const skillLabels   = Object.fromEntries(SKILLS.map(s => [s.id, s.label]));
 
   openModal('instructor-lesson-detail', tmpl ? tmpl.name : lesson.id, `
     <div style="display:flex;flex-direction:column;gap:16px;">
 
+      <!-- Lesson info -->
       <div class="glass" style="padding:16px;border-radius:14px;">
         <div style="display:flex;flex-direction:column;gap:12px;">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
@@ -129,19 +248,69 @@ function _openInstructorLessonModal(lesson, session) {
         </div>
       </div>
 
+      <!-- Guests (with per-guest report button when report exists) -->
       ${guests.length > 0 ? `
       <div>
-        <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#8A6B53;margin-bottom:10px;">Guests</div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
+          color:#8A6B53;margin-bottom:10px;">Guests</div>
         <div class="glass" style="border-radius:14px;overflow:hidden;">
-          ${guests.map((b, i) => `
-            <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;
-              ${i > 0 ? 'border-top:1px solid rgba(30,38,67,0.06);' : ''}">
-              ${av((b.guest?.name ?? '?').slice(0,2))}
-              <div style="font-weight:600;font-size:14px;color:#000;">${b.guest?.name ?? 'Guest'}</div>
-            </div>`).join('')}
+          ${guests.map((b, i) => {
+            const gr = report?.guestReports?.find(g => g.guestId === b.guestId);
+            return `
+              <div style="display:flex;align-items:center;gap:12px;padding:11px 16px;
+                ${i > 0 ? 'border-top:1px solid rgba(30,38,67,0.06);' : ''}">
+                ${av((b.guest?.name ?? '?').slice(0, 2))}
+                <div style="flex:1;font-weight:600;font-size:14px;color:#000;">${b.guest?.name ?? 'Guest'}</div>
+                ${gr ? `
+                  <button data-guest-report="${b.guestId}"
+                    style="font-size:12px;font-weight:600;color:#1E2643;
+                    background:var(--bg-section-soft);border:1px solid var(--line-soft);
+                    border-radius:999px;padding:5px 12px;cursor:pointer;
+                    font-family:'Inter',sans-serif;flex-shrink:0;white-space:nowrap;
+                    display:inline-flex;align-items:center;gap:4px;line-height:1;">
+                    Report ${iChevR()}
+                  </button>` : ''}
+              </div>`;
+          }).join('')}
         </div>
       </div>` : ''}
 
+      <!-- Lesson Report: terrain + skills pills -->
+      ${report ? `
+      <div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
+          color:#8A6B53;margin-bottom:10px;">Lesson Report</div>
+        <div class="glass" style="padding:14px 16px;border-radius:14px;display:flex;flex-direction:column;gap:12px;">
+          ${report.terrains?.length > 0 ? `
+          <div>
+            <div style="font-size:11px;color:#888;font-weight:600;letter-spacing:0.05em;
+              text-transform:uppercase;margin-bottom:7px;">Terrain</div>
+            <div style="display:flex;flex-wrap:wrap;gap:5px;">
+              ${report.terrains.map(t => `
+                <span style="font-size:12px;font-weight:500;
+                  background:transparent;color:#000;border:1.5px solid #000;
+                  border-radius:999px;padding:3px 10px;">${terrainLabels[t] ?? t}</span>`).join('')}
+            </div>
+          </div>` : ''}
+          ${report.skills?.length > 0 ? `
+          <div>
+            <div style="font-size:11px;color:#888;font-weight:600;letter-spacing:0.05em;
+              text-transform:uppercase;margin-bottom:7px;">Skills</div>
+            <div style="display:flex;flex-wrap:wrap;gap:5px;">
+              ${report.skills.map(s => `
+                <span style="font-size:12px;font-weight:500;
+                  background:transparent;color:#000;border:1.5px solid #000;
+                  border-radius:999px;padding:3px 10px;">${skillLabels[s] ?? s}</span>`).join('')}
+            </div>
+          </div>` : ''}
+          <div style="padding-top:2px;border-top:1px solid rgba(30,38,67,0.06);
+            font-size:12px;color:#888;">
+            Submitted ${new Date(report.submittedAt).toLocaleDateString()}
+          </div>
+        </div>
+      </div>` : ''}
+
+      <!-- CTA: submit report / pending state -->
       ${needsReport ? `
       <button id="modal-report-btn"
         style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;width:100%;
@@ -149,19 +318,64 @@ function _openInstructorLessonModal(lesson, session) {
         font-size:14px;font-weight:600;font-family:'Inter',sans-serif;text-align:left;">
         <span style="display:flex;align-items:center;gap:8px;">${iClipboard()} Submit lesson report</span>
         <span style="color:#B07A00;">${iChevR()}</span>
-      </button>` : report ? `
-      <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;
-        background:var(--bg-success-soft);border-radius:14px;color:#076b1a;font-size:14px;font-weight:500;">
-        ${iCheck()} Report submitted on ${new Date(report.submittedAt).toLocaleDateString()}
-      </div>` : ''}
+      </button>` : ''}
 
     </div>
   `);
 
+  // Guest report drill-down buttons
+  const modalBody = document.getElementById('modal-instructor-lesson-detail-body');
+  modalBody?.querySelectorAll('[data-guest-report]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const gr    = report?.guestReports?.find(g => g.guestId === btn.dataset.guestReport);
+      const guest = DB.getUserById(btn.dataset.guestReport);
+      if (gr && guest) _openGuestReportModal(guest, gr);
+    });
+  });
+
   document.getElementById('modal-report-btn')?.addEventListener('click', () => {
     closeModal('instructor-lesson-detail');
-    openReportModal(lesson, session);
+    openReportModal(lesson, session, onReportSuccess);
   });
+}
+
+// ── Per-guest report detail modal ─────────────────────────────────────────────
+function _openGuestReportModal(guest, gr) {
+  const nextTemplate = gr.nextClass ? getTemplate(gr.nextClass) : null;
+  const attColors = { AM: '#e6ebfb,#1E2643', PM: '#e6ebfb,#1E2643', BOTH: '#dcf5e2,#076b1a' };
+  const [attBg, attColor] = (attColors[gr.attendance] ?? attColors.BOTH).split(',');
+
+  openModal('guest-report-detail', guest.name, `
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div class="glass" style="padding:16px;border-radius:14px;">
+        <div style="display:flex;flex-direction:column;gap:11px;">
+
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+            <span style="font-size:13px;color:#888;">Attendance</span>
+            <span style="font-size:12px;font-weight:700;padding:4px 12px;border-radius:999px;
+              background:${attBg};color:${attColor};">${gr.attendance}</span>
+          </div>
+
+          <div class="div"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+            <span style="font-size:13px;color:#888;">Recommended next</span>
+            <span style="font-weight:600;font-size:14px;color:${nextTemplate ? '#000' : '#bbb'};">
+              ${nextTemplate ? nextTemplate.name : '—'}
+            </span>
+          </div>
+
+          <div class="div"></div>
+          <div>
+            <div style="font-size:13px;color:#888;margin-bottom:6px;">Notes</div>
+            <div style="font-size:14px;line-height:1.55;color:${gr.notes ? '#000' : '#bbb'};">
+              ${gr.notes || '—'}
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  `);
 }
 
 // ── My Schedule ───────────────────────────────────────────────────────────────
@@ -267,22 +481,15 @@ export function renderMySchedule(container, { session }) {
   function _renderLessons() {
     const el = container.querySelector('#sched-lessons');
     if (!el) return;
-    const dayLessons = allLessons
-      .filter(l => l.date === selDate)
-      .sort((a, b) => a.session.localeCompare(b.session));
+    const dayLessons = allLessons.filter(l => l.date === selDate);
     el.innerHTML = dayLessons.length === 0
       ? emptyState('😌', 'Rest day', 'No sessions scheduled.')
       : dayLessons.map(l => _schedLessonCard(l)).join('');
-    el.querySelectorAll('[data-lesson-id]').forEach(el => {
-      el.addEventListener('click', () => {
-        const lesson = DB.getLessonById(el.dataset.lessonId);
+    // Schedule tab: cards open detail modal only — no lifecycle actions
+    el.querySelectorAll('[data-lesson-id]').forEach(card => {
+      card.addEventListener('click', () => {
+        const lesson = DB.getLessonById(card.dataset.lessonId);
         if (lesson) _openInstructorLessonModal(lesson, session);
-      });
-    });
-    el.querySelectorAll('[data-report-id]').forEach(el => {
-      el.addEventListener('click', () => {
-        const lesson = DB.getLessonById(el.dataset.reportId);
-        if (lesson) openReportModal(lesson, session);
       });
     });
   }
@@ -325,14 +532,13 @@ export function renderMySchedule(container, { session }) {
   _renderLessons();
 }
 
-// ── Schedule lesson card (compact, not the same as today-tab expanded card) ───
+// ── Schedule lesson card (read-only — no lifecycle actions) ───────────────────
 function _schedLessonCard(lesson) {
   const tmpl       = getTemplate(lesson.templateId);
   const bkgs       = DB.getConfirmedByLesson(lesson.id);
   const guestCount = bkgs.length;
   const maxGuests  = tmpl?.maxGuests ?? null;
   const report     = DB.getReportByLesson(lesson.id);
-  const needsReport = lesson.status !== 'scheduled' && !report;
 
   return `
     <div class="glass-strong" style="border-radius:12px;overflow:hidden;">
@@ -347,19 +553,12 @@ function _schedLessonCard(lesson) {
         <div style="font-size:13px;color:#666;">
           ${tmpl ? lessonTimes(tmpl) : ''}${guestCount > 0 ? ` · ${guestCount}${maxGuests ? `/${maxGuests}` : ''} guest${guestCount !== 1 ? 's' : ''}` : ''}
         </div>
-      </div>
-      ${needsReport ? `
-        <button data-report-id="${lesson.id}"
-          style="display:flex;align-items:center;gap:8px;padding:10px 16px;width:100%;
-          background:rgba(253,190,0,0.1);border:none;border-top:1px solid rgba(253,190,0,0.18);
-          cursor:pointer;color:#875700;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;">
-          ${iClipboard()} Submit report
-        </button>` : report ? `
-        <div style="display:flex;align-items:center;gap:8px;padding:9px 16px;
-          background:var(--bg-success-soft);border-top:1px solid rgba(8,138,32,0.12);
-          color:#076b1a;font-size:12px;font-weight:500;">
+        ${report ? `
+        <div style="display:flex;align-items:center;gap:6px;margin-top:8px;
+          font-size:12px;color:#076b1a;font-weight:500;">
           ${iCheck()} Report submitted
         </div>` : ''}
+      </div>
     </div>`;
 }
 
@@ -397,7 +596,7 @@ export function renderLessonDetail(container, { params, session }) {
     </div>
 
     <!-- Report CTA -->
-    ${!report && lesson.status !== 'scheduled' ? `
+    ${!report && lesson.status === 'completed' ? `
     <div style="padding:0 20px 16px;">
       <button id="report-cta" class="btn btn-primary btn-lg btn-full">
         ${iClipboard()} Submit Lesson Report
@@ -462,7 +661,7 @@ const SKILLS = [
   { id:'jumps',          label:'Jumps' },
 ];
 
-function openReportModal(lesson, session) {
+function openReportModal(lesson, session, onSuccess = null) {
   const MODAL_ID = 'lesson-report';
 
   // Reset draft if this is a different lesson
@@ -484,7 +683,7 @@ function openReportModal(lesson, session) {
   const guests = bkgs.map(b => ({ ...b, guest: DB.getUserById(b.guestId) }));
 
   guests.forEach(({ guestId }) => {
-    if (!draft.guests[guestId]) draft.guests[guestId] = { attendance: 'BOTH', nextClass: '', notes: '' };
+    if (!draft.guests[guestId]) draft.guests[guestId] = { attendance: 'BOTH', nextClass: lesson.templateId, notes: '' };
   });
 
   document.getElementById(`modal-${MODAL_ID}`)?.remove();
@@ -523,7 +722,7 @@ function openReportModal(lesson, session) {
       <div style="padding:0 2px 8px;">${secLabel(`Per-Guest (${guests.length})`)}</div>
       <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
         ${guests.map(({ guestId, guest }) => {
-          const g = draft.guests[guestId] || { attendance: 'BOTH', nextClass: '', notes: '' };
+          const g = draft.guests[guestId] || { attendance: 'BOTH', nextClass: lesson.templateId, notes: '' };
           return `
             <div class="glass" style="padding:16px;border-radius:12px;">
               <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
@@ -543,8 +742,6 @@ function openReportModal(lesson, session) {
               <div style="margin-bottom:12px;">
                 <div class="sec-label" style="margin-bottom:8px;">Recommended next class</div>
                 <div style="display:flex;flex-wrap:wrap;gap:8px;">
-                  <button class="att-pill${g.nextClass === '' ? ' active' : ''}"
-                    data-nc-guest="${guestId}" data-nc-val="">Same class</button>
                   ${sameType.map(t => `
                     <button class="att-pill${g.nextClass === t.id ? ' active' : ''}"
                       data-nc-guest="${guestId}" data-nc-val="${t.id}">${t.name}</button>`).join('')}
@@ -589,7 +786,7 @@ function openReportModal(lesson, session) {
     body.querySelectorAll('[data-att]').forEach(btn => {
       btn.addEventListener('click', () => {
         const gid = btn.dataset.guest;
-        if (!draft.guests[gid]) draft.guests[gid] = { attendance: 'BOTH', nextClass: '', notes: '' };
+        if (!draft.guests[gid]) draft.guests[gid] = { attendance: 'BOTH', nextClass: lesson.templateId, notes: '' };
         draft.guests[gid].attendance = btn.dataset.att;
         rerender();
       });
@@ -598,7 +795,7 @@ function openReportModal(lesson, session) {
     body.querySelectorAll('[data-nc-guest]').forEach(btn => {
       btn.addEventListener('click', () => {
         const gid = btn.dataset.ncGuest;
-        if (!draft.guests[gid]) draft.guests[gid] = { attendance: 'BOTH', nextClass: '', notes: '' };
+        if (!draft.guests[gid]) draft.guests[gid] = { attendance: 'BOTH', nextClass: lesson.templateId, notes: '' };
         draft.guests[gid].nextClass = btn.dataset.ncVal;
         rerender();
       });
@@ -607,7 +804,7 @@ function openReportModal(lesson, session) {
     body.querySelectorAll('[data-notes]').forEach(ta => {
       ta.addEventListener('blur', () => {
         const gid = ta.dataset.notes;
-        if (!draft.guests[gid]) draft.guests[gid] = { attendance: 'BOTH', nextClass: '', notes: '' };
+        if (!draft.guests[gid]) draft.guests[gid] = { attendance: 'BOTH', nextClass: lesson.templateId, notes: '' };
         draft.guests[gid].notes = ta.value;
       });
     });
@@ -621,7 +818,7 @@ function openReportModal(lesson, session) {
       const guestReports = guests.map(({ guestId }) => ({
         guestId,
         attendance: draft.guests[guestId]?.attendance ?? 'BOTH',
-        nextClass:  draft.guests[guestId]?.nextClass  ?? '',
+        nextClass:  draft.guests[guestId]?.nextClass  ?? lesson.templateId,
         notes:      draft.guests[guestId]?.notes      ?? '',
       }));
 
@@ -636,12 +833,13 @@ function openReportModal(lesson, session) {
       };
 
       DB.upsertReport(report);
-      DB.upsertLesson({ ...lesson, status: 'completed' });
+      DB.upsertLesson({ ...lesson, status: 'reported' });
       draft.lessonId = null;
 
       overlay.remove();
       toast('Report submitted successfully!', 'success');
-      navigate('/instructor/dashboard');
+      if (onSuccess) onSuccess();
+      else navigate('/instructor/dashboard');
     });
   }
 

@@ -5,7 +5,7 @@ export const KEYS = {
   BOOKINGS: 'snow_bookings',
   REPORTS:  'snow_reports',
   SESSION:  'snow_session',
-  SEEDED:   'snow_seeded_v3',
+  SEEDED:   'snow_seeded_v5',
 };
 
 // ── Generic helpers ──────────────────────────────────────────────────────────
@@ -197,7 +197,7 @@ function _doSeed() {
     const dateStr = isoDate(d);
     const isPast  = offset < 0;
     const isToday = offset === 0;
-    const status  = isPast ? 'completed' : isToday ? 'in-progress' : 'scheduled';
+    const status  = isPast ? 'completed' : isToday ? 'on-mountain' : 'scheduled';
 
     TEMPLATES.forEach((tmpl, ti) => {
       // Future: leave ~1-in-8 slots unassigned for supervisor demo
@@ -262,6 +262,33 @@ function _doSeed() {
   const TERRAIN_POOL = ['groomed','powder','moguls','park','off-piste','icy','trees'];
   const SKILL_POOL   = ['parallel-turns','carving','stopping','edges','speed-control','terrain-read','jumps'];
 
+  // Build next-class progression map: same template or one level up (same sport + audience)
+  const LEVEL_RANK = { beginner: 1, intermediate: 2, advanced: 3 };
+  const _nextClassMap = (() => {
+    const map = {};
+    const groups = {};
+    TEMPLATES.forEach(t => {
+      const key = `${t.sport}-${t.audience}`;
+      (groups[key] = groups[key] || []).push(t);
+    });
+    Object.values(groups).forEach(grp => {
+      grp.sort((a, b) => LEVEL_RANK[a.level] - LEVEL_RANK[b.level]);
+      grp.forEach((t, i) => { map[t.id] = grp[i + 1]?.id ?? t.id; });
+    });
+    return map;
+  })();
+
+  const NOTES_POOL = [
+    'Good progress on parallel turns. Ready for steeper terrain.',
+    'Strong technique foundations. Focus on speed control next session.',
+    'Showed great improvement with edge control. Keep challenging on varied terrain.',
+    'Confident on groomed runs. Introduce off-piste conditions gradually.',
+    'Working on carving consistency. More practice on steeper groomed runs recommended.',
+    'Excellent balance and posture. Ready to tackle more challenging terrain.',
+    'Needs more practice stopping at speed. Continue current level before progressing.',
+    'Natural learner, advancing well. Consider moving up next session.',
+  ];
+
   // Explicit report for the Sophie/Tom lesson
   const reports = [{
     id: 'rpt-1',
@@ -271,7 +298,7 @@ function _doSeed() {
     skills:       ['parallel-turns', 'edges', 'speed-control'],
     guestReports: [
       { guestId:'u-g1', attendance:'BOTH', nextClass:'C4', notes:'Great edge control progress. Recommend steeper groomed runs.' },
-      { guestId:'u-g2', attendance:'AM',   nextClass:'C5', notes:'' },
+      { guestId:'u-g2', attendance:'AM',   nextClass:'C5', notes:'Strong carving technique. Ready for advanced groomed runs.' },
     ],
     submittedAt: new Date(today.getTime() - 3*86400000 + 16*3600000).toISOString(),
   }];
@@ -287,17 +314,27 @@ function _doSeed() {
         instructorId: lesson.instructorId ?? 'u-i1',
         terrains:     TERRAIN_POOL.filter((_, i) => (ri + i) % 3 !== 0).slice(0, 2 + (ri % 3)),
         skills:       SKILL_POOL.filter((_, i)   => (ri + i) % 4 !== 0).slice(0, 2 + (ri % 4)),
-        guestReports: lessonBkgs.map(b => ({
-          guestId:    b.guestId,
-          attendance: ['AM','PM','BOTH'][(ri + b.guestId.charCodeAt(b.guestId.length - 1)) % 3],
-          nextClass:  '',
-          notes:      '',
-        })),
+        guestReports: lessonBkgs.map((b, bi) => {
+          const seed = ri + bi + b.guestId.charCodeAt(b.guestId.length - 1);
+          // ~60% stay same class, ~40% move up
+          const nextClass = (seed % 5 < 2) ? (_nextClassMap[lesson.templateId] ?? lesson.templateId) : lesson.templateId;
+          return {
+            guestId:    b.guestId,
+            attendance: ['AM','PM','BOTH'][seed % 3],
+            nextClass,
+            notes:      NOTES_POOL[seed % NOTES_POOL.length],
+          };
+        }),
         submittedAt: new Date(today.getTime() - (1 + ri % 6) * 86400000 + 16*3600000).toISOString(),
       });
     });
 
   write(KEYS.REPORTS, reports);
+
+  // Mark lessons that have submitted reports as 'reported'
+  const reportedLessonIds = new Set(reports.map(r => r.lessonId));
+  lessons.forEach(l => { if (reportedLessonIds.has(l.id)) l.status = 'reported'; });
+  write(KEYS.LESSONS, lessons);
 }
 
 // ── Public seed API ───────────────────────────────────────────────────────────

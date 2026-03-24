@@ -1,26 +1,17 @@
 const CACHE = 'snow-os-v1';
 
-const SHELL = [
-  './',
-  './index.html',
+const STATIC_ASSETS = [
   './manifest.json',
   './icons/icon.svg',
   './icons/icon-maskable.svg',
-  './src/app.js',
-  './src/data.js',
-  './src/auth.js',
-  './src/ui.js',
-  './src/views/login.js',
-  './src/views/guest.js',
-  './src/views/instructor.js',
-  './src/views/supervisor.js',
 ];
 
+// Pre-cache only truly static assets (icons, manifest)
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE)
-      .then((cache) => cache.addAll(SHELL))
-      .catch(() => {}) // don't block install if a file is missing
+      .then((cache) => cache.addAll(STATIC_ASSETS))
+      .catch(() => {})
       .then(() => self.skipWaiting())
   );
 });
@@ -35,25 +26,31 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   const { request } = e;
+  const url = new URL(request.url);
 
-  // Navigation → always serve index.html (SPA with hash routing)
-  if (request.mode === 'navigate') {
+  // Icons and manifest: cache-first (they never change between deploys)
+  if (STATIC_ASSETS.some((a) => url.pathname.endsWith(a.replace('./', '/')))) {
     e.respondWith(
-      caches.match('./index.html').then((r) => r || fetch(request))
+      caches.match(request).then((cached) => cached || fetch(request).then((response) => {
+        if (response && response.status === 200) {
+          caches.open(CACHE).then((c) => c.put(request, response.clone()));
+        }
+        return response;
+      }))
     );
     return;
   }
 
-  // Cache-first, fall back to network and cache the response
+  // Everything else (HTML, JS): network-first so design changes show on refresh
+  // Falls back to cache only when offline
   e.respondWith(
-    caches.match(request).then((cached) => {
-      if (cached) return cached;
-      return fetch(request).then((response) => {
-        if (!response || response.status !== 200 || response.type === 'opaque') return response;
-        const clone = response.clone();
-        caches.open(CACHE).then((c) => c.put(request, clone));
+    fetch(request)
+      .then((response) => {
+        if (response && response.status === 200 && response.type !== 'opaque') {
+          caches.open(CACHE).then((c) => c.put(request, response.clone()));
+        }
         return response;
-      }).catch(() => cached);
-    })
+      })
+      .catch(() => caches.match(request))
   );
 });

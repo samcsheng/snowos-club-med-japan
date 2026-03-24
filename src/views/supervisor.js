@@ -12,9 +12,9 @@ import {
 export function renderSupervisorDashboard(container, { session }) {
   const today    = todayStr();
   const todayLes = DB.getLessonsByDate(today);
-  const unassigned = todayLes.filter(l => !l.instructorId && l.status !== 'completed').length;
+  const unassigned = todayLes.filter(l => !l.instructorId && l.status !== 'completed' && l.status !== 'reported').length;
   const pendingRep = todayLes.filter(l =>
-    l.status === 'in-progress' && !DB.getReportByLesson(l.id)
+    l.status === 'completed' && !DB.getReportByLesson(l.id)
   ).length;
 
   // Recent bookings (last 5)
@@ -79,7 +79,7 @@ export function renderSupervisorDashboard(container, { session }) {
             ${unassigned} session${unassigned>1?'s':''} need an instructor today
           </div>
         </div>
-        ${todayLes.filter(l=>!l.instructorId&&l.status!=='completed').map(l => {
+        ${todayLes.filter(l=>!l.instructorId&&l.status!=='completed'&&l.status!=='reported').map(l => {
           const tmpl = getTemplate(l.templateId);
           return `
             <a href="#/supervisor/assign/${l.id}"
