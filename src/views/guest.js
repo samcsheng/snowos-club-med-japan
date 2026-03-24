@@ -4,7 +4,7 @@ import {
   toast, pageHead, injectHeadAvatar, statusBadge, bookingDisplayStatus, levelBadge, sportBadge, av,
   secLabel, emptyState, fmtDate, fmtDateLong, todayStr,
   greeting, lessonTimes, iCalendar, iPlus, iChevR, iUser,
-  iCheck, iWarn, iBack, setNavHidden,
+  iCheck, iWarn, iBack, setNavHidden, openModal, iClipboard,
 } from '../ui.js';
 
 // ── Guest Dashboard ──────────────────────────────────────────────────────────
@@ -62,12 +62,37 @@ export function renderGuestDashboard(container, { session }) {
 }
 
 // ── Today's lesson card (expanded) ───────────────────────────────────────────
+function _lessonDateTile(date, {
+  size = 44,
+  radius = 10,
+  monthSize = 9,
+  daySize = 18,
+  background = '#FDBE00',
+  monthColor = '#000',
+  dayColor = '#000',
+  letterSpacing = 0.4,
+} = {}) {
+  const safeDate = date ? new Date(date + 'T00:00:00') : null;
+  const month = safeDate ? safeDate.toLocaleDateString('en-US', { month: 'short' }) : '?';
+  const day = safeDate ? safeDate.getDate() : '?';
+
+  return `
+    <div style="flex-shrink:0;width:${size}px;height:${size}px;border-radius:${radius}px;background:${background};
+      display:flex;flex-direction:column;align-items:center;justify-content:center;">
+      <div style="font-size:${monthSize}px;font-weight:700;color:${monthColor};text-transform:uppercase;
+        letter-spacing:${letterSpacing}px;">
+        ${month}
+      </div>
+      <div style="font-size:${daySize}px;font-weight:800;color:${dayColor};line-height:1.1;">
+        ${day}
+      </div>
+    </div>`;
+}
+
 function _todayCard(booking) {
   const lesson = booking.lesson;
   const tmpl   = getTemplate(lesson.templateId);
   const inst   = lesson.instructorId ? DB.getUserById(lesson.instructorId) : null;
-  const month  = new Date(lesson.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short' });
-  const day    = new Date(lesson.date + 'T00:00:00').getDate();
   const displayStatus = bookingDisplayStatus(booking, lesson);
 
   return `
@@ -88,12 +113,7 @@ function _todayCard(booking) {
       </div>
       <div class="div" style="margin:18px 0;"></div>
       <div style="display:flex;align-items:center;gap:14px;">
-        <div style="width:58px;height:58px;border-radius:14px;background:#FDBE00;
-          display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;">
-          <div style="font-size:10px;font-weight:700;color:#000;text-transform:uppercase;
-            letter-spacing:0.5px;">${month}</div>
-          <div style="font-size:24px;font-weight:800;color:#000;line-height:1.1;">${day}</div>
-        </div>
+        ${_lessonDateTile(lesson.date, { size: 58, radius: 14, monthSize: 10, daySize: 24, letterSpacing: 0.5 })}
         <div>
           <div style="font-size:11px;font-weight:600;text-transform:uppercase;
             letter-spacing:1px;color:#888;margin-bottom:3px;">Date</div>
@@ -112,17 +132,9 @@ function _lessonCard(booking) {
 
   return `
     <div class="glass card-row" style="border-radius:12px;cursor:default;">
-      <div style="flex-shrink:0;width:44px;height:44px;border-radius:10px;
-        background:${isToday ? '#FDBE00' : 'rgba(30,38,67,0.08)'};
-        display:flex;flex-direction:column;align-items:center;justify-content:center;">
-        <div style="font-size:9px;font-weight:700;color:${isToday ? '#000':'#888'};
-          text-transform:uppercase;letter-spacing:0.4px;">
-          ${new Date(lesson.date + 'T00:00:00').toLocaleDateString('en-US',{month:'short'})}
-        </div>
-        <div style="font-size:18px;font-weight:800;color:${isToday ? '#000':'#1E2643'};line-height:1.1;">
-          ${new Date(lesson.date + 'T00:00:00').getDate()}
-        </div>
-      </div>
+      ${_lessonDateTile(lesson.date, isToday
+        ? {}
+        : { background: 'rgba(30,38,67,0.08)', monthColor: '#888', dayColor: '#1E2643' })}
       <div style="flex:1;min-width:0;">
         <div style="font-weight:600;font-size:15px;color:#000;white-space:nowrap;
           overflow:hidden;text-overflow:ellipsis;">
@@ -405,7 +417,9 @@ export function renderMyBookings(container, { session }) {
         const lesson = DB.getLessonById(b.lessonId);
         const tmpl   = lesson ? getTemplate(lesson.templateId) : null;
         const inst   = lesson?.instructorId ? DB.getUserById(lesson.instructorId) : null;
-        return { ...b, lesson, tmpl, inst, isNew: b.id === newBookingId };
+        const report = lesson ? DB.getReportByLesson(lesson.id) : null;
+        const guestReport = report?.guestReports?.find(gr => gr.guestId === session.id) ?? null;
+        return { ...b, lesson, tmpl, inst, report, guestReport, isNew: b.id === newBookingId };
       })
       .sort((a,b) => {
         const ad = a.lesson?.date ?? '';
@@ -422,7 +436,7 @@ export function renderMyBookings(container, { session }) {
     });
 
     container.innerHTML = `
-      ${pageHead('My Bookings')}
+      ${pageHead('My Lessons')}
 
       <!-- Filter pills -->
       <div class="sx" style="display:flex;gap:8px;padding:0 20px 20px;">
@@ -461,6 +475,14 @@ export function renderMyBookings(container, { session }) {
         _confirmCancel(id, render);
       });
     });
+
+    container.querySelectorAll('[data-report-card]').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const booking = filtered.find(b => b.id === btn.dataset.reportCard);
+        if (booking) _openReportCardModal(booking);
+      });
+    });
   }
 
   render();
@@ -468,26 +490,29 @@ export function renderMyBookings(container, { session }) {
 }
 
 function _bookingCard(b, today) {
+  const isToday    = b.lesson?.date === today;
   const isPast     = b.lesson && b.lesson.date < today;
   const canCancel  = b.status === 'confirmed' && !isPast;
   const displayStatus = bookingDisplayStatus(b, b.lesson);
   const isCancelled = b.status === 'cancelled';
+  const canCheckReportCard = (
+    b.status === 'confirmed' &&
+    b.lesson?.status === 'completed' &&
+    !!b.report?.submittedAt &&
+    !!b.guestReport
+  );
+  const nextTemplate = b.guestReport?.nextClass ? getTemplate(b.guestReport.nextClass) : null;
+  const nextClassLabel = nextTemplate
+    ? nextTemplate.name
+    : (b.guestReport?.nextClass || 'No recommendation');
 
   return `
-    <div class="glass" style="padding:16px;border-radius:12px;${isCancelled ? 'opacity:0.56;' : ''}">
-      <div style="display:flex;align-items:flex-start;gap:12px;">
+    <div class="glass" style="border-radius:12px;overflow:hidden;${isCancelled ? 'opacity:0.56;' : ''}">
+      <div style="display:flex;align-items:flex-start;gap:12px;padding:16px;">
         <!-- Date block -->
-        <div style="flex-shrink:0;width:44px;height:44px;
-          background:${isCancelled ? 'rgba(30,38,67,0.05)' : isPast ? 'rgba(30,38,67,0.06)' : 'rgba(30,38,67,0.09)'};
-          border-radius:10px;display:flex;flex-direction:column;
-          align-items:center;justify-content:center;">
-          <div style="font-size:9px;font-weight:700;color:#888;text-transform:uppercase;">
-            ${b.lesson ? new Date(b.lesson.date+'T00:00:00').toLocaleDateString('en-US',{month:'short'}) : '?'}
-          </div>
-          <div style="font-size:18px;font-weight:800;color:#1E2643;line-height:1.1;">
-            ${b.lesson ? new Date(b.lesson.date+'T00:00:00').getDate() : '?'}
-          </div>
-        </div>
+        ${_lessonDateTile(b.lesson?.date, isToday
+          ? {}
+          : { background: 'rgba(30,38,67,0.08)', monthColor: '#888', dayColor: '#1E2643' })}
         <!-- Info -->
         <div style="flex:1;min-width:0;">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -503,14 +528,119 @@ function _bookingCard(b, today) {
           </div>
         </div>
       </div>
+      ${canCheckReportCard ? `
+        <div class="div"></div>
+        <button data-report-card="${b.id}"
+          style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;width:100%;
+          background:rgba(253,190,0,0.08);border:none;cursor:pointer;color:#875700;
+          font-size:14px;font-weight:600;font-family:'Inter',sans-serif;text-align:left;">
+          <span style="display:flex;align-items:center;gap:8px;">
+            ${iClipboard()} Check lesson report
+          </span>
+          <span style="display:flex;align-items:center;gap:6px;min-width:0;flex-shrink:0;">
+            <span style="font-size:12px;font-weight:700;letter-spacing:0.02em;text-transform:uppercase;
+              color:#000;background:#FDBE00;padding:5px 8px;border-radius:999px;box-shadow:inset 0 0 0 1px rgba(0,0,0,0.06);">
+              ${nextClassLabel}
+            </span>
+          </span>
+        </button>` : ''}
       ${canCancel ? `
-        <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(30,38,67,0.07);">
+        <div style="padding:12px 16px 16px;${canCheckReportCard ? 'border-top:1px solid rgba(30,38,67,0.07);' : ''}">
           <button data-cancel="${b.id}" class="btn btn-ghost btn-sm"
             style="color:#BF2F17;border-color:rgba(191,47,23,0.25);">
             Cancel booking
           </button>
         </div>` : ''}
     </div>`;
+}
+
+function _openReportCardModal(booking) {
+  const { lesson, tmpl, inst, report, guestReport } = booking;
+  if (!lesson || !report || !guestReport) return;
+  const nextTemplate = guestReport.nextClass ? getTemplate(guestReport.nextClass) : null;
+  const nextClassLabel = nextTemplate ? nextTemplate.name : '';
+
+  const attendanceMap = {
+    AM: 'Morning only',
+    PM: 'Afternoon only',
+    BOTH: 'Full day',
+  };
+
+  const terrainLabels = {
+    groomed: 'Groomed runs',
+    powder: 'Powder',
+    moguls: 'Moguls',
+    park: 'Terrain park',
+    'off-piste': 'Off-piste',
+    icy: 'Icy conditions',
+    trees: 'Trees',
+  };
+
+  const skillLabels = {
+    'parallel-turns': 'Parallel turns',
+    carving: 'Carving',
+    stopping: 'Stopping',
+    edges: 'Edge control',
+    'speed-control': 'Speed control',
+    'terrain-read': 'Terrain reading',
+    jumps: 'Jumps',
+  };
+
+  openModal('guest-report-card', 'Report Card', `
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div class="glass" style="padding:16px;border-radius:12px;">
+        <div style="font-family:'Newsreader',serif;font-size:22px;font-weight:700;color:#000;">
+          ${tmpl ? tmpl.name : lesson.templateId}
+        </div>
+        <div style="font-size:13px;color:#777;margin-top:4px;">
+          ${fmtDateLong(lesson.date)}${inst ? ` · ${inst.name}` : ''}
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="glass" style="padding:14px;border-radius:12px;">
+          <div style="font-size:12px;color:#888;margin-bottom:4px;">Attendance</div>
+          <div style="font-weight:600;color:#000;">${attendanceMap[guestReport.attendance] ?? guestReport.attendance ?? 'Not recorded'}</div>
+        </div>
+        <div class="glass" style="padding:14px;border-radius:12px;">
+          <div style="font-size:12px;color:#888;margin-bottom:4px;">Submitted</div>
+          <div style="font-weight:600;color:#000;">${new Date(report.submittedAt).toLocaleDateString()}</div>
+        </div>
+      </div>
+
+      <div class="glass" style="padding:16px;border-radius:12px;">
+        <div style="font-size:12px;color:#888;margin-bottom:6px;">Lesson Focus</div>
+        <div style="font-size:14px;color:#000;line-height:1.5;">
+          ${(report.terrains?.map(t => terrainLabels[t] ?? t) ?? []).join(', ') || 'No terrain notes shared.'}
+        </div>
+        <div style="font-size:14px;color:#000;line-height:1.5;margin-top:8px;">
+          ${(report.skills?.map(s => skillLabels[s] ?? s) ?? []).join(', ') || 'No skills shared.'}
+        </div>
+      </div>
+
+      <div class="glass" style="padding:16px;border-radius:12px;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <div style="font-size:12px;color:#888;">Recommended Next Class</div>
+          ${nextClassLabel ? `
+            <div style="font-size:12px;font-weight:700;letter-spacing:0.02em;text-transform:uppercase;
+              color:#000;background:#FDBE00;padding:5px 8px;border-radius:999px;box-shadow:inset 0 0 0 1px rgba(0,0,0,0.06);">
+              ${nextClassLabel}
+            </div>` : ''}
+        </div>
+        ${!nextClassLabel ? `
+          <div style="font-size:14px;color:#000;line-height:1.5;margin-top:8px;">
+            No next class recommendation yet.
+          </div>` : ''}
+      </div>
+
+      <div class="glass" style="padding:16px;border-radius:12px;">
+        <div style="font-size:12px;color:#888;margin-bottom:6px;">Instructor Notes</div>
+        <div style="font-size:14px;color:#000;line-height:1.6;">
+          ${guestReport.notes || 'No written notes were included for this lesson.'}
+        </div>
+      </div>
+    </div>
+  `);
 }
 
 function _confirmCancel(bookingId, onDone) {
