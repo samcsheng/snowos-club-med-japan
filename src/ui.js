@@ -1,48 +1,37 @@
 import { navigate } from './app.js';
 
 // ── Top-right avatar (guest only, persists across tabs) ───────────────────────
+// Sets a global trailing-action HTML string that pageHead picks up at render time.
+// renderNav runs before the view, so the string is ready when pageHead is called.
 function _renderTopAvatar(session) {
-  const existing = document.getElementById('top-avatar-btn');
-
   if (session.role !== 'guest') {
-    existing?.remove();
+    window.__snowPageTrailing = null;
     return;
   }
 
-  if (existing) return; // already mounted
+  // Register the modal opener so the inline onclick can call it.
+  window.__snowShowAccount = () => openModal('account', 'My Account', `
+    <div style="text-align:center;padding:8px 0 24px;">
+      ${av(session.avatar, 'lg')}
+      <div style="font-weight:600;font-size:18px;color:#000;margin-top:14px;">${session.name}</div>
+      <div style="font-size:14px;color:#777;margin-top:4px;">${session.email}</div>
+      ${session.level ? `<div style="margin-top:10px;">${levelBadge(session.level)}</div>` : ''}
+    </div>
+    <div class="div" style="margin-bottom:4px;"></div>
+    <button onclick="window.__snowLogout()"
+      style="display:flex;align-items:center;gap:10px;width:100%;padding:16px;
+      background:none;border:none;cursor:pointer;color:#BF2F17;font-size:15px;
+      font-weight:500;font-family:'Inter',sans-serif;border-radius:10px;">
+      ${iLogout()} Sign out
+    </button>
+  `);
 
-  const btn = document.createElement('button');
-  btn.id = 'top-avatar-btn';
-  btn.style.cssText = [
-    'position:fixed',
-    'top:calc(env(safe-area-inset-top,0px) + 14px)',
-    'right:16px',
-    'z-index:50',
-    'background:none',
-    'border:none',
-    'cursor:pointer',
-    'padding:0',
-    '-webkit-tap-highlight-color:transparent',
-  ].join(';');
-  btn.innerHTML = av(session.avatar, 'sm');
-  btn.addEventListener('click', () => {
-    openModal('account', 'My Account', `
-      <div style="text-align:center;padding:8px 0 24px;">
-        ${av(session.avatar, 'lg')}
-        <div style="font-weight:600;font-size:18px;color:#000;margin-top:14px;">${session.name}</div>
-        <div style="font-size:14px;color:#777;margin-top:4px;">${session.email}</div>
-        ${session.level ? `<div style="margin-top:10px;">${levelBadge(session.level)}</div>` : ''}
-      </div>
-      <div class="div" style="margin-bottom:4px;"></div>
-      <button onclick="window.__snowLogout()"
-        style="display:flex;align-items:center;gap:10px;width:100%;padding:16px;
-        background:none;border:none;cursor:pointer;color:#BF2F17;font-size:15px;
-        font-weight:500;font-family:'Inter',sans-serif;border-radius:10px;">
-        ${iLogout()} Sign out
-      </button>
-    `);
-  });
-  document.getElementById('app').appendChild(btn);
+  window.__snowPageTrailing = `
+    <button onclick="window.__snowShowAccount()"
+      style="background:none;border:none;cursor:pointer;padding:4px;flex-shrink:0;
+      -webkit-tap-highlight-color:transparent;display:flex;align-items:center;">
+      ${av(session.avatar, 'sm')}
+    </button>`;
 }
 
 // ── Bottom navigation ────────────────────────────────────────────────────────
@@ -173,11 +162,19 @@ export function closeModal(id) {
 }
 
 // ── Shared page header ───────────────────────────────────────────────────────
-export function pageHead(title, subtitle = '') {
+export function pageHead(title, subtitle = '', backHref = null) {
+  const trailing = window.__snowPageTrailing || '';
   return `
-    <div class="page-head">
-      <h1 class="page-title">${title}</h1>
-      ${subtitle ? `<p class="page-sub">${subtitle}</p>` : ''}
+    <div class="page-head" style="display:flex;align-items:flex-start;gap:10px;">
+      ${backHref ? `
+        <a href="#${backHref}" style="flex-shrink:0;margin-top:4px;padding:6px;background:rgba(30,38,67,0.07);border-radius:999px;display:inline-flex;color:#1E2643;text-decoration:none;" aria-label="Back">
+          ${iBack()}
+        </a>` : ''}
+      <div style="flex:1;">
+        <h1 class="page-title">${title}</h1>
+        ${subtitle ? `<p class="page-sub">${subtitle}</p>` : ''}
+      </div>
+      ${trailing}
     </div>`;
 }
 

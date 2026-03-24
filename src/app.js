@@ -94,7 +94,7 @@ function router() {
       renderNav(session, backHref);
     } else {
       document.getElementById('bottom-nav')?.remove();
-      document.getElementById('top-avatar-btn')?.remove();
+      window.__snowPageTrailing = null;
     }
 
     route.view(content, { params, session });
