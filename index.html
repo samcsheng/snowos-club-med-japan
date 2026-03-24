@@ -381,18 +381,20 @@
 
     /* ── Schedule date picker ─────────────────────────── */
     .sched-date-cell {
-      display: flex; flex-direction: column; align-items: center;
-      border-radius: 10px; cursor: pointer; transition: background 0.15s;
+      flex-shrink: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 9px 4px; border-radius: 12px; cursor: pointer;
+      border: 1.5px solid transparent; transition: all 0.15s;
+      background: linear-gradient(180deg, rgba(255,255,255,0.32), rgba(255,255,255,0.08)), var(--bg-section-soft);
       -webkit-tap-highlight-color: transparent;
     }
-    .sched-date-cell.sel { background: #1E2643; }
-    .sched-date-cell.tod { outline: 1.5px solid #FDBE00; outline-offset: -1.5px; }
-    .scd-month-hint { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; height: 12px; line-height: 12px; color: #bbb; text-align: center; }
-    .sched-date-cell.sel .scd-month-hint { color: rgba(255,255,255,0.5); }
-    .scd-num { font-size: 18px; font-weight: 700; color: #333; line-height: 1.2; }
+    .sched-date-cell:active { transform: scale(0.95); }
+    .sched-date-cell.sel { background: #1E2643; border-color: #1E2643; }
+    .sched-date-cell.tod { border-color: #FDBE00; }
+    .scd-num { font-size: 20px; font-weight: 700; color: #1E2643; line-height: 1.2; margin-top: 1px; }
     .sched-date-cell.sel .scd-num { color: #fff; }
-    .sched-date-cell.tod .scd-num { color: #1E2643; font-weight: 800; }
-    .scd-dot { width: 5px; height: 5px; border-radius: 50%; background: #FDBE00; }
+    .scd-month-hint { font-size: 9px; font-weight: 600; color: #AAA; margin-top: 2px; }
+    .sched-date-cell.sel .scd-month-hint { color: rgba(255,255,255,0.7); }
+    .scd-dot { width: 5px; height: 5px; border-radius: 50%; background: #FDBE00; margin-top: 3px; }
     .sched-date-cell.sel .scd-dot { background: rgba(255,255,255,0.65); }
     #sched-date-row::-webkit-scrollbar { display: none; }
 

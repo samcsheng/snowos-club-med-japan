@@ -194,29 +194,27 @@ export function renderMySchedule(container, { session }) {
     ${pageHead('My Schedule')}
 
     <div style="padding:0 20px 16px;">
-      <div class="glass" id="date-picker" style="border-radius:16px;overflow:hidden;">
+      <div class="glass" id="date-picker" style="border-radius:16px;background:var(--bg-section);padding:14px 16px;">
 
-        <!-- Header: month + Today -->
-        <div style="padding:14px 16px 10px;display:flex;align-items:center;justify-content:space-between;">
-          <div id="sched-month" style="font-family:'Newsreader',serif;font-size:17px;font-weight:700;color:#000;">
-            ${_monthLabel(today)}
-          </div>
+        <!-- Header: month label + Today button -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div id="sched-month" style="font-size:12px;font-weight:700;letter-spacing:0.08em;
+            text-transform:uppercase;color:#8A6B53;">${_monthLabel(today)}</div>
           <button id="sched-today-btn" style="font-size:12px;font-weight:600;color:#1E2643;
             background:rgba(30,38,67,0.07);border:none;padding:5px 12px;border-radius:999px;
             cursor:pointer;font-family:'Inter',sans-serif;">Today</button>
         </div>
 
         <!-- Fixed DOW row (always Sun–Sat since we snap to Sundays) -->
-        <div style="display:grid;grid-template-columns:repeat(7,1fr);padding:0 12px 6px;">
+        <div style="display:flex;margin-bottom:4px;">
           ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(dow => `
-            <div style="text-align:center;font-size:10px;font-weight:600;color:#aaa;
-              letter-spacing:0.4px;text-transform:uppercase;">${dow}</div>
+            <div class="date-chip-dow" style="width:var(--date-cell-w,calc((100vw - 72px)/7));
+              text-align:center;flex-shrink:0;">${dow}</div>
           `).join('')}
         </div>
 
         <!-- Horizontally scrollable date row, snaps to every Sunday -->
-        <div id="sched-date-row" style="display:flex;overflow-x:auto;scroll-snap-type:x mandatory;
-          padding:4px 12px 14px;-webkit-overflow-scrolling:touch;">
+        <div id="sched-date-row" class="sx" style="display:flex;scroll-snap-type:x mandatory;">
           ${dates.map(d => {
             const date = new Date(d + 'T00:00:00');
             const isSun  = date.getDay() === 0;
@@ -224,16 +222,14 @@ export function renderMySchedule(container, { session }) {
             const isSel   = d === selDate;
             const hasDot  = lessonDates.has(d);
             const isFirst = date.getDate() === 1;
+            const mon = date.toLocaleDateString('en-US', { month: 'short' });
             return `
               <div class="sched-date-cell${isSel ? ' sel' : ''}${isToday && !isSel ? ' tod' : ''}"
                 data-date="${d}"
-                style="width:var(--date-cell-w,calc((100vw - 64px)/7));padding:5px 0;
-                  ${isSun ? 'scroll-snap-align:start;' : ''}">
-                <div class="scd-month-hint">${isFirst ? date.toLocaleDateString('en-US',{month:'short'}) : ''}</div>
+                style="width:var(--date-cell-w,calc((100vw - 72px)/7));${isSun ? 'scroll-snap-align:start;' : ''}">
                 <div class="scd-num">${date.getDate()}</div>
-                <div style="height:9px;display:flex;align-items:center;justify-content:center;margin-top:3px;">
-                  ${hasDot ? '<div class="scd-dot"></div>' : ''}
-                </div>
+                <div class="scd-month-hint" style="${!isFirst ? 'visibility:hidden;' : ''}">${mon}</div>
+                ${hasDot ? '<div class="scd-dot"></div>' : '<div style="height:8px;"></div>'}
               </div>`;
           }).join('')}
         </div>
@@ -254,9 +250,9 @@ export function renderMySchedule(container, { session }) {
   const monthEl    = container.querySelector('#sched-month');
   const dateLabelEl = container.querySelector('#sched-date-label');
 
-  // Set exact cell width once layout is known
+  // Set exact cell width from the scroll row's rendered width (no Math.floor — exact division)
   requestAnimationFrame(() => {
-    const cellW = Math.floor((pickerEl.clientWidth - 24) / 7);
+    const cellW = dateRowEl.clientWidth / 7;
     container.style.setProperty('--date-cell-w', cellW + 'px');
     _scrollToSundayOf(today);
   });
@@ -265,7 +261,7 @@ export function renderMySchedule(container, { session }) {
     const d = new Date(dateStr + 'T00:00:00');
     d.setDate(d.getDate() - d.getDay());
     const cell = dateRowEl.querySelector(`[data-date="${isoDate(d)}"]`);
-    if (cell) dateRowEl.scrollLeft = cell.offsetLeft - 12;
+    if (cell) dateRowEl.scrollLeft = cell.offsetLeft;
   }
 
   function _renderLessons() {
@@ -308,7 +304,7 @@ export function renderMySchedule(container, { session }) {
   dateRowEl.addEventListener('scroll', () => {
     const sl = dateRowEl.scrollLeft;
     for (const cell of dateRowEl.querySelectorAll('.sched-date-cell')) {
-      if (cell.offsetLeft - 12 >= sl - 2) {
+      if (cell.offsetLeft >= sl - 2) {
         if (monthEl) monthEl.textContent = _monthLabel(cell.dataset.date);
         break;
       }
@@ -341,16 +337,12 @@ function _schedLessonCard(lesson) {
   return `
     <div class="glass-strong" style="border-radius:12px;overflow:hidden;">
       <div data-lesson-id="${lesson.id}" style="padding:14px 16px;cursor:pointer;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-          <span style="font-size:11px;font-weight:700;letter-spacing:0.6px;text-transform:uppercase;
-            background:rgba(30,38,67,0.08);color:#1E2643;padding:3px 10px;border-radius:999px;">
-            ${lesson.session}
-          </span>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:5px;">
+          <div style="font-family:'Newsreader',serif;font-size:18px;font-weight:700;color:#000;
+            line-height:1.2;flex:1;min-width:0;">
+            ${tmpl ? tmpl.name : lesson.templateId}
+          </div>
           ${statusBadge(lesson.status)}
-        </div>
-        <div style="font-family:'Newsreader',serif;font-size:18px;font-weight:700;color:#000;
-          line-height:1.2;margin-bottom:4px;">
-          ${tmpl ? tmpl.name : lesson.templateId}
         </div>
         <div style="font-size:13px;color:#666;">
           ${tmpl ? lessonTimes(tmpl) : ''}${guestCount > 0 ? ` · ${guestCount}${maxGuests ? `/${maxGuests}` : ''} guest${guestCount !== 1 ? 's' : ''}` : ''}
