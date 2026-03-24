@@ -270,8 +270,8 @@ function _openInstructorLessonModal(lesson, session, onReportSuccess = null) {
                     background:var(--bg-section-soft);border:1px solid var(--line-soft);
                     border-radius:999px;padding:5px 12px;cursor:pointer;
                     font-family:'Inter',sans-serif;flex-shrink:0;white-space:nowrap;
-                    display:inline-flex;align-items:center;gap:4px;line-height:1;">
-                    Report ${iChevR()}
+                    display:inline-flex;align-items:center;line-height:1;">
+                    Report
                   </button>` : ''}
               </div>`;
           }).join('')}
