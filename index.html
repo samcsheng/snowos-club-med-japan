@@ -80,22 +80,41 @@
     /* ── Bottom nav ───────────────────────────────────── */
     #bottom-nav {
       position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
-      background: rgba(242,236,228,0.88);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      border-top: 1px solid rgba(255,255,255,0.65);
-      box-shadow: 0 -2px 20px rgba(30,38,67,0.05);
-      padding-bottom: env(safe-area-inset-bottom, 0px);
+      display: flex; justify-content: center; align-items: flex-end;
+      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+      pointer-events: none;
     }
-    .nav-inner { display: flex; justify-content: space-around; align-items: center; padding: 6px 0; }
+    .nav-inner {
+      pointer-events: all;
+      position: relative;
+      display: flex; align-items: center; gap: 2px;
+      background: rgba(248,248,248,0.92);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      border-radius: 9999px;
+      padding: 5px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.14), 0 4px 12px rgba(0,0,0,0.08);
+      border: 1px solid #CCCCCC;
+    }
+    .nav-indicator {
+      position: absolute; left: 0; top: 0;
+      border-radius: 9999px;
+      background: #1E2643;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      pointer-events: none; z-index: 0;
+    }
     .nav-tab {
-      display: flex; flex-direction: column; align-items: center; gap: 2px;
-      padding: 6px 18px; min-width: 60px; min-height: 44px; justify-content: center;
-      color: #AAA; text-decoration: none;
+      position: relative; z-index: 1;
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      padding: 7px 0; width: 86px; justify-content: center;
+      color: #333333; text-decoration: none;
       font-size: 10px; font-weight: 500; font-family: 'Inter', sans-serif;
-      transition: color 0.18s; -webkit-tap-highlight-color: transparent;
+      border-radius: 9999px;
+      transition: color 0.22s cubic-bezier(0.4,0,0.2,1);
+      -webkit-tap-highlight-color: transparent;
     }
-    .nav-tab.active { color: #1E2643; }
+    .nav-tab.active { color: #FFFFFF; }
     .nav-tab svg { width: 20px; height: 20px; }
 
     /* ── Buttons ──────────────────────────────────────── */
@@ -248,7 +267,7 @@
 
     /* ── Content area ─────────────────────────────────── */
     #content {
-      padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+      padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
       min-height: 100vh;
       transition: opacity 0.12s ease;
     }
