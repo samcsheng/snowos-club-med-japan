@@ -28,7 +28,10 @@ export function renderInstructorDashboard(container, { session }) {
       headTitle  = 'On the Mountain';
       headSub    = fmtDateLong(today);
       stateBanner = `
-        <div class="mlp" style="margin:0 -1px 0;"></div>
+        <div class="mlp" style="margin:0 -1px;">
+          <div class="mlp-bar mlp-bar-primary"><div class="mlp-bar-inner"></div></div>
+          <div class="mlp-bar mlp-bar-secondary"><div class="mlp-bar-inner"></div></div>
+        </div>
         <div style="padding:12px 12px 20px;">
           <div class="glass-strong" style="padding:16px;border-radius:14px;
             background:rgba(30,38,67,0.07);border:1.5px solid rgba(30,38,67,0.15);">

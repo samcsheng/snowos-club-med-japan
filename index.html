@@ -525,36 +525,56 @@
     /* ── Accent saffron bar ───────────────────────────── */
     .accent-bar { height: 3px; border-radius: 999px; background: #FDBE00; }
 
-    /* ── Material linear progress (on-mountain) ───────── */
-    @keyframes mlp-primary {
-      0%   { transform: scaleX(0.08) translateX(-150%); }
-      40%  { transform: scaleX(0.6)  translateX(80%); }
-      100% { transform: scaleX(0.08) translateX(600%); }
-    }
-    @keyframes mlp-secondary {
-      0%   { transform: scaleX(0.0)  translateX(-200%); }
-      30%  { transform: scaleX(0.8)  translateX(30%); }
-      80%  { transform: scaleX(0.3)  translateX(300%); }
-      100% { transform: scaleX(0.0)  translateX(600%); }
-    }
+    /* ── Material M3 linear progress (on-mountain) ───────── */
+    /* Faithful M3 indeterminate: outer bar translates, inner bar scales  */
     .mlp {
       position: relative;
       width: 100%;
-      height: 3px;
+      height: 4px;
       background: rgba(253,190,0,0.22);
       overflow: hidden;
     }
-    .mlp::before, .mlp::after {
-      content: '';
+    .mlp-bar {
       position: absolute;
       top: 0; left: 0;
+      width: 100%; height: 100%;
+      transform-origin: left center;
+      will-change: transform;
+    }
+    .mlp-bar-inner {
       width: 100%; height: 100%;
       background: #FDBE00;
       transform-origin: left center;
       will-change: transform;
     }
-    .mlp::before { animation: mlp-primary   2.1s cubic-bezier(0.4,0,0.2,1) infinite; }
-    .mlp::after  { animation: mlp-secondary 2.1s cubic-bezier(0.4,0,0.2,1) infinite 0.85s; }
+    .mlp-bar-primary             { animation: mlp-pt 2s linear infinite; }
+    .mlp-bar-primary .mlp-bar-inner { animation: mlp-ps 2s linear infinite; }
+    .mlp-bar-secondary           { animation: mlp-st 2s linear infinite; }
+    .mlp-bar-secondary .mlp-bar-inner { animation: mlp-ss 2s linear infinite; }
+    @keyframes mlp-pt {
+      0%     { transform: translateX(0);          animation-timing-function: cubic-bezier(0.5,0,0.701732,0.495819); }
+      20%    { transform: translateX(0);          animation-timing-function: cubic-bezier(0.302435,0.381352,0.55,0.956352); }
+      59.15% { transform: translateX(83.6714%); }
+      100%   { transform: translateX(200.611%); }
+    }
+    @keyframes mlp-ps {
+      0%     { transform: scaleX(0.08); }
+      36.65% { transform: scaleX(0.08);      animation-timing-function: cubic-bezier(0.334731,0.12482,0.785844,1); }
+      69.15% { transform: scaleX(0.661479); animation-timing-function: cubic-bezier(0.06,0.11,0.6,1); }
+      100%   { transform: scaleX(0.08); }
+    }
+    @keyframes mlp-st {
+      0%     { transform: translateX(0);          animation-timing-function: cubic-bezier(0.15,0,0.515058,0.409685); }
+      25%    { transform: translateX(37.6519%);   animation-timing-function: cubic-bezier(0.31033,0.284058,0.8,0.733712); }
+      48.35% { transform: translateX(84.3862%);   animation-timing-function: cubic-bezier(0.4,0.627035,0.6,0.902026); }
+      100%   { transform: translateX(160.278%); }
+    }
+    @keyframes mlp-ss {
+      0%     { transform: scaleX(0.08);    animation-timing-function: cubic-bezier(0.205028,0.057051,0.57661,0.453971); }
+      19.15% { transform: scaleX(0.457104); animation-timing-function: cubic-bezier(0.152313,0.196432,0.648374,1.00432); }
+      44.15% { transform: scaleX(0.72796);  animation-timing-function: cubic-bezier(0.257759,-0.003163,0.211762,1.38179); }
+      100%   { transform: scaleX(0.08); }
+    }
 
     @media (prefers-reduced-motion: reduce) {
       #bottom-nav,
@@ -567,8 +587,8 @@
       .book-lesson-card,
       .wizard-step-enter-right,
       .wizard-step-enter-left,
-      .mlp::before,
-      .mlp::after {
+      .mlp-bar,
+      .mlp-bar-inner {
         transition: none !important;
         animation: none !important;
       }
