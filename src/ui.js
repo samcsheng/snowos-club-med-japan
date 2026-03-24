@@ -1,5 +1,50 @@
 import { navigate } from './app.js';
 
+// ── Top-right avatar (guest only, persists across tabs) ───────────────────────
+function _renderTopAvatar(session) {
+  const existing = document.getElementById('top-avatar-btn');
+
+  if (session.role !== 'guest') {
+    existing?.remove();
+    return;
+  }
+
+  if (existing) return; // already mounted
+
+  const btn = document.createElement('button');
+  btn.id = 'top-avatar-btn';
+  btn.style.cssText = [
+    'position:fixed',
+    'top:calc(env(safe-area-inset-top,0px) + 14px)',
+    'right:16px',
+    'z-index:50',
+    'background:none',
+    'border:none',
+    'cursor:pointer',
+    'padding:0',
+    '-webkit-tap-highlight-color:transparent',
+  ].join(';');
+  btn.innerHTML = av(session.avatar, 'sm');
+  btn.addEventListener('click', () => {
+    openModal('account', 'My Account', `
+      <div style="text-align:center;padding:8px 0 24px;">
+        ${av(session.avatar, 'lg')}
+        <div style="font-weight:600;font-size:18px;color:#000;margin-top:14px;">${session.name}</div>
+        <div style="font-size:14px;color:#777;margin-top:4px;">${session.email}</div>
+        ${session.level ? `<div style="margin-top:10px;">${levelBadge(session.level)}</div>` : ''}
+      </div>
+      <div class="div" style="margin-bottom:4px;"></div>
+      <button onclick="window.__snowLogout()"
+        style="display:flex;align-items:center;gap:10px;width:100%;padding:16px;
+        background:none;border:none;cursor:pointer;color:#BF2F17;font-size:15px;
+        font-weight:500;font-family:'Inter',sans-serif;border-radius:10px;">
+        ${iLogout()} Sign out
+      </button>
+    `);
+  });
+  document.getElementById('app').appendChild(btn);
+}
+
 // ── Bottom navigation ────────────────────────────────────────────────────────
 const NAV_CONFIG = {
   guest: [
@@ -30,6 +75,8 @@ function positionIndicator(nav) {
 export function renderNav(session, backHref = null) {
   const tabs = NAV_CONFIG[session.role];
   if (!tabs) return;
+
+  _renderTopAvatar(session);
 
   const hash       = window.location.hash.slice(1);
   const existing   = document.getElementById('bottom-nav');

@@ -4,30 +4,61 @@ import {
   toast, pageHead, statusBadge, levelBadge, sportBadge, av,
   secLabel, emptyState, fmtDate, fmtDateLong, todayStr,
   greeting, sessionTime, iCalendar, iPlus, iChevR, iUser,
-  iLogout, iCheck, iWarn,
+  iCheck, iWarn,
 } from '../ui.js';
 
 // ── Guest Dashboard ──────────────────────────────────────────────────────────
 export function renderGuestDashboard(container, { session }) {
-  const today    = todayStr();
-  const allBkgs  = DB.getBookingsByGuest(session.id);
-  const upcoming = allBkgs
+  const today = todayStr();
+  const allBkgs = DB.getBookingsByGuest(session.id);
+  const confirmedFuture = allBkgs
     .filter(b => b.status === 'confirmed')
     .map(b => ({ ...b, lesson: DB.getLessonById(b.lessonId) }))
     .filter(b => b.lesson && b.lesson.date >= today)
-    .sort((a,b) => a.lesson.date.localeCompare(b.lesson.date))
-    .slice(0, 3);
+    .sort((a, b) => a.lesson.date.localeCompare(b.lesson.date));
 
-  const pastCount = allBkgs.filter(b => {
-    const l = DB.getLessonById(b.lessonId);
-    return b.status === 'confirmed' && l && l.date < today;
-  }).length;
+  const todayLesson = confirmedFuture.find(b => b.lesson.date === today);
+  const upcoming    = confirmedFuture.filter(b => b.lesson.date > today).slice(0, 3);
+  const hasAny      = todayLesson || upcoming.length > 0;
 
   container.innerHTML = `
     ${pageHead(`${greeting()},`, session.name.split(' ')[0])}
 
-    <!-- Hero quick-book strip -->
-    <div style="padding:12px 20px 20px;">
+    <!-- Today's lesson (expanded) -->
+    ${todayLesson ? `
+      ${secLabel("Today's Lesson")}
+      <div style="padding:0 12px 20px;">
+        ${_todayCard(todayLesson)}
+      </div>
+    ` : ''}
+
+    <!-- Upcoming lessons (excludes today) -->
+    ${upcoming.length > 0 ? `
+      ${secLabel('Upcoming Lessons')}
+      <div style="padding:0 12px 8px;display:flex;flex-direction:column;gap:8px;">
+        ${upcoming.map(b => _lessonCard(b)).join('')}
+      </div>
+    ` : ''}
+
+    <!-- Empty state when no lessons at all -->
+    ${!hasAny ? `
+      <div style="padding:0 12px;">
+        ${emptyState('🏔️', 'No upcoming lessons',
+            'Book a group lesson to get started on the mountain.')}
+      </div>
+    ` : ''}
+
+    <!-- View all bookings -->
+    ${hasAny ? `
+      <div style="padding:4px 20px 20px;text-align:center;">
+        <a href="#/guest/bookings" style="color:#1E2643;font-size:14px;font-weight:500;text-decoration:none;">
+          View all bookings →
+        </a>
+      </div>
+    ` : ''}
+
+    <!-- Booking CTA at bottom -->
+    <div style="padding:4px 20px 24px;">
       <div class="glass" style="padding:20px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
         <div>
           <div style="font-family:'Newsreader',serif;font-size:18px;font-weight:700;color:#000;">
@@ -40,64 +71,48 @@ export function renderGuestDashboard(container, { session }) {
         </a>
       </div>
     </div>
-
-    <!-- Stats row -->
-    <div style="padding:0 20px 20px;display:flex;gap:10px;">
-      <div class="glass" style="flex:1;padding:16px 14px;text-align:center;">
-        <div class="stat-num">${upcoming.length}</div>
-        <div class="stat-lbl">Upcoming</div>
-      </div>
-      <div class="glass" style="flex:1;padding:16px 14px;text-align:center;">
-        <div class="stat-num">${pastCount}</div>
-        <div class="stat-lbl">Completed</div>
-      </div>
-      <div class="glass" style="flex:1;padding:16px 14px;text-align:center;">
-        <div class="stat-num" style="font-size:22px;text-transform:capitalize;">
-          ${session.level ?? '—'}
-        </div>
-        <div class="stat-lbl">Level</div>
-      </div>
-    </div>
-
-    <!-- Upcoming lessons -->
-    <div style="padding:0 20px 4px;">${secLabel('Upcoming Lessons')}</div>
-    <div style="padding:0 12px 20px;display:flex;flex-direction:column;gap:8px;" id="upcoming-list">
-      ${upcoming.length === 0
-        ? emptyState('🏔️', 'No upcoming lessons',
-            'Book a group lesson to get started on the mountain.',
-            `<a href="#/guest/book" class="btn btn-primary btn-md">Book a lesson</a>`)
-        : upcoming.map(b => _lessonCard(b)).join('')
-      }
-    </div>
-
-    ${upcoming.length > 0 ? `
-    <div style="padding:0 20px 16px;text-align:center;">
-      <a href="#/guest/bookings" style="color:#1E2643;font-size:14px;font-weight:500;text-decoration:none;">
-        View all bookings →
-      </a>
-    </div>` : ''}
-
-    <!-- Profile footer -->
-    <div style="padding:0 20px 12px;">${secLabel('Account')}</div>
-    <div style="padding:0 12px 32px;">
-      <div class="glass" style="padding:0;">
-        <div style="display:flex;align-items:center;gap:14px;padding:16px;">
-          ${av(session.avatar, 'lg')}
-          <div style="flex:1;">
-            <div style="font-weight:600;font-size:16px;color:#000;">${session.name}</div>
-            <div style="font-size:13px;color:#777;">${session.email}</div>
-          </div>
-        </div>
-        <div class="div"></div>
-        <button onclick="window.__snowLogout()"
-          style="display:flex;align-items:center;gap:10px;width:100%;padding:16px;
-          background:none;border:none;cursor:pointer;color:#BF2F17;font-size:14px;
-          font-weight:500;font-family:'Inter',sans-serif;">
-          ${iLogout()} Sign out
-        </button>
-      </div>
-    </div>
   `;
+}
+
+// ── Today's lesson card (expanded) ───────────────────────────────────────────
+function _todayCard(booking) {
+  const lesson = booking.lesson;
+  const tmpl   = getTemplate(lesson.templateId);
+  const inst   = lesson.instructorId ? DB.getUserById(lesson.instructorId) : null;
+  const month  = new Date(lesson.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short' });
+  const day    = new Date(lesson.date + 'T00:00:00').getDate();
+
+  return `
+    <div class="glass" style="padding:22px;border-radius:16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+        <span class="badge badge-in-progress" style="font-size:12px;padding:5px 14px;">Today</span>
+        <span class="badge badge-confirmed">✓ Confirmed</span>
+      </div>
+      <div style="font-family:'Newsreader',serif;font-size:26px;font-weight:700;color:#000;
+        margin-bottom:8px;line-height:1.2;">
+        ${tmpl ? tmpl.name : lesson.templateId}
+      </div>
+      <div style="font-size:15px;color:#333;font-weight:500;margin-bottom:4px;">
+        ${lesson.session} Session &middot; ${tmpl ? sessionTime(tmpl, lesson.session) : ''}
+      </div>
+      <div style="font-size:14px;color:#777;">
+        ${inst ? `with ${inst.name}` : 'Instructor TBD'}
+      </div>
+      <div class="div" style="margin:18px 0;"></div>
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div style="width:58px;height:58px;border-radius:14px;background:#FDBE00;
+          display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;">
+          <div style="font-size:10px;font-weight:700;color:#000;text-transform:uppercase;
+            letter-spacing:0.5px;">${month}</div>
+          <div style="font-size:24px;font-weight:800;color:#000;line-height:1.1;">${day}</div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;
+            letter-spacing:1px;color:#888;margin-bottom:3px;">Date</div>
+          <div style="font-size:16px;font-weight:600;color:#000;">${fmtDate(lesson.date)}</div>
+        </div>
+      </div>
+    </div>`;
 }
 
 function _lessonCard(booking) {
