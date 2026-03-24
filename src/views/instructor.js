@@ -3,7 +3,7 @@ import { navigate } from '../app.js';
 import {
   toast, pageHead, statusBadge, levelBadge, sportBadge, av, secLabel,
   emptyState, fmtDate, fmtDateLong, todayStr, sessionTime,
-  tabBar, iCalendar, iChevR, iClipboard, iCheck, iUser, iLogout,
+  tabBar, iCalendar, iChevR, iClipboard, iCheck,
   iBack, iX, openModal,
 } from '../ui.js';
 
@@ -44,26 +44,6 @@ export function renderInstructorDashboard(container, { session }) {
         : lessons.map(l => _instructorLessonCard(l, session.id)).join('')}
     </div>
 
-    <!-- Profile -->
-    <div style="padding:0 20px 8px;">${secLabel('Account')}</div>
-    <div style="padding:0 12px 32px;">
-      <div class="glass" style="padding:0;">
-        <div style="display:flex;align-items:center;gap:14px;padding:16px;">
-          ${av(session.avatar, 'lg')}
-          <div>
-            <div style="font-weight:600;font-size:16px;color:#000;">${session.name}</div>
-            <div style="font-size:13px;color:#777;">Ski Instructor</div>
-          </div>
-        </div>
-        <div class="div"></div>
-        <button onclick="window.__snowLogout()"
-          style="display:flex;align-items:center;gap:10px;width:100%;padding:16px;
-          background:none;border:none;cursor:pointer;color:#BF2F17;font-size:14px;
-          font-weight:500;font-family:'Inter',sans-serif;">
-          ${iLogout()} Sign out
-        </button>
-      </div>
-    </div>
   `;
 
   container.querySelectorAll('[data-report-id]').forEach(btn => {

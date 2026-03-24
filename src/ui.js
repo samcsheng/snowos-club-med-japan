@@ -1,13 +1,10 @@
 import { navigate } from './app.js';
 
-// ── Top-right avatar (guest only, persists across tabs) ───────────────────────
+// ── Top-right avatar (all roles, persists across tabs) ────────────────────────
 // Sets a global trailing-action HTML string that pageHead picks up at render time.
 // renderNav runs before the view, so the string is ready when pageHead is called.
 function _renderTopAvatar(session) {
-  if (session.role !== 'guest') {
-    window.__snowPageTrailing = null;
-    return;
-  }
+  const roleLabel = { instructor: 'Ski Instructor', supervisor: 'Supervisor' }[session.role] ?? null;
 
   // Register the modal opener so the inline onclick can call it.
   window.__snowShowAccount = () => openModal('account', 'My Account', `
@@ -15,6 +12,7 @@ function _renderTopAvatar(session) {
       ${av(session.avatar, 'lg')}
       <div style="font-weight:600;font-size:18px;color:#000;margin-top:14px;">${session.name}</div>
       <div style="font-size:14px;color:#777;margin-top:4px;">${session.email}</div>
+      ${roleLabel ? `<div style="font-size:13px;color:#888;margin-top:4px;">${roleLabel}</div>` : ''}
       ${session.level ? `<div style="margin-top:10px;">${levelBadge(session.level)}</div>` : ''}
     </div>
     <div class="div" style="margin-bottom:4px;"></div>
