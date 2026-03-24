@@ -1,7 +1,7 @@
 import { DB, TEMPLATES, getTemplate, isoDate } from '../data.js';
 import { navigate } from '../app.js';
 import {
-  toast, pageHead, statusBadge, levelBadge, sportBadge, av, secLabel,
+  toast, pageHead, statusBadge, sportBadge, av, secLabel,
   emptyState, fmtDate, fmtDateLong, todayStr,
   tabBar, lessonTimes, iCalendar, iChevR, iClipboard, iCheck,
   iBack, iX, openModal,
@@ -19,17 +19,17 @@ export function renderInstructorDashboard(container, { session }) {
 
     <!-- Quick stats -->
     <div style="padding:8px 20px 20px;display:flex;gap:10px;">
-      <div class="glass" style="flex:1;padding:14px;text-align:center;">
+      <div class="glass-strong" style="flex:1;padding:14px;text-align:center;">
         <div class="stat-num">${lessons.length}</div>
         <div class="stat-lbl">Sessions</div>
       </div>
-      <div class="glass" style="flex:1;padding:14px;text-align:center;">
+      <div class="glass-strong" style="flex:1;padding:14px;text-align:center;">
         <div class="stat-num">
           ${lessons.reduce((s,l)=>s+DB.getConfirmedByLesson(l.id).length,0)}
         </div>
         <div class="stat-lbl">Guests</div>
       </div>
-      <div class="glass" style="flex:1;padding:14px;text-align:center;">
+      <div class="glass-strong" style="flex:1;padding:14px;text-align:center;">
         <div class="stat-num">
           ${lessons.filter(l=>DB.getReportByLesson(l.id)).length}
         </div>
@@ -61,11 +61,11 @@ function _instructorLessonCard(lesson, instructorId) {
   const needsReport = lesson.status !== 'scheduled' && !report;
 
   return `
-    <div class="glass" style="border-radius:12px;overflow:hidden;">
+    <div class="glass-strong" style="border-radius:12px;overflow:hidden;">
       <!-- Header row -->
       <a href="#/instructor/lesson/${lesson.id}" style="display:flex;align-items:center;
         gap:12px;padding:14px 16px;text-decoration:none;color:inherit;">
-        <div style="flex-shrink:0;width:44px;height:44px;background:rgba(30,38,67,0.08);
+        <div style="flex-shrink:0;width:44px;height:44px;background:var(--bg-tile);
           border-radius:10px;display:flex;align-items:center;justify-content:center;">
           <div style="font-size:12px;font-weight:800;color:#1E2643;font-family:'Newsreader',serif;">
             ${lesson.templateId}
@@ -90,7 +90,7 @@ function _instructorLessonCard(lesson, instructorId) {
           ${iClipboard()} Submit lesson report
         </button>` : report ? `
         <div style="display:flex;align-items:center;gap:8px;padding:10px 16px;
-          background:rgba(8,138,32,0.06);color:#076b1a;font-size:13px;">
+          background:var(--bg-success-soft);color:#076b1a;font-size:13px;">
           ${iCheck()} Report submitted
         </div>` : ''}
     </div>`;
@@ -171,24 +171,31 @@ function _weekStart(date) {
 
 function _weekView(days, allLessons, today, selDate) {
   return `
-    <div style="padding:0 12px 20px;display:flex;gap:6px;">
-      ${days.map(d => {
-        const count = allLessons.filter(l => l.date === d).length;
-        const isToday = d === today;
-        const isSel   = d === selDate;
-        return `
-          <div class="date-chip${isSel?' selected':isToday?' today':''}"
-            data-daysel="${d}" style="flex:1;min-width:0;padding:10px 6px;">
-            <div class="date-chip-dow">${new Date(d+'T00:00:00').toLocaleDateString('en-US',{weekday:'short'})}</div>
-            <div class="date-chip-day">${new Date(d+'T00:00:00').getDate()}</div>
-            ${count > 0
-              ? `<div style="font-size:10px;margin-top:3px;font-weight:700;
-                  color:${isSel?'rgba(255,255,255,0.8)':'#FDBE00'};">${count}</div>`
-              : `<div style="font-size:10px;margin-top:3px;color:transparent;">·</div>`}
-          </div>`;
-      }).join('')}
+    <div style="padding:0 12px 20px;">
+      <div class="glass" style="padding:14px 16px;border-radius:16px;background:var(--bg-section);">
+        <div style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#8A6B53;margin-bottom:10px;">
+          This week's dates
+        </div>
+        <div style="display:flex;gap:6px;">
+          ${days.map(d => {
+            const count = allLessons.filter(l => l.date === d).length;
+            const isToday = d === today;
+            const isSel   = d === selDate;
+            return `
+              <div class="date-chip${isSel?' selected':isToday?' today':''}"
+                data-daysel="${d}" style="flex:1;min-width:0;padding:10px 6px;">
+                <div class="date-chip-dow">${new Date(d+'T00:00:00').toLocaleDateString('en-US',{weekday:'short'})}</div>
+                <div class="date-chip-day">${new Date(d+'T00:00:00').getDate()}</div>
+                ${count > 0
+                  ? `<div style="font-size:10px;margin-top:3px;font-weight:700;
+                      color:${isSel?'rgba(255,255,255,0.8)':'#FDBE00'};">${count}</div>`
+                  : `<div style="font-size:10px;margin-top:3px;color:transparent;">·</div>`}
+              </div>`;
+          }).join('')}
+        </div>
+      </div>
     </div>
-    <div style="padding:0 20px;color:#888;font-size:13px;text-align:center;">
+    <div style="padding:0 20px;color:#6b625d;font-size:13px;text-align:center;">
       Tap a day to see details
     </div>`;
 }
@@ -231,7 +238,7 @@ export function renderLessonDetail(container, { params, session }) {
 
     <!-- Lesson info card -->
     <div style="padding:0 20px 20px;">
-      <div class="glass" style="padding:18px 16px;">
+      <div class="glass-strong" style="padding:18px 16px;">
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
           ${statusBadge(lesson.status)}
           ${tmpl ? `<span class="badge badge-${tmpl.sport}">${tmpl.sport==='ski'?'⛷ Ski':'🏂 Snowboard'}</span>` : ''}
@@ -241,8 +248,6 @@ export function renderLessonDetail(container, { params, session }) {
             <div style="font-weight:600;">${tmpl ? lessonTimes(tmpl) : '—'}</div></div>
           <div><div style="color:#888;margin-bottom:2px;">Date</div>
             <div style="font-weight:600;">${fmtDate(lesson.date)}</div></div>
-          <div><div style="color:#888;margin-bottom:2px;">Level</div>
-            <div style="font-weight:600;">${tmpl ? tmpl.level.charAt(0).toUpperCase()+tmpl.level.slice(1) : '—'}</div></div>
           <div><div style="color:#888;margin-bottom:2px;">Guests</div>
             <div style="font-weight:600;">${guests.length} / ${tmpl?.maxGuests ?? '—'}</div></div>
         </div>
@@ -257,7 +262,7 @@ export function renderLessonDetail(container, { params, session }) {
       </button>
     </div>` : report ? `
     <div style="padding:0 20px 16px;">
-      <div style="background:rgba(8,138,32,0.08);border:1px solid rgba(8,138,32,0.2);
+      <div style="background:var(--bg-success-soft);border:1px solid rgba(8,138,32,0.2);
         border-radius:10px;padding:12px 16px;color:#076b1a;font-size:14px;
         display:flex;align-items:center;gap:8px;font-weight:500;">
         ${iCheck()} Report submitted on ${new Date(report.submittedAt).toLocaleDateString()}
@@ -275,8 +280,7 @@ export function renderLessonDetail(container, { params, session }) {
             <div style="flex:1;">
               <div style="font-weight:600;font-size:15px;color:#000;">${guest?.name ?? 'Guest'}</div>
               <div style="font-size:13px;color:#777;margin-top:2px;">
-                ${guest?.level ? levelBadge(guest.level) : ''}
-                ${guest?.sport ? `&nbsp;${sportBadge(guest.sport)}` : ''}
+                ${guest?.sport ? `${sportBadge(guest.sport)}` : ''}
               </div>
             </div>
           </div>`).join('')}
@@ -384,7 +388,6 @@ function openReportModal(lesson, session) {
                 ${av(guest?.avatar, 'md')}
                 <div>
                   <div style="font-weight:600;color:#000;">${guest?.name ?? 'Guest'}</div>
-                  ${guest?.level ? `<div style="font-size:12px;color:#888;margin-top:2px;">${levelBadge(guest.level)}</div>` : ''}
                 </div>
               </div>
               <div style="margin-bottom:12px;">
