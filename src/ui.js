@@ -46,7 +46,7 @@ const NAV_CONFIG = {
   guest: [
     { href: '/guest/dashboard', label: 'Home',       icon: iHome() },
     { href: '/guest/book',      label: 'Book',       icon: iPlus() },
-    { href: '/guest/bookings',  label: 'My Lessons', icon: iCalendar() },
+    { href: '/guest/bookings',  label: 'Lessons',    icon: iCalendar() },
   ],
   instructor: [
     { href: '/instructor/dashboard', label: 'Today',    icon: iHome() },

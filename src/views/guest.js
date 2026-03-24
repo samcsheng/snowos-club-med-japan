@@ -62,12 +62,37 @@ export function renderGuestDashboard(container, { session }) {
 }
 
 // ── Today's lesson card (expanded) ───────────────────────────────────────────
+function _lessonDateTile(date, {
+  size = 44,
+  radius = 10,
+  monthSize = 9,
+  daySize = 18,
+  background = '#FDBE00',
+  monthColor = '#000',
+  dayColor = '#000',
+  letterSpacing = 0.4,
+} = {}) {
+  const safeDate = date ? new Date(date + 'T00:00:00') : null;
+  const month = safeDate ? safeDate.toLocaleDateString('en-US', { month: 'short' }) : '?';
+  const day = safeDate ? safeDate.getDate() : '?';
+
+  return `
+    <div style="flex-shrink:0;width:${size}px;height:${size}px;border-radius:${radius}px;background:${background};
+      display:flex;flex-direction:column;align-items:center;justify-content:center;">
+      <div style="font-size:${monthSize}px;font-weight:700;color:${monthColor};text-transform:uppercase;
+        letter-spacing:${letterSpacing}px;">
+        ${month}
+      </div>
+      <div style="font-size:${daySize}px;font-weight:800;color:${dayColor};line-height:1.1;">
+        ${day}
+      </div>
+    </div>`;
+}
+
 function _todayCard(booking) {
   const lesson = booking.lesson;
   const tmpl   = getTemplate(lesson.templateId);
   const inst   = lesson.instructorId ? DB.getUserById(lesson.instructorId) : null;
-  const month  = new Date(lesson.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short' });
-  const day    = new Date(lesson.date + 'T00:00:00').getDate();
   const displayStatus = bookingDisplayStatus(booking, lesson);
 
   return `
@@ -88,12 +113,7 @@ function _todayCard(booking) {
       </div>
       <div class="div" style="margin:18px 0;"></div>
       <div style="display:flex;align-items:center;gap:14px;">
-        <div style="width:58px;height:58px;border-radius:14px;background:#FDBE00;
-          display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;">
-          <div style="font-size:10px;font-weight:700;color:#000;text-transform:uppercase;
-            letter-spacing:0.5px;">${month}</div>
-          <div style="font-size:24px;font-weight:800;color:#000;line-height:1.1;">${day}</div>
-        </div>
+        ${_lessonDateTile(lesson.date, { size: 58, radius: 14, monthSize: 10, daySize: 24, letterSpacing: 0.5 })}
         <div>
           <div style="font-size:11px;font-weight:600;text-transform:uppercase;
             letter-spacing:1px;color:#888;margin-bottom:3px;">Date</div>
@@ -112,17 +132,9 @@ function _lessonCard(booking) {
 
   return `
     <div class="glass card-row" style="border-radius:12px;cursor:default;">
-      <div style="flex-shrink:0;width:44px;height:44px;border-radius:10px;
-        background:${isToday ? '#FDBE00' : 'rgba(30,38,67,0.08)'};
-        display:flex;flex-direction:column;align-items:center;justify-content:center;">
-        <div style="font-size:9px;font-weight:700;color:${isToday ? '#000':'#888'};
-          text-transform:uppercase;letter-spacing:0.4px;">
-          ${new Date(lesson.date + 'T00:00:00').toLocaleDateString('en-US',{month:'short'})}
-        </div>
-        <div style="font-size:18px;font-weight:800;color:${isToday ? '#000':'#1E2643'};line-height:1.1;">
-          ${new Date(lesson.date + 'T00:00:00').getDate()}
-        </div>
-      </div>
+      ${_lessonDateTile(lesson.date, isToday
+        ? {}
+        : { background: 'rgba(30,38,67,0.08)', monthColor: '#888', dayColor: '#1E2643' })}
       <div style="flex:1;min-width:0;">
         <div style="font-weight:600;font-size:15px;color:#000;white-space:nowrap;
           overflow:hidden;text-overflow:ellipsis;">
@@ -478,6 +490,7 @@ export function renderMyBookings(container, { session }) {
 }
 
 function _bookingCard(b, today) {
+  const isToday    = b.lesson?.date === today;
   const isPast     = b.lesson && b.lesson.date < today;
   const canCancel  = b.status === 'confirmed' && !isPast;
   const displayStatus = bookingDisplayStatus(b, b.lesson);
@@ -488,22 +501,18 @@ function _bookingCard(b, today) {
     !!b.report?.submittedAt &&
     !!b.guestReport
   );
+  const nextTemplate = b.guestReport?.nextClass ? getTemplate(b.guestReport.nextClass) : null;
+  const nextClassLabel = nextTemplate
+    ? nextTemplate.name
+    : (b.guestReport?.nextClass || 'No recommendation');
 
   return `
     <div class="glass" style="padding:16px;border-radius:12px;${isCancelled ? 'opacity:0.56;' : ''}">
       <div style="display:flex;align-items:flex-start;gap:12px;">
         <!-- Date block -->
-        <div style="flex-shrink:0;width:44px;height:44px;
-          background:${isCancelled ? 'rgba(30,38,67,0.05)' : isPast ? 'rgba(30,38,67,0.06)' : 'rgba(30,38,67,0.09)'};
-          border-radius:10px;display:flex;flex-direction:column;
-          align-items:center;justify-content:center;">
-          <div style="font-size:9px;font-weight:700;color:#888;text-transform:uppercase;">
-            ${b.lesson ? new Date(b.lesson.date+'T00:00:00').toLocaleDateString('en-US',{month:'short'}) : '?'}
-          </div>
-          <div style="font-size:18px;font-weight:800;color:#1E2643;line-height:1.1;">
-            ${b.lesson ? new Date(b.lesson.date+'T00:00:00').getDate() : '?'}
-          </div>
-        </div>
+        ${_lessonDateTile(b.lesson?.date, isToday
+          ? {}
+          : { background: 'rgba(30,38,67,0.08)', monthColor: '#888', dayColor: '#1E2643' })}
         <!-- Info -->
         <div style="flex:1;min-width:0;">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -522,9 +531,21 @@ function _bookingCard(b, today) {
       ${canCancel || canCheckReportCard ? `
         <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(30,38,67,0.07);">
           ${canCheckReportCard ? `
-            <button data-report-card="${b.id}" class="btn btn-ghost btn-sm"
-              style="margin-right:8px;">
-              check report card
+            <button data-report-card="${b.id}"
+              style="display:flex;align-items:center;justify-content:space-between;gap:12px;
+              padding:12px 16px;width:100%;background:rgba(253,190,0,0.08);border:none;
+              border-radius:10px;cursor:pointer;color:#875700;font-size:14px;font-weight:600;
+              font-family:'Inter',sans-serif;text-align:left;margin-bottom:${canCancel ? '8px' : '0'};">
+              <span style="display:flex;align-items:center;gap:8px;">
+                ${iCheck()} check report card
+              </span>
+              <span style="display:flex;align-items:center;gap:6px;min-width:0;flex-shrink:0;">
+                <span style="font-size:12px;font-weight:700;letter-spacing:0.02em;text-transform:uppercase;
+                  color:#1E2643;background:rgba(30,38,67,0.10);padding:5px 8px;border-radius:999px;">
+                  ${nextClassLabel}
+                </span>
+                <span style="color:#1E2643;">${iChevR()}</span>
+              </span>
             </button>` : ''}
           ${canCancel ? `
             <button data-cancel="${b.id}" class="btn btn-ghost btn-sm"
@@ -538,6 +559,8 @@ function _bookingCard(b, today) {
 function _openReportCardModal(booking) {
   const { lesson, tmpl, inst, report, guestReport } = booking;
   if (!lesson || !report || !guestReport) return;
+  const nextTemplate = guestReport.nextClass ? getTemplate(guestReport.nextClass) : null;
+  const nextClassLabel = nextTemplate ? nextTemplate.name : '';
 
   const attendanceMap = {
     AM: 'Morning only',
@@ -598,9 +621,16 @@ function _openReportCardModal(booking) {
       </div>
 
       <div class="glass" style="padding:16px;border-radius:12px;">
-        <div style="font-size:12px;color:#888;margin-bottom:6px;">Recommended Next Class</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px;">
+          <div style="font-size:12px;color:#888;">Recommended Next Class</div>
+          ${nextClassLabel ? `
+            <div style="font-size:12px;font-weight:700;letter-spacing:0.02em;text-transform:uppercase;
+              color:#1E2643;background:rgba(30,38,67,0.10);padding:5px 8px;border-radius:999px;">
+              ${nextClassLabel}
+            </div>` : ''}
+        </div>
         <div style="font-size:14px;color:#000;line-height:1.5;">
-          ${guestReport.nextClass || 'No next class recommendation yet.'}
+          ${nextClassLabel || 'No next class recommendation yet.'}
         </div>
       </div>
 
