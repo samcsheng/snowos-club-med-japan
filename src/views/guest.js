@@ -26,17 +26,8 @@ export function renderGuestDashboard(container, { session }) {
 
     <!-- Today's lesson (expanded) -->
     ${todayLesson ? `
-      ${secLabel("Today's Lesson")}
       <div style="padding:0 12px 20px;">
         ${_todayCard(todayLesson)}
-      </div>
-    ` : ''}
-
-    <!-- Upcoming lessons (excludes today) -->
-    ${upcoming.length > 0 ? `
-      ${secLabel('Upcoming Lessons')}
-      <div style="padding:0 12px 8px;display:flex;flex-direction:column;gap:8px;">
-        ${upcoming.map(b => _lessonCard(b)).join('')}
       </div>
     ` : ''}
 
@@ -62,9 +53,9 @@ export function renderGuestDashboard(container, { session }) {
       <div class="glass" style="padding:20px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
         <div>
           <div style="font-family:'Newsreader',serif;font-size:18px;font-weight:700;color:#000;">
-            Ready to shred?
+            Book more lessons
           </div>
-          <div style="font-size:13px;color:#777;margin-top:2px;">Book your next group lesson</div>
+          <div style="font-size:13px;color:#777;margin-top:2px;">Browse lessons for the next few days</div>
         </div>
         <a href="#/guest/book" class="btn btn-primary btn-md" style="flex-shrink:0;">
           ${iPlus()} Book
