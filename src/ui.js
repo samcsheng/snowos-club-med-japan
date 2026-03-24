@@ -27,45 +27,58 @@ function positionIndicator(nav) {
   indicator.style.transform = `translate(${activeTab.offsetLeft}px, ${activeTab.offsetTop}px)`;
 }
 
-export function renderNav(session) {
+export function renderNav(session, backHref = null) {
   const tabs = NAV_CONFIG[session.role];
   if (!tabs) return;
 
-  const hash     = window.location.hash.slice(1);
-  const existing = document.getElementById('bottom-nav');
+  const hash       = window.location.hash.slice(1);
+  const existing   = document.getElementById('bottom-nav');
+  const isBackMode = !!backHref;
 
-  // Nav already exists for this role — update active classes then slide indicator.
+  // Nav already exists for this role — update in place if mode hasn't changed.
   if (existing && existing.dataset.role === session.role) {
-    existing.querySelectorAll('.nav-tab').forEach(a => {
-      const href = a.getAttribute('href').slice(1);
-      a.classList.toggle('active', hash === href || hash.startsWith(href + '/'));
-    });
-    positionIndicator(existing);
-    return;
+    const wasBackMode = existing.dataset.back === 'true';
+    if (isBackMode === wasBackMode) {
+      if (isBackMode) {
+        existing.querySelector('.nav-back-pill')?.setAttribute('href', '#' + backHref);
+      } else {
+        existing.querySelectorAll('.nav-tab').forEach(a => {
+          const href = a.getAttribute('href').slice(1);
+          a.classList.toggle('active', hash === href || hash.startsWith(href + '/'));
+        });
+        positionIndicator(existing);
+      }
+      return;
+    }
   }
 
-  // First render for this role — build from scratch.
+  // Build from scratch (first render or mode changed).
   existing?.remove();
   const nav        = document.createElement('nav');
   nav.id           = 'bottom-nav';
   nav.dataset.role = session.role;
+  nav.dataset.back = String(isBackMode);
 
-  nav.innerHTML = `
-    <div class="nav-inner">
-      <div class="nav-indicator"></div>
-      ${tabs.map(t => {
-        const active = hash === t.href || hash.startsWith(t.href + '/');
-        return `
-          <a href="#${t.href}" class="nav-tab${active ? ' active' : ''}">
-            ${t.icon}
-            <span>${t.label}</span>
-          </a>`;
-      }).join('')}
-    </div>
-  `;
+  if (isBackMode) {
+    nav.classList.add('nav-back');
+    nav.innerHTML = `
+      <div class="nav-inner nav-inner-back">
+        <div class="nav-indicator"></div>
+        <a href="#${backHref}" class="nav-tab active">${iBack()}<span>Back</span></a>
+      </div>`;
+  } else {
+    nav.innerHTML = `
+      <div class="nav-inner">
+        <div class="nav-indicator"></div>
+        ${tabs.map(t => {
+          const active = hash === t.href || hash.startsWith(t.href + '/');
+          return `<a href="#${t.href}" class="nav-tab${active ? ' active' : ''}">${t.icon}<span>${t.label}</span></a>`;
+        }).join('')}
+      </div>`;
+  }
+
   document.getElementById('app').appendChild(nav);
 
-  // Snap into position without transition on first paint, then re-enable it.
   const indicator = nav.querySelector('.nav-indicator');
   indicator.style.transition = 'none';
   positionIndicator(nav);
@@ -113,17 +126,11 @@ export function closeModal(id) {
 }
 
 // ── Shared page header ───────────────────────────────────────────────────────
-export function pageHead(title, subtitle = '', backHref = null) {
+export function pageHead(title, subtitle = '') {
   return `
-    <div class="page-head" style="display:flex;align-items:flex-start;gap:10px;">
-      ${backHref ? `
-        <a href="#${backHref}" style="flex-shrink:0;margin-top:4px;padding:6px;background:rgba(30,38,67,0.07);border-radius:999px;display:inline-flex;color:#1E2643;text-decoration:none;" aria-label="Back">
-          ${iBack()}
-        </a>` : ''}
-      <div>
-        <h1 class="page-title">${title}</h1>
-        ${subtitle ? `<p class="page-sub">${subtitle}</p>` : ''}
-      </div>
+    <div class="page-head">
+      <h1 class="page-title">${title}</h1>
+      ${subtitle ? `<p class="page-sub">${subtitle}</p>` : ''}
     </div>`;
 }
 

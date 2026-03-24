@@ -117,6 +117,21 @@
     .nav-tab.active { color: #FFFFFF; }
     .nav-tab svg { width: 20px; height: 20px; }
 
+    /* ── Nav transition animations ─────────────────────── */
+    @keyframes navTabsIn {
+      from { opacity: 0; transform: translateX(-28px) scale(0.88); }
+      to   { opacity: 1; transform: translateX(0)     scale(1); }
+    }
+    @keyframes navBackIn {
+      from { opacity: 0; transform: translateX(28px) scale(0.88); }
+      to   { opacity: 1; transform: translateX(0)    scale(1); }
+    }
+    .nav-inner     { animation: navTabsIn 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+    .nav-inner-back{ animation: navBackIn 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+    /* ── Back button nav mode ──────────────────────────── */
+    #bottom-nav.nav-back { justify-content: flex-end; padding-right: 20px; }
+
     /* ── Buttons ──────────────────────────────────────── */
     .btn {
       display: inline-flex; align-items: center; justify-content: center; gap: 6px;
