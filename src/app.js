@@ -34,7 +34,7 @@ const ROUTES = [
   { pat: /^\/login$/,                         view: renderLogin,               roles: null },
   { pat: /^\/register$/,                      view: renderRegister,            roles: null },
   { pat: /^\/guest\/dashboard$/,              view: renderGuestDashboard,      roles: ['guest'] },
-  { pat: /^\/guest\/book$/,                   view: renderBook,                roles: ['guest'] },
+  { pat: /^\/guest\/book$/,                   view: renderBook,                roles: ['guest'], noAvatar: true },
   { pat: /^\/guest\/bookings$/,               view: renderMyBookings,          roles: ['guest'] },
   { pat: /^\/instructor\/dashboard$/,         view: renderInstructorDashboard, roles: ['instructor'] },
   { pat: /^\/instructor\/schedule$/,          view: renderMySchedule,          roles: ['instructor'] },
@@ -92,12 +92,15 @@ function router() {
     if (session) {
       const backHref = route.back ? route.back(params) : null;
       renderNav(session, backHref);
+      // Yellow accent for Book tab (immersive experience)
+      const nav = document.getElementById('bottom-nav');
+      if (nav) nav.dataset.accent = path === '/guest/book' ? 'yellow' : '';
     } else {
       document.getElementById('bottom-nav')?.remove();
     }
 
     route.view(content, { params, session });
-    if (session) injectHeadAvatar(session, content);
+    if (session && !route.noAvatar) injectHeadAvatar(session, content);
     content.style.opacity = '1';
     content.classList.add('fade-up');
     setTimeout(() => content.classList.remove('fade-up'), 250);
