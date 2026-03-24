@@ -117,6 +117,21 @@
     .nav-tab.active { color: #FFFFFF; }
     .nav-tab svg { width: 20px; height: 20px; }
 
+    /* ── Back button nav mode ──────────────────────────── */
+    #bottom-nav.nav-back { justify-content: flex-start; padding-left: 20px; }
+    .nav-inner-back { padding: 5px; }
+    .nav-back-pill {
+      display: flex; align-items: center; gap: 5px;
+      padding: 9px 18px 9px 10px;
+      color: #1E2643; text-decoration: none;
+      font-size: 14px; font-weight: 600; font-family: 'Inter', sans-serif;
+      border-radius: 9999px;
+      transition: background 0.15s;
+      -webkit-tap-highlight-color: transparent; user-select: none;
+    }
+    .nav-back-pill:active { background: rgba(30,38,67,0.08); transform: scale(0.96); }
+    .nav-back-pill svg { width: 20px; height: 20px; flex-shrink: 0; }
+
     /* ── Buttons ──────────────────────────────────────── */
     .btn {
       display: inline-flex; align-items: center; justify-content: center; gap: 6px;

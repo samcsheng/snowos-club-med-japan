@@ -39,12 +39,12 @@ const ROUTES = [
   { pat: /^\/guest\/bookings$/,               view: renderMyBookings,          roles: ['guest'] },
   { pat: /^\/instructor\/dashboard$/,         view: renderInstructorDashboard, roles: ['instructor'] },
   { pat: /^\/instructor\/schedule$/,          view: renderMySchedule,          roles: ['instructor'] },
-  { pat: /^\/instructor\/lesson\/(?<id>.+)$/, view: renderLessonDetail,        roles: ['instructor'] },
-  { pat: /^\/instructor\/report\/(?<id>.+)$/, view: renderSubmitReport,        roles: ['instructor'] },
+  { pat: /^\/instructor\/lesson\/(?<id>.+)$/, view: renderLessonDetail,        roles: ['instructor'], back: p => '/instructor/dashboard' },
+  { pat: /^\/instructor\/report\/(?<id>.+)$/, view: renderSubmitReport,        roles: ['instructor'], back: p => `/instructor/lesson/${p.id}` },
   { pat: /^\/supervisor\/dashboard$/,         view: renderSupervisorDashboard, roles: ['supervisor'] },
   { pat: /^\/supervisor\/bookings$/,          view: renderAllBookings,         roles: ['supervisor'] },
   { pat: /^\/supervisor\/instructors$/,       view: renderInstructorMgmt,      roles: ['supervisor'] },
-  { pat: /^\/supervisor\/assign\/(?<id>.+)$/, view: renderAssign,              roles: ['supervisor'] },
+  { pat: /^\/supervisor\/assign\/(?<id>.+)$/, view: renderAssign,              roles: ['supervisor'], back: p => '/supervisor/dashboard' },
 ];
 
 function matchRoute(path) {
@@ -92,7 +92,8 @@ function router() {
     window.scrollTo(0, 0);
 
     if (session) {
-      renderNav(session);
+      const backHref = route.back ? route.back(params) : null;
+      renderNav(session, backHref);
     } else {
       document.getElementById('bottom-nav')?.remove();
     }
