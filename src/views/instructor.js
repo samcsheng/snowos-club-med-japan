@@ -356,19 +356,21 @@ function _openGuestReportModal(guest, gr) {
               background:${attBg};color:${attColor};">${gr.attendance}</span>
           </div>
 
-          ${nextTemplate ? `
           <div class="div"></div>
           <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
             <span style="font-size:13px;color:#888;">Recommended next</span>
-            <span style="font-weight:600;font-size:14px;color:#000;">${nextTemplate.name}</span>
-          </div>` : ''}
+            <span style="font-weight:600;font-size:14px;color:${nextTemplate ? '#000' : '#bbb'};">
+              ${nextTemplate ? nextTemplate.name : '—'}
+            </span>
+          </div>
 
-          ${gr.notes ? `
           <div class="div"></div>
           <div>
             <div style="font-size:13px;color:#888;margin-bottom:6px;">Notes</div>
-            <div style="font-size:14px;color:#000;line-height:1.55;">${gr.notes}</div>
-          </div>` : ''}
+            <div style="font-size:14px;line-height:1.55;color:${gr.notes ? '#000' : '#bbb'};">
+              ${gr.notes || '—'}
+            </div>
+          </div>
 
         </div>
       </div>
