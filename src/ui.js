@@ -203,6 +203,12 @@ export function statusBadge(status) {
   return `<span class="badge ${cls}">${lbl}</span>`;
 }
 
+export function bookingDisplayStatus(booking, lesson = null) {
+  if (!booking) return 'scheduled';
+  if (booking.status === 'cancelled') return 'cancelled';
+  return lesson?.status || 'scheduled';
+}
+
 export function levelBadge(level) {
   const map = {
     beginner:     ['badge-beginner',     'Beginner'],

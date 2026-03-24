@@ -1,7 +1,7 @@
 import { DB, TEMPLATES, getTemplate, isoDate } from '../data.js';
 import { navigate }   from '../app.js';
 import {
-  toast, pageHead, statusBadge, levelBadge, sportBadge, av,
+  toast, pageHead, statusBadge, bookingDisplayStatus, levelBadge, sportBadge, av,
   secLabel, emptyState, fmtDate, fmtDateLong, todayStr,
   greeting, lessonTimes, iCalendar, iPlus, iChevR, iUser,
   iCheck, iWarn, iBack, setNavHidden,
@@ -68,12 +68,13 @@ function _todayCard(booking) {
   const inst   = lesson.instructorId ? DB.getUserById(lesson.instructorId) : null;
   const month  = new Date(lesson.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short' });
   const day    = new Date(lesson.date + 'T00:00:00').getDate();
+  const displayStatus = bookingDisplayStatus(booking, lesson);
 
   return `
     <div class="glass" style="padding:22px;border-radius:16px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
         <span class="badge badge-in-progress" style="font-size:12px;padding:5px 14px;">Today</span>
-        <span class="badge badge-confirmed">✓ Confirmed</span>
+        ${statusBadge(displayStatus)}
       </div>
       <div style="font-family:'Newsreader',serif;font-size:26px;font-weight:700;color:#000;
         margin-bottom:8px;line-height:1.2;">
@@ -107,6 +108,7 @@ function _lessonCard(booking) {
   const tmpl   = getTemplate(lesson.templateId);
   const inst   = lesson.instructorId ? DB.getUserById(lesson.instructorId) : null;
   const isToday = lesson.date === todayStr();
+  const displayStatus = bookingDisplayStatus(booking, lesson);
 
   return `
     <div class="glass card-row" style="border-radius:12px;cursor:default;">
@@ -132,7 +134,7 @@ function _lessonCard(booking) {
           · ${inst ? inst.name : 'Instructor TBD'}
         </div>
       </div>
-      <span class="badge badge-confirmed" style="flex-shrink:0;">✓</span>
+      ${statusBadge(displayStatus)}
     </div>`;
 }
 
@@ -461,6 +463,7 @@ export function renderMyBookings(container, { session }) {
 function _bookingCard(b, today) {
   const isPast     = b.lesson && b.lesson.date < today;
   const canCancel  = b.status === 'confirmed' && !isPast;
+  const displayStatus = bookingDisplayStatus(b, b.lesson);
 
   return `
     <div class="glass" style="padding:16px;border-radius:12px;">
@@ -483,7 +486,7 @@ function _bookingCard(b, today) {
             <span style="font-weight:600;font-size:15px;color:#000;">
               ${b.tmpl ? b.tmpl.name : b.lessonId}
             </span>
-            ${statusBadge(b.status)}
+            ${statusBadge(displayStatus)}
           </div>
           <div style="font-size:13px;color:#777;margin-top:4px;">
             ${b.tmpl ? lessonTimes(b.tmpl) : ''}
