@@ -5,7 +5,7 @@ export const KEYS = {
   BOOKINGS: 'snow_bookings',
   REPORTS:  'snow_reports',
   SESSION:  'snow_session',
-  SEEDED:   'snow_seeded_v3',
+  SEEDED:   'snow_seeded_v4',
 };
 
 // ── Generic helpers ──────────────────────────────────────────────────────────
@@ -197,7 +197,7 @@ function _doSeed() {
     const dateStr = isoDate(d);
     const isPast  = offset < 0;
     const isToday = offset === 0;
-    const status  = isPast ? 'completed' : isToday ? 'in-progress' : 'scheduled';
+    const status  = isPast ? 'completed' : isToday ? 'on-mountain' : 'scheduled';
 
     TEMPLATES.forEach((tmpl, ti) => {
       // Future: leave ~1-in-8 slots unassigned for supervisor demo
@@ -298,6 +298,11 @@ function _doSeed() {
     });
 
   write(KEYS.REPORTS, reports);
+
+  // Mark lessons that have submitted reports as 'reported'
+  const reportedLessonIds = new Set(reports.map(r => r.lessonId));
+  lessons.forEach(l => { if (reportedLessonIds.has(l.id)) l.status = 'reported'; });
+  write(KEYS.LESSONS, lessons);
 }
 
 // ── Public seed API ───────────────────────────────────────────────────────────
