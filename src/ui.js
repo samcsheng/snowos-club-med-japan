@@ -1,12 +1,12 @@
 import { navigate } from './app.js';
 
-// ── Top-right avatar (all roles, persists across tabs) ────────────────────────
-// Sets a global trailing-action HTML string that pageHead picks up at render time.
-// renderNav runs before the view, so the string is ready when pageHead is called.
-function _renderTopAvatar(session) {
+// ── Avatar injected into .page-head after view renders ───────────────────────
+export function injectHeadAvatar(session, content) {
+  const head = content.querySelector('.page-head');
+  if (!head) return;
+
   const roleLabel = { instructor: 'Ski Instructor', supervisor: 'Supervisor' }[session.role] ?? null;
 
-  // Register the modal opener so the inline onclick can call it.
   window.__snowShowAccount = () => openModal('account', 'My Account', `
     <div style="text-align:center;padding:8px 0 24px;">
       ${av(session.avatar, 'lg')}
@@ -30,12 +30,13 @@ function _renderTopAvatar(session) {
     </button>
   `);
 
-  window.__snowPageTrailing = `
-    <button onclick="window.__snowShowAccount()"
-      style="background:none;border:none;cursor:pointer;padding:4px;flex-shrink:0;
-      -webkit-tap-highlight-color:transparent;display:flex;align-items:center;">
-      ${av(session.avatar, 'md')}
-    </button>`;
+  const titleRow = head.querySelector('div');
+  titleRow.style.alignItems = 'center';
+  const btn = document.createElement('button');
+  btn.style.cssText = 'margin-left:auto;flex-shrink:0;background:none;border:none;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent;';
+  btn.innerHTML = av(session.avatar, 'md');
+  btn.addEventListener('click', () => window.__snowShowAccount());
+  titleRow.appendChild(btn);
 }
 
 // ── Bottom navigation ────────────────────────────────────────────────────────
@@ -68,8 +69,6 @@ function positionIndicator(nav) {
 export function renderNav(session, backHref = null) {
   const tabs = NAV_CONFIG[session.role];
   if (!tabs) return;
-
-  _renderTopAvatar(session);
 
   const hash       = window.location.hash.slice(1);
   const existing   = document.getElementById('bottom-nav');
@@ -167,7 +166,6 @@ export function closeModal(id) {
 
 // ── Shared page header ───────────────────────────────────────────────────────
 export function pageHead(title, subtitle = '', backHref = null) {
-  const trailing = window.__snowPageTrailing || '';
   return `
     <div class="page-head">
       <div style="display:flex;align-items:flex-end;gap:10px;">
@@ -176,11 +174,12 @@ export function pageHead(title, subtitle = '', backHref = null) {
             ${iBack()}
           </a>` : ''}
         <h1 class="page-title" style="flex:1;">${title}</h1>
-        ${trailing}
       </div>
       ${subtitle ? `<p class="page-sub">${subtitle}</p>` : ''}
-    </div>`;
+    </div>
+    <div style="height:28px;"></div>`;
 }
+
 
 // ── Badges ───────────────────────────────────────────────────────────────────
 export function statusBadge(status) {
