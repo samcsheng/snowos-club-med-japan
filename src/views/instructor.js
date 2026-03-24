@@ -65,6 +65,13 @@ export function renderInstructorDashboard(container, { session }) {
       </div>
     </div>
   `;
+
+  container.querySelectorAll('[data-report-id]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const lesson = DB.getLessonById(btn.dataset.reportId);
+      if (lesson) openReportModal(lesson, session);
+    });
+  });
 }
 
 function _instructorLessonCard(lesson, instructorId) {
@@ -100,12 +107,12 @@ function _instructorLessonCard(lesson, instructorId) {
       </a>
       ${needsReport ? `
         <div class="div"></div>
-        <a href="#/instructor/report/${lesson.id}"
-          style="display:flex;align-items:center;gap:8px;padding:12px 16px;
-          background:rgba(253,190,0,0.08);text-decoration:none;color:#875700;
-          font-size:14px;font-weight:600;">
+        <button data-report-id="${lesson.id}"
+          style="display:flex;align-items:center;gap:8px;padding:12px 16px;width:100%;
+          background:rgba(253,190,0,0.08);border:none;cursor:pointer;color:#875700;
+          font-size:14px;font-weight:600;font-family:'Inter',sans-serif;">
           ${iClipboard()} Submit lesson report
-        </a>` : report ? `
+        </button>` : report ? `
         <div style="display:flex;align-items:center;gap:8px;padding:10px 16px;
           background:rgba(8,138,32,0.06);color:#076b1a;font-size:13px;">
           ${iCheck()} Report submitted
@@ -163,6 +170,13 @@ export function renderMySchedule(container, { session }) {
     container.querySelectorAll('[data-daysel]').forEach(btn => {
       btn.addEventListener('click', () => {
         selDate = btn.dataset.daysel; view = 'day'; render();
+      });
+    });
+
+    container.querySelectorAll('[data-report-id]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const lesson = DB.getLessonById(btn.dataset.reportId);
+        if (lesson) openReportModal(lesson, session);
       });
     });
   }
