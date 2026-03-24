@@ -288,7 +288,7 @@ function _openInstructorLessonModal(lesson, session, onReportSuccess = null) {
             <div style="display:flex;flex-wrap:wrap;gap:5px;">
               ${report.terrains.map(t => `
                 <span style="font-size:12px;font-weight:500;
-                  background:transparent;color:var(--black-coal);border:1.5px solid var(--black-coal);
+                  background:transparent;color:#000;border:1.5px solid #000;
                   border-radius:999px;padding:3px 10px;">${terrainLabels[t] ?? t}</span>`).join('')}
             </div>
           </div>` : ''}
@@ -299,7 +299,7 @@ function _openInstructorLessonModal(lesson, session, onReportSuccess = null) {
             <div style="display:flex;flex-wrap:wrap;gap:5px;">
               ${report.skills.map(s => `
                 <span style="font-size:12px;font-weight:500;
-                  background:transparent;color:var(--black-coal);border:1.5px solid var(--black-coal);
+                  background:transparent;color:#000;border:1.5px solid #000;
                   border-radius:999px;padding:3px 10px;">${skillLabels[s] ?? s}</span>`).join('')}
             </div>
           </div>` : ''}
