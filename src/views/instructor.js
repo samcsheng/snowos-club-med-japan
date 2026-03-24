@@ -34,7 +34,7 @@ export function renderInstructorDashboard(container, { session }) {
               <span style="font-size:22px;line-height:1;">🏔</span>
               <div>
                 <div style="font-weight:700;color:#1E2643;font-size:15px;">Lesson in progress</div>
-                <div style="font-size:13px;color:#5a6070;margin-top:2px;">Stay focused — great things happen on the mountain</div>
+                <div style="font-size:13px;color:#5a6070;margin-top:2px;">Enjoy your time with the guests. Show them the best you have :)</div>
               </div>
             </div>
           </div>
@@ -83,7 +83,6 @@ export function renderInstructorDashboard(container, { session }) {
   container.innerHTML = `
     ${pageHead(headTitle, headSub)}
     ${stateBanner}
-    <div style="padding:0 20px 8px;">${secLabel('Today\'s Schedule')}</div>
     <div style="padding:0 12px 20px;display:flex;flex-direction:column;gap:8px;" id="today-list">
       ${lessons.length === 0
         ? emptyState('🎿', 'No sessions today', 'Check your schedule for upcoming assignments.')
