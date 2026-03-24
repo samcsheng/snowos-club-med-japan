@@ -345,46 +345,45 @@
     /* ── Divider ──────────────────────────────────────── */
     .div { height: 1px; background: rgba(30,38,67,0.07); }
 
-    /* ── Page header ──────────────────────────────────── */
-    .page-head { padding: 52px 20px 4px; }
-    .page-title { font-family: 'Newsreader', serif; font-size: 30px; font-weight: 700; color: #000; line-height: 1.15; margin: 0; }
-    .page-sub { color: #777; font-size: 14px; margin: 5px 0 0; }
-
-    /* ── Sticky nav header (Apple large-title collapse) ── */
-    #sticky-nav {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 45;
-      padding-top: env(safe-area-inset-top, 0px);
-      background: rgba(240,235,228,0.82);
+    /* ── Page header (sticky, collapses on scroll) ───────── */
+    .page-head {
+      padding: 52px 20px 12px;
+      position: sticky; top: 0; z-index: 40;
+      background: transparent;
+      backdrop-filter: blur(0px);
+      -webkit-backdrop-filter: blur(0px);
+      border-bottom: 1px solid transparent;
+      transition: padding 0.32s cubic-bezier(0.32,0.72,0,1),
+                  background 0.28s ease,
+                  backdrop-filter 0.28s ease,
+                  -webkit-backdrop-filter 0.28s ease,
+                  border-color 0.28s ease;
+    }
+    .page-head.collapsed {
+      padding: calc(env(safe-area-inset-top,0px) + 10px) 20px 10px;
+      background: rgba(240,235,228,0.88);
       backdrop-filter: blur(20px) saturate(1.5);
       -webkit-backdrop-filter: blur(20px) saturate(1.5);
-      border-bottom: 1px solid rgba(30,38,67,0.1);
-      transform: translateY(-100%);
-      opacity: 0;
-      transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.22s ease;
-      pointer-events: none;
-      will-change: transform, opacity;
+      border-color: rgba(30,38,67,0.09);
     }
-    #sticky-nav.sticky-nav-visible {
-      transform: translateY(0);
-      opacity: 1;
-      pointer-events: all;
+    .page-title {
+      font-family: 'Newsreader', serif; font-size: 30px; font-weight: 700;
+      color: #000; line-height: 1.15; margin: 0;
+      transition: font-size 0.32s cubic-bezier(0.32,0.72,0,1);
     }
-    .sticky-nav-inner {
-      display: flex; align-items: center; height: 44px; padding: 0 8px; gap: 4px;
+    .page-head.collapsed .page-title { font-size: 17px; }
+    .page-sub {
+      color: #777; font-size: 14px; margin: 5px 0 0;
+      overflow: hidden; max-height: 40px; opacity: 1;
+      transition: max-height 0.3s cubic-bezier(0.32,0.72,0,1),
+                  opacity 0.2s ease, margin-top 0.3s;
     }
-    .sticky-nav-title {
-      flex: 1; font-family: 'Inter', sans-serif; font-size: 17px; font-weight: 600;
-      color: #000; text-align: center; white-space: nowrap;
-      overflow: hidden; text-overflow: ellipsis;
-    }
-    .sticky-nav-back {
-      color: #1E2643; text-decoration: none; display: inline-flex; align-items: center;
-      padding: 6px; border-radius: 6px; flex-shrink: 0;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .sticky-nav-spacer { width: 36px; flex-shrink: 0; }
+    .page-head.collapsed .page-sub { max-height: 0; opacity: 0; margin-top: 0; }
+    .page-head-sentinel { height: 0; }
     @media (prefers-reduced-motion: reduce) {
-      #sticky-nav { transition: opacity 0.15s ease; }
+      .page-head { transition: background 0.15s ease, border-color 0.15s ease; }
+      .page-title { transition: none; }
+      .page-sub { transition: opacity 0.15s ease; }
     }
 
     /* ── Section label ────────────────────────────────── */

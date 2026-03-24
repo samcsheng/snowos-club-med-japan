@@ -186,50 +186,31 @@ export function pageHead(title, subtitle = '', backHref = null) {
         <h1 class="page-title" style="flex:1;">${title}</h1>
       </div>
       ${subtitle ? `<p class="page-sub">${subtitle}</p>` : ''}
-    </div>`;
+    </div>
+    <div class="page-head-sentinel"></div>`;
 }
 
-// ── Sticky nav header (Apple large-title collapse) ───────────────────────────
+// ── Sticky header collapse (Apple large-title) ───────────────────────────────
 let _stickyObserver = null;
 
 export function setupStickyHeader() {
   _stickyObserver?.disconnect();
   _stickyObserver = null;
 
-  const pageTitle = document.querySelector('.page-title');
-  let nav = document.getElementById('sticky-nav');
+  const head     = document.querySelector('.page-head');
+  const sentinel = document.querySelector('.page-head-sentinel');
+  if (!head || !sentinel) return;
 
-  if (!pageTitle) {
-    nav?.classList.remove('sticky-nav-visible');
-    return;
-  }
-
-  if (!nav) {
-    nav = document.createElement('div');
-    nav.id = 'sticky-nav';
-    document.getElementById('app').appendChild(nav);
-  }
-
-  // Read back button from rendered page-head (if any)
-  const backEl = document.querySelector('.page-head a[href]');
-  const backHref = backEl?.getAttribute('href') ?? null;
-  const titleText = pageTitle.textContent.trim();
-
-  nav.innerHTML = `
-    <div class="sticky-nav-inner">
-      ${backHref
-        ? `<a href="${backHref}" class="sticky-nav-back" aria-label="Back">${iBack()}</a>`
-        : '<div class="sticky-nav-spacer"></div>'}
-      <span class="sticky-nav-title">${titleText}</span>
-      <div class="sticky-nav-spacer"></div>
-    </div>`;
-  nav.classList.remove('sticky-nav-visible');
+  head.classList.remove('collapsed');
 
   _stickyObserver = new IntersectionObserver(
-    ([entry]) => nav.classList.toggle('sticky-nav-visible', !entry.isIntersecting),
+    ([entry]) => {
+      // Collapse when sentinel has scrolled above the viewport
+      head.classList.toggle('collapsed', !entry.isIntersecting && entry.boundingClientRect.top < 0);
+    },
     { threshold: 0 }
   );
-  _stickyObserver.observe(pageTitle);
+  _stickyObserver.observe(sentinel);
 }
 
 // ── Badges ───────────────────────────────────────────────────────────────────
