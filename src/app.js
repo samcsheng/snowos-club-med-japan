@@ -1,6 +1,6 @@
 import { seed, resetSeed }              from './data.js';
 import { getSession, logout }       from './auth.js';
-import { renderNav, closeModal }    from './ui.js';
+import { renderNav, closeModal, setupStickyHeader } from './ui.js';
 import { renderLogin, renderRegister } from './views/login.js';
 import {
   renderGuestDashboard,
@@ -94,10 +94,11 @@ function router() {
       renderNav(session, backHref);
     } else {
       document.getElementById('bottom-nav')?.remove();
-      window.__snowPageTrailing = null;
+      document.getElementById('top-avatar-btn')?.remove();
     }
 
     route.view(content, { params, session });
+    setupStickyHeader();
     content.style.opacity = '1';
     content.classList.add('fade-up');
     setTimeout(() => content.classList.remove('fade-up'), 250);

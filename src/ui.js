@@ -1,12 +1,11 @@
 import { navigate } from './app.js';
 
-// ── Top-right avatar (all roles, persists across tabs) ────────────────────────
-// Sets a global trailing-action HTML string that pageHead picks up at render time.
-// renderNav runs before the view, so the string is ready when pageHead is called.
+// ── Top-right avatar (all roles, fixed position) ─────────────────────────────
 function _renderTopAvatar(session) {
+  document.getElementById('top-avatar-btn')?.remove();
+
   const roleLabel = { instructor: 'Ski Instructor', supervisor: 'Supervisor' }[session.role] ?? null;
 
-  // Register the modal opener so the inline onclick can call it.
   window.__snowShowAccount = () => openModal('account', 'My Account', `
     <div style="text-align:center;padding:8px 0 24px;">
       ${av(session.avatar, 'lg')}
@@ -30,12 +29,22 @@ function _renderTopAvatar(session) {
     </button>
   `);
 
-  window.__snowPageTrailing = `
-    <button onclick="window.__snowShowAccount()"
-      style="background:none;border:none;cursor:pointer;padding:4px;flex-shrink:0;
-      -webkit-tap-highlight-color:transparent;display:flex;align-items:center;">
-      ${av(session.avatar, 'md')}
-    </button>`;
+  const btn = document.createElement('button');
+  btn.id = 'top-avatar-btn';
+  btn.style.cssText = [
+    'position:fixed',
+    'top:calc(env(safe-area-inset-top,0px) + 8px)',
+    'right:16px',
+    'z-index:50',
+    'background:none',
+    'border:none',
+    'cursor:pointer',
+    'padding:0',
+    '-webkit-tap-highlight-color:transparent',
+  ].join(';');
+  btn.innerHTML = av(session.avatar, 'md');
+  btn.addEventListener('click', () => window.__snowShowAccount());
+  document.getElementById('app').appendChild(btn);
 }
 
 // ── Bottom navigation ────────────────────────────────────────────────────────
@@ -167,7 +176,6 @@ export function closeModal(id) {
 
 // ── Shared page header ───────────────────────────────────────────────────────
 export function pageHead(title, subtitle = '', backHref = null) {
-  const trailing = window.__snowPageTrailing || '';
   return `
     <div class="page-head">
       <div style="display:flex;align-items:flex-end;gap:10px;">
@@ -176,10 +184,52 @@ export function pageHead(title, subtitle = '', backHref = null) {
             ${iBack()}
           </a>` : ''}
         <h1 class="page-title" style="flex:1;">${title}</h1>
-        ${trailing}
       </div>
       ${subtitle ? `<p class="page-sub">${subtitle}</p>` : ''}
     </div>`;
+}
+
+// ── Sticky nav header (Apple large-title collapse) ───────────────────────────
+let _stickyObserver = null;
+
+export function setupStickyHeader() {
+  _stickyObserver?.disconnect();
+  _stickyObserver = null;
+
+  const pageTitle = document.querySelector('.page-title');
+  let nav = document.getElementById('sticky-nav');
+
+  if (!pageTitle) {
+    nav?.classList.remove('sticky-nav-visible');
+    return;
+  }
+
+  if (!nav) {
+    nav = document.createElement('div');
+    nav.id = 'sticky-nav';
+    document.getElementById('app').appendChild(nav);
+  }
+
+  // Read back button from rendered page-head (if any)
+  const backEl = document.querySelector('.page-head a[href]');
+  const backHref = backEl?.getAttribute('href') ?? null;
+  const titleText = pageTitle.textContent.trim();
+
+  nav.innerHTML = `
+    <div class="sticky-nav-inner">
+      ${backHref
+        ? `<a href="${backHref}" class="sticky-nav-back" aria-label="Back">${iBack()}</a>`
+        : '<div class="sticky-nav-spacer"></div>'}
+      <span class="sticky-nav-title">${titleText}</span>
+      <div class="sticky-nav-spacer"></div>
+    </div>`;
+  nav.classList.remove('sticky-nav-visible');
+
+  _stickyObserver = new IntersectionObserver(
+    ([entry]) => nav.classList.toggle('sticky-nav-visible', !entry.isIntersecting),
+    { threshold: 0 }
+  );
+  _stickyObserver.observe(pageTitle);
 }
 
 // ── Badges ───────────────────────────────────────────────────────────────────
