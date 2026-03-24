@@ -30,7 +30,7 @@ function _renderTopAvatar(session) {
     <button onclick="window.__snowShowAccount()"
       style="background:none;border:none;cursor:pointer;padding:4px;flex-shrink:0;
       -webkit-tap-highlight-color:transparent;display:flex;align-items:center;">
-      ${av(session.avatar, 'sm')}
+      ${av(session.avatar, 'md')}
     </button>`;
 }
 
