@@ -99,14 +99,25 @@
     .nav-inner {
       pointer-events: all;
       position: relative;
+      overflow: hidden;
       display: flex; align-items: center; gap: 2px;
-      background: rgba(248,248,248,0.92);
-      backdrop-filter: blur(28px);
-      -webkit-backdrop-filter: blur(28px);
+      background: rgba(246, 241, 235, 0.94);
+      backdrop-filter: blur(34px) saturate(1.45);
+      -webkit-backdrop-filter: blur(34px) saturate(1.45);
       border-radius: 9999px;
       padding: 5px;
-      box-shadow: 0 12px 40px rgba(0,0,0,0.14), 0 4px 12px rgba(0,0,0,0.08);
-      border: 1px solid #CCCCCC;
+      box-shadow: 0 14px 40px rgba(16, 22, 38, 0.14), 0 4px 14px rgba(16, 22, 38, 0.08);
+      border: 1px solid rgba(255,255,255,0.72);
+      isolation: isolate;
+    }
+    .nav-inner::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: linear-gradient(to bottom, rgba(255,255,255,0.32), rgba(255,255,255,0.08));
+      pointer-events: none;
+      z-index: 0;
     }
     .nav-indicator {
       position: absolute; left: 0; top: 0;
@@ -430,6 +441,20 @@
       border-radius: 16px;
       overflow: hidden;
     }
+    @keyframes wizardStepInRight {
+      from { opacity: 0; transform: translateX(36px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes wizardStepInLeft {
+      from { opacity: 0; transform: translateX(-24px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    .wizard-step-enter-right {
+      animation: wizardStepInRight 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    .wizard-step-enter-left {
+      animation: wizardStepInLeft 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
 
     /* ── Progress timeline ────────────────────────────── */
     .timeline-item { display: flex; gap: 12px; padding: 14px 0; }
@@ -439,22 +464,6 @@
     /* ── Page fade ────────────────────────────────────── */
     @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
     .fade-up { animation: fadeUp 0.22s ease; }
-
-    /* ── View transitions ─────────────────────────────── */
-    ::view-transition-group(lesson-expand-card) {
-      animation-duration: 0.42s;
-      animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
-    }
-    ::view-transition-old(lesson-expand-card),
-    ::view-transition-new(lesson-expand-card) {
-      animation-duration: 0.42s;
-      animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
-    }
-    ::view-transition-old(root),
-    ::view-transition-new(root) {
-      animation-duration: 0.2s;
-      animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
-    }
 
     /* ── Accent saffron bar ───────────────────────────── */
     .accent-bar { height: 3px; border-radius: 999px; background: #FDBE00; }
@@ -467,16 +476,11 @@
       .pill-filter,
       .date-chip,
       .card-row,
-      .book-lesson-card {
+      .book-lesson-card,
+      .wizard-step-enter-right,
+      .wizard-step-enter-left {
         transition: none !important;
         animation: none !important;
-      }
-      ::view-transition-group(lesson-expand-card),
-      ::view-transition-old(lesson-expand-card),
-      ::view-transition-new(lesson-expand-card),
-      ::view-transition-old(root),
-      ::view-transition-new(root) {
-        animation-duration: 0.01ms;
       }
     }
   </style>

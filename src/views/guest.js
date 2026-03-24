@@ -142,14 +142,6 @@ const wiz = { step: 1, date: null, templateId: null, sport: 'ski', audience: 'ad
 function resetWiz() { wiz.step = 1; wiz.date = null; wiz.templateId = null; }
 
 function _runWizardTransition(container, ctx, mutate) {
-  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (!reduceMotion && typeof document.startViewTransition === 'function') {
-    document.startViewTransition(() => {
-      mutate();
-      _renderWizardStep(container, ctx);
-    });
-    return;
-  }
   mutate();
   _renderWizardStep(container, ctx);
 }
@@ -163,8 +155,10 @@ export function renderBook(container, ctx) {
 
 function _renderWizardStep(container, ctx) {
   container.innerHTML = '';
+  const enterClass = wiz.step === 2 ? 'wizard-step-enter-right' : (wiz.templateId ? 'wizard-step-enter-left' : '');
 
   const wrap = document.createElement('div');
+  if (enterClass) wrap.classList.add(enterClass);
 
   if (wiz.step === 2) {
     setNavHidden(true);
@@ -192,6 +186,7 @@ function _renderWizardStep(container, ctx) {
 
   const body = document.createElement('div');
   body.style.padding = '0 20px 32px';
+  if (enterClass) body.classList.add(enterClass);
   container.appendChild(body);
 
   if (wiz.step === 1) _step1(body, container, ctx);
@@ -220,9 +215,8 @@ function _step1(body, container, ctx) {
           const lesson   = DB.getLessonsByDateTemplate(wiz.date, t.id)[0];
           const taken    = lesson ? DB.getConfirmedByLesson(lesson.id).length : t.maxGuests;
           const hasSlots = !!lesson && taken < t.maxGuests;
-          const isSelected = wiz.templateId === t.id;
           return `
-            <div class="glass card-row book-lesson-card" style="border-radius:12px;view-transition-name:${isSelected ? 'lesson-expand-card' : 'none'};${!hasSlots ? 'opacity:0.5;cursor:default;' : ''}"
+            <div class="glass card-row book-lesson-card" style="border-radius:12px;${!hasSlots ? 'opacity:0.5;cursor:default;' : ''}"
               data-tmpl="${t.id}">
               <div style="flex-shrink:0;width:44px;height:44px;background:rgba(30,38,67,0.08);
                 border-radius:10px;display:flex;align-items:center;justify-content:center;
@@ -249,7 +243,6 @@ function _step1(body, container, ctx) {
       const lesson = DB.getLessonsByDateTemplate(wiz.date, tmpl.id)[0];
       if (!lesson || DB.getConfirmedByLesson(lesson.id).length >= tmpl.maxGuests) return;
       card.addEventListener('click', () => {
-        card.style.viewTransitionName = 'lesson-expand-card';
         _runWizardTransition(container, ctx, () => {
           wiz.templateId = card.dataset.tmpl;
           wiz.step = 2;
@@ -335,7 +328,7 @@ function _step2(body, container, ctx) {
 
   body.innerHTML = `
     <div class="sec-label" style="margin-bottom:12px;">Booking summary</div>
-    <div class="glass book-summary-card" style="padding:20px;margin-bottom:20px;view-transition-name:${wiz.templateId ? 'lesson-expand-card' : 'none'};">
+    <div class="glass book-summary-card" style="padding:20px;margin-bottom:20px;">
       <div style="display:flex;flex-direction:column;gap:14px;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <span style="font-size:13px;color:#888;">Class</span>
