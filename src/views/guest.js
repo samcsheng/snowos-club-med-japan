@@ -545,10 +545,19 @@ function _bookingCard(b, today) {
           </span>
         </button>` : ''}
       ${canCancel ? `
-        <div style="padding:12px 16px 16px;${canCheckReportCard ? 'border-top:1px solid rgba(30,38,67,0.07);' : ''}">
-          <button data-cancel="${b.id}" class="btn btn-ghost btn-sm"
-            style="color:#BF2F17;border-color:rgba(191,47,23,0.25);">
-            Cancel booking
+        <div data-cancel-wrap="${b.id}" style="${canCheckReportCard ? 'border-top:1px solid rgba(30,38,67,0.07);' : ''}">
+          <button data-cancel="${b.id}"
+            style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;width:100%;
+            background:rgba(191,47,23,0.08);border:none;cursor:pointer;color:#A12B18;
+            font-size:14px;font-weight:600;font-family:'Inter',sans-serif;text-align:left;">
+            <span style="display:flex;align-items:center;gap:8px;">
+              ${iWarn()} Cancel booking
+            </span>
+            <span style="font-size:12px;font-weight:700;letter-spacing:0.02em;text-transform:uppercase;
+              color:#BF2F17;background:rgba(191,47,23,0.12);padding:5px 8px;border-radius:999px;
+              box-shadow:inset 0 0 0 1px rgba(191,47,23,0.14);">
+              Action
+            </span>
           </button>
         </div>` : ''}
     </div>`;
@@ -644,17 +653,31 @@ function _openReportCardModal(booking) {
 }
 
 function _confirmCancel(bookingId, onDone) {
-  // Inline confirmation strip injected below the cancel button
-  const card = document.querySelector(`[data-cancel="${bookingId}"]`)?.closest('.glass');
-  if (!card) return;
+  // Inline confirmation strip injected into the cancel section
+  const wrap = document.querySelector(`[data-cancel-wrap="${bookingId}"]`);
+  if (!wrap) return;
+
+  wrap.querySelector('[data-cancel-confirm]')?.remove();
 
   const strip = document.createElement('div');
-  strip.style.cssText = 'margin-top:10px;display:flex;gap:8px;align-items:center;';
+  strip.dataset.cancelConfirm = 'true';
+  strip.style.cssText = 'display:flex;flex-direction:column;gap:12px;padding:0 16px 16px;background:rgba(191,47,23,0.08);';
   strip.innerHTML = `
-    <span style="font-size:13px;color:#555;flex:1;">Cancel this booking?</span>
-    <button class="btn btn-danger btn-sm" id="yes-cancel">Yes, cancel</button>
-    <button class="btn btn-ghost btn-sm" id="no-cancel">Keep it</button>`;
-  card.appendChild(strip);
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+      <span style="font-size:13px;color:#6B3026;line-height:1.45;flex:1;">
+        Cancel this booking? This will release your spot in the lesson.
+      </span>
+      <span style="font-size:12px;font-weight:700;letter-spacing:0.02em;text-transform:uppercase;
+        color:#BF2F17;background:rgba(255,255,255,0.56);padding:5px 8px;border-radius:999px;
+        box-shadow:inset 0 0 0 1px rgba(191,47,23,0.12);">
+        Confirm
+      </span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <button class="btn btn-danger btn-sm" id="yes-cancel">Yes, cancel</button>
+      <button class="btn btn-ghost btn-sm" id="no-cancel" style="border-color:rgba(191,47,23,0.2);color:#7C2D20;">Keep booking</button>
+    </div>`;
+  wrap.appendChild(strip);
 
   strip.querySelector('#yes-cancel').addEventListener('click', () => {
     DB.cancelBooking(bookingId);
