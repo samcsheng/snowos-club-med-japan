@@ -1,7 +1,7 @@
 import { DB, TEMPLATES, getTemplate, isoDate } from '../data.js';
 import { navigate }   from '../app.js';
 import {
-  toast, pageHead, statusBadge, bookingDisplayStatus, levelBadge, sportBadge, av,
+  toast, pageHead, injectHeadAvatar, statusBadge, bookingDisplayStatus, levelBadge, sportBadge, av,
   secLabel, emptyState, fmtDate, fmtDateLong, todayStr,
   greeting, lessonTimes, iCalendar, iPlus, iChevR, iUser,
   iCheck, iWarn, iBack, setNavHidden,
@@ -447,6 +447,8 @@ export function renderMyBookings(container, { session }) {
                 : '')
           : filtered.map(b => _bookingCard(b, today)).join('')}
       </div>`;
+
+    injectHeadAvatar(session, container);
 
     // Filter buttons
     container.querySelectorAll('[data-filter]').forEach(btn => {
