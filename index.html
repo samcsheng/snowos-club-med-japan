@@ -83,25 +83,52 @@
       display: flex; justify-content: center; align-items: flex-end;
       padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
       pointer-events: none;
+      opacity: 1;
+      transform: translateY(0);
+      transition:
+        transform 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+      will-change: transform, opacity;
+      view-transition-name: none;
+    }
+    #bottom-nav.is-hidden {
+      opacity: 0;
+      transform: translateY(calc(100% + env(safe-area-inset-bottom, 0px) + 18px)) scale(0.96);
+      transition:
+        transform 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+      will-change: transform, opacity;
+      pointer-events: none;
     }
     .nav-inner {
       pointer-events: all;
       position: relative;
+      overflow: hidden;
       display: flex; align-items: center; gap: 2px;
-      background: rgba(248,248,248,0.92);
-      backdrop-filter: blur(28px);
-      -webkit-backdrop-filter: blur(28px);
+      background: rgba(246, 241, 235, 0.94);
+      backdrop-filter: blur(34px) saturate(1.45);
+      -webkit-backdrop-filter: blur(34px) saturate(1.45);
       border-radius: 9999px;
       padding: 5px;
-      box-shadow: 0 12px 40px rgba(0,0,0,0.14), 0 4px 12px rgba(0,0,0,0.08);
-      border: 1px solid #CCCCCC;
+      box-shadow: 0 14px 40px rgba(16, 22, 38, 0.14), 0 4px 14px rgba(16, 22, 38, 0.08);
+      border: 1px solid rgba(255,255,255,0.72);
+      isolation: isolate;
+    }
+    .nav-inner::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: linear-gradient(to bottom, rgba(255,255,255,0.32), rgba(255,255,255,0.08));
+      pointer-events: none;
+      z-index: 0;
     }
     .nav-indicator {
       position: absolute; left: 0; top: 0;
       border-radius: 9999px;
       background: #1E2643;
       box-shadow: 0 2px 12px rgba(0,0,0,0.18);
-      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
       pointer-events: none; z-index: 0;
     }
     .nav-tab {
@@ -126,8 +153,8 @@
       from { opacity: 0; transform: translateX(28px) scale(0.88); }
       to   { opacity: 1; transform: translateX(0)    scale(1); }
     }
-    .nav-inner     { animation: navTabsIn 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
-    .nav-inner-back{ animation: navBackIn 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+    .nav-inner     { animation: navTabsIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) both; }
+    .nav-inner-back{ animation: navBackIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
     /* ── Back button nav mode ──────────────────────────── */
     #bottom-nav.nav-back { justify-content: flex-end; padding-right: 20px; }
@@ -290,6 +317,9 @@
       min-height: 100vh;
       transition: opacity 0.12s ease;
     }
+    #content.nav-hidden-offset {
+      padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px));
+    }
 
     /* ── Step dots ────────────────────────────────────── */
     .step-dots { display: flex; gap: 5px; justify-content: center; align-items: center; }
@@ -400,6 +430,35 @@
       cursor: pointer; transition: background 0.12s; -webkit-tap-highlight-color: transparent;
     }
     .card-row:active { background: rgba(30,38,67,0.03); }
+    .book-lesson-card {
+      transform-origin: center bottom;
+      transition:
+        transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+        box-shadow 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+        background 0.12s ease;
+    }
+    .book-lesson-card:active {
+      transform: scale(0.985);
+      box-shadow: 0 12px 28px rgba(30,38,67,0.12);
+    }
+    .book-summary-card {
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    @keyframes wizardStepInRight {
+      from { opacity: 0; transform: translateX(36px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes wizardStepInLeft {
+      from { opacity: 0; transform: translateX(-24px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    .wizard-step-enter-right {
+      animation: wizardStepInRight 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    .wizard-step-enter-left {
+      animation: wizardStepInLeft 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
 
     /* ── Progress timeline ────────────────────────────── */
     .timeline-item { display: flex; gap: 12px; padding: 14px 0; }
@@ -412,6 +471,22 @@
 
     /* ── Accent saffron bar ───────────────────────────── */
     .accent-bar { height: 3px; border-radius: 999px; background: #FDBE00; }
+
+    @media (prefers-reduced-motion: reduce) {
+      #bottom-nav,
+      .nav-indicator,
+      .nav-tab,
+      .btn,
+      .pill-filter,
+      .date-chip,
+      .card-row,
+      .book-lesson-card,
+      .wizard-step-enter-right,
+      .wizard-step-enter-left {
+        transition: none !important;
+        animation: none !important;
+      }
+    }
   </style>
 </head>
 <body>

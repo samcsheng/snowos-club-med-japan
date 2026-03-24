@@ -97,6 +97,7 @@ function router() {
       if (nav) nav.dataset.accent = path === '/guest/book' ? 'yellow' : '';
     } else {
       document.getElementById('bottom-nav')?.remove();
+      content.classList.remove('nav-hidden-offset');
     }
 
     route.view(content, { params, session });
