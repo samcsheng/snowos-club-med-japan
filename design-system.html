@@ -1,0 +1,1611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design System — Single Source of Truth</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black-coal: #000000;
+    --ultramarine: #1E2643;
+    --lavender-blue: #9EAEF4;
+    --verdigris: #ACBEB9;
+    --sand: #D5CDC2;
+    --light-sand: #F6EFE7;
+    --saffron: #FDBE00;
+    --sienna: #9D432C;
+    --blue-wave: #00807D;
+    --marigold: #FB9100;
+    --dark-grey: #333333;
+    --mid-grey: #666666;
+    --grey: #999999;
+    --light-grey: #CCCCCC;
+    --pearl: #F8F8F8;
+    --white: #FFFFFF;
+    --green: #088A20;
+    --red: #BF2F17;
+    --orange: #C75300;
+
+    --font-display: 'Cormorant Garamond', serif;
+    --font-body: 'DM Sans', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+
+    --radius-pill: 999px;
+    --radius-card: 12px;
+    --radius-input: 8px;
+
+    --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--font-body);
+    background: var(--light-sand);
+    color: var(--black-coal);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  /* ─── HEADER ─────────────────────────────────────────────── */
+  .site-header {
+    background: var(--saffron);
+    padding: 40px 48px 36px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 2px solid rgba(0,0,0,0.08);
+  }
+  .site-header__inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .brand-mark {
+    font-family: var(--font-display);
+    font-size: 42px;
+    font-weight: 700;
+    color: var(--black-coal);
+    letter-spacing: -1px;
+    line-height: 1;
+  }
+  .header-meta {
+    text-align: right;
+  }
+  .header-meta h1 {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--black-coal);
+    letter-spacing: 0.3px;
+  }
+  .header-meta p {
+    font-size: 12px;
+    font-weight: 400;
+    color: rgba(0,0,0,0.55);
+    margin-top: 2px;
+    font-family: var(--font-mono);
+  }
+
+  /* ─── LAYOUT ─────────────────────────────────────────────── */
+  .page-wrapper {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 56px 48px 96px;
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 48px;
+    align-items: start;
+  }
+
+  /* ─── SIDEBAR NAV ─────────────────────────────────────────── */
+  .sidebar {
+    position: sticky;
+    top: 120px;
+  }
+  .sidebar-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--mid-grey);
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--light-grey);
+  }
+  .sidebar nav a {
+    display: block;
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--dark-grey);
+    text-decoration: none;
+    padding: 6px 10px;
+    border-radius: 6px;
+    transition: var(--transition);
+  }
+  .sidebar nav a:hover {
+    background: var(--saffron);
+    color: var(--black-coal);
+  }
+  .sidebar nav a.active {
+    background: var(--black-coal);
+    color: var(--white);
+    font-weight: 500;
+  }
+
+  /* ─── MAIN CONTENT ────────────────────────────────────────── */
+  .main-content { min-width: 0; }
+
+  /* ─── SECTIONS ────────────────────────────────────────────── */
+  .section {
+    margin-bottom: 72px;
+    animation: fadeUp 0.5s both;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 32px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--black-coal);
+  }
+  .section-number {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--mid-grey);
+    background: var(--sand);
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+  .section-title {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--black-coal);
+    letter-spacing: -0.3px;
+  }
+
+  /* ─── CARDS ───────────────────────────────────────────────── */
+  .card {
+    background: var(--white);
+    border-radius: var(--radius-card);
+    padding: 28px;
+    border: 1px solid var(--light-grey);
+    margin-bottom: 20px;
+  }
+  .card-title {
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.4px;
+    color: var(--mid-grey);
+    margin-bottom: 20px;
+  }
+
+  /* ─── BRAND OVERVIEW ──────────────────────────────────────── */
+  .brand-overview-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .brand-panel {
+    background: var(--saffron);
+    border-radius: var(--radius-card);
+    padding: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .brand-panel .logomark {
+    font-family: var(--font-display);
+    font-size: 72px;
+    font-weight: 700;
+    color: var(--black-coal);
+    line-height: 1;
+  }
+  .brand-desc {
+    background: var(--black-coal);
+    border-radius: var(--radius-card);
+    padding: 32px;
+    color: var(--white);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .brand-desc h3 {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 400;
+    font-style: italic;
+    margin-bottom: 12px;
+    color: var(--saffron);
+  }
+  .brand-desc p {
+    font-size: 13px;
+    line-height: 1.7;
+    color: rgba(255,255,255,0.75);
+  }
+
+  /* ─── COLOR PALETTES ──────────────────────────────────────── */
+  .palette-group { margin-bottom: 32px; }
+  .palette-group-label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--mid-grey);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .palette-group-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--light-grey);
+  }
+  .color-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+  }
+  .color-swatch {
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid rgba(0,0,0,0.07);
+    transition: transform var(--transition), box-shadow var(--transition);
+    cursor: default;
+  }
+  .color-swatch:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  }
+  .swatch-color {
+    height: 72px;
+  }
+  .swatch-info {
+    background: var(--white);
+    padding: 10px 12px;
+  }
+  .swatch-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--black-coal);
+    line-height: 1.3;
+  }
+  .swatch-hex {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--mid-grey);
+    margin-top: 2px;
+  }
+  .usage-rules {
+    background: var(--pearl);
+    border-radius: var(--radius-input);
+    padding: 20px;
+    margin-top: 20px;
+    border-left: 3px solid var(--saffron);
+  }
+  .usage-rules h4 {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--dark-grey);
+    margin-bottom: 10px;
+  }
+  .usage-rules ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .usage-rules ul li {
+    font-size: 13px;
+    color: var(--dark-grey);
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .usage-rules ul li::before {
+    content: '→';
+    color: var(--saffron);
+    font-weight: 600;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* ─── TYPOGRAPHY ──────────────────────────────────────────── */
+  .type-scale {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    background: var(--light-grey);
+    border-radius: var(--radius-card);
+    overflow: hidden;
+    border: 1px solid var(--light-grey);
+  }
+  .type-row {
+    background: var(--white);
+    padding: 20px 24px;
+    display: grid;
+    grid-template-columns: 160px 1fr 80px;
+    align-items: center;
+    gap: 16px;
+    transition: background var(--transition);
+  }
+  .type-row:hover { background: var(--pearl); }
+  .type-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--mid-grey);
+    font-family: var(--font-mono);
+  }
+  .type-context {
+    font-size: 11px;
+    color: var(--grey);
+    text-align: right;
+    font-style: italic;
+  }
+
+  /* ─── COMPONENTS GRID ─────────────────────────────────────── */
+  .component-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  /* ─── BUTTONS DEMO ────────────────────────────────────────── */
+  .btn-demo-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
+  .btn {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 600;
+    padding: 10px 22px;
+    border-radius: var(--radius-pill);
+    border: none;
+    cursor: pointer;
+    transition: all var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+  }
+  .btn-saffron { background: var(--saffron); color: var(--black-coal); }
+  .btn-saffron:hover { background: #e6ac00; }
+  .btn-coal { background: var(--black-coal); color: var(--white); }
+  .btn-coal:hover { background: var(--dark-grey); }
+  .btn-white { background: var(--white); color: var(--black-coal); box-shadow: 0 0 0 1px var(--black-coal); }
+  .btn-white:hover { background: var(--pearl); }
+  .btn-outline-white { background: var(--black-coal); color: var(--white); box-shadow: inset 0 0 0 1px var(--white); }
+  .btn-outline-black { background: var(--white); color: var(--black-coal); box-shadow: inset 0 0 0 1px var(--black-coal); }
+  .btn-sm { font-size: 12px; padding: 7px 16px; }
+  .btn-lg { font-size: 16px; padding: 14px 32px; }
+  .btn:disabled { opacity: 0.45; pointer-events: none; }
+  .btn-ghost { background: transparent; color: var(--black-coal); padding: 10px 4px; text-decoration: underline; text-underline-offset: 3px; }
+  .btn-icon {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+  .btn-icon.lg { width: 48px; height: 48px; }
+
+  /* ─── INPUTS ──────────────────────────────────────────────── */
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 16px;
+  }
+  .input-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--black-coal);
+  }
+  .input-helper {
+    font-size: 12px;
+    color: var(--mid-grey);
+    margin-bottom: 2px;
+  }
+  .input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .input-wrap .icon-lead {
+    position: absolute;
+    left: 12px;
+    color: var(--mid-grey);
+    font-size: 15px;
+    pointer-events: none;
+  }
+  .input-wrap .icon-trail {
+    position: absolute;
+    right: 12px;
+    color: var(--mid-grey);
+    font-size: 15px;
+    pointer-events: none;
+  }
+  .input-wrap .icon-trail.valid { color: var(--green); }
+  .input-wrap .icon-trail.error { color: var(--red); }
+  .field {
+    width: 100%;
+    font-family: var(--font-body);
+    font-size: 14px;
+    padding: 11px 16px;
+    border-radius: var(--radius-input);
+    border: 1.5px solid var(--light-grey);
+    background: var(--white);
+    color: var(--black-coal);
+    outline: none;
+    transition: border-color var(--transition);
+    appearance: none;
+  }
+  .field.has-icon-lead { padding-left: 38px; }
+  .field.has-icon-trail { padding-right: 38px; }
+  .field:hover { border-color: var(--dark-grey); }
+  .field:focus { border-color: var(--black-coal); }
+  .field.valid { border-color: var(--green); }
+  .field.error { border-color: var(--red); }
+  .input-error {
+    font-size: 12px;
+    color: var(--red);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 2px;
+  }
+
+  /* ─── FILTER PILLS ────────────────────────────────────────── */
+  .filter-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: var(--radius-pill);
+    border: 1.5px solid var(--black-coal);
+    font-size: 13px;
+    font-weight: 500;
+    background: var(--white);
+    color: var(--black-coal);
+    cursor: pointer;
+    transition: all var(--transition);
+  }
+  .filter-pill:hover { background: var(--pearl); }
+  .filter-pill.active { background: var(--saffron); border-color: var(--saffron); color: var(--black-coal); }
+  .filter-pill.sm { font-size: 11px; padding: 5px 12px; }
+  .filter-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+  /* ─── RANGE SLIDER ────────────────────────────────────────── */
+  .slider-container { padding: 12px 0; }
+  .slider-track {
+    position: relative;
+    height: 4px;
+    background: var(--light-grey);
+    border-radius: 2px;
+    margin: 20px 0;
+  }
+  .slider-fill {
+    position: absolute;
+    height: 100%;
+    background: var(--saffron);
+    border-radius: 2px;
+    left: 20%;
+    right: 30%;
+  }
+  .slider-thumb {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+    background: var(--white);
+    border: 2.5px solid var(--black-coal);
+    border-radius: 50%;
+    cursor: grab;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+  }
+  .slider-thumb.left { left: 20%; }
+  .slider-thumb.right { left: 70%; }
+  .slider-label {
+    position: absolute;
+    top: -22px;
+    transform: translateX(-50%);
+    font-size: 11px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+  }
+  .slider-ticks {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 4px;
+  }
+  .slider-ticks span {
+    width: 1px;
+    height: 6px;
+    background: var(--light-grey);
+    display: block;
+  }
+
+  /* ─── TABS ────────────────────────────────────────────────── */
+  .tab-group {
+    display: inline-flex;
+    background: var(--pearl);
+    border-radius: var(--radius-pill);
+    padding: 4px;
+    gap: 2px;
+    border: 1px solid var(--light-grey);
+  }
+  .tab {
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 18px;
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+    transition: all var(--transition);
+    border: none;
+    background: transparent;
+    color: var(--dark-grey);
+    font-family: var(--font-body);
+  }
+  .tab.selected { background: var(--black-coal); color: var(--white); }
+  .tab:not(.selected):hover { background: rgba(0,0,0,0.06); }
+
+  /* ─── TAGS ────────────────────────────────────────────────── */
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    border-radius: var(--radius-pill);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+  }
+  .tag-luxe { background: var(--light-sand); color: var(--black-coal); border: 1px solid var(--sand); }
+  .tag-best-seller { background: transparent; color: var(--red); border: 1.5px solid var(--red); }
+  .tag-new { background: transparent; color: var(--red); border: 1.5px solid var(--red); }
+  .tag-included { background: transparent; color: var(--black-coal); border: 1.5px solid var(--black-coal); }
+  .tag-addon { background: var(--orange); color: var(--white); }
+  .tag-unavail { background: var(--grey); color: var(--white); }
+  .tag-summer { background: var(--sienna); color: var(--white); }
+  .tag-winter { background: var(--saffron); color: var(--black-coal); }
+  .tag-bf { background: var(--black-coal); color: var(--white); }
+  .tag-season { background: transparent; color: var(--dark-grey); border: 1.5px solid var(--light-grey); font-size: 11px; padding: 3px 9px; }
+  .tags-row { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  /* ─── CONTROLS ────────────────────────────────────────────── */
+  .checkbox-group, .radio-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    cursor: pointer;
+  }
+  .checkbox-box {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    border: 2px solid var(--dark-grey);
+    background: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all var(--transition);
+  }
+  .checkbox-box.checked { background: var(--black-coal); border-color: var(--black-coal); color: var(--white); font-size: 11px; }
+  .radio-circle {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid var(--dark-grey);
+    background: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all var(--transition);
+  }
+  .radio-circle.selected::after {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--black-coal);
+  }
+  .toggle-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .toggle {
+    width: 44px;
+    height: 24px;
+    border-radius: var(--radius-pill);
+    background: var(--dark-grey);
+    position: relative;
+    cursor: pointer;
+    transition: background var(--transition);
+  }
+  .toggle.on { background: var(--green); }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--white);
+    top: 3px;
+    left: 3px;
+    transition: left var(--transition);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+  .toggle.on::after { left: calc(100% - 21px); }
+
+  /* ─── AVATARS ─────────────────────────────────────────────── */
+  .avatar-row { display: flex; align-items: center; gap: 12px; }
+  .avatar {
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    color: var(--white);
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+  .avatar.lg { width: 48px; height: 48px; font-size: 15px; }
+  .avatar.sm { width: 32px; height: 32px; font-size: 11px; }
+  .avatar-letter { background: var(--ultramarine); }
+  .avatar-icon { background: var(--sienna); }
+
+  /* ─── PAGINATION ──────────────────────────────────────────── */
+  .pagination { display: flex; align-items: center; gap: 4px; }
+  .page-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1.5px solid transparent;
+    background: transparent;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-body);
+    color: var(--dark-grey);
+    transition: all var(--transition);
+  }
+  .page-btn:hover { background: var(--pearl); }
+  .page-btn.active { background: var(--black-coal); color: var(--white); border-color: var(--black-coal); }
+  .page-btn.arrow { border: 1.5px solid var(--light-grey); font-size: 15px; }
+  .page-btn.arrow:hover { border-color: var(--dark-grey); }
+
+  /* ─── SPINNER ─────────────────────────────────────────────── */
+  .spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--light-grey);
+    border-top-color: var(--saffron);
+    border-radius: 50%;
+    animation: spin 0.75s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ─── SCROLL INDICATOR ────────────────────────────────────── */
+  .scroll-track {
+    height: 4px;
+    background: var(--light-grey);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  .scroll-fill {
+    height: 100%;
+    border-radius: 2px;
+    width: 40%;
+  }
+  .scroll-fill.saffron { background: var(--saffron); }
+  .scroll-fill.coal { background: var(--black-coal); }
+
+  /* ─── LOADER ──────────────────────────────────────────────── */
+  .brand-loader {
+    background: var(--black-coal);
+    border-radius: var(--radius-card);
+    padding: 40px 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    text-align: center;
+  }
+  .loader-mark {
+    font-family: var(--font-display);
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--saffron);
+    position: relative;
+    display: inline-block;
+  }
+  .loader-mark::before {
+    content: '◆';
+    position: absolute;
+    font-size: 10px;
+    color: var(--saffron);
+    top: 0;
+    right: -14px;
+    animation: orbit 1.8s linear infinite;
+    transform-origin: -20px 24px;
+  }
+  @keyframes orbit {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+  .loader-msg { font-size: 12px; color: rgba(255,255,255,0.5); font-style: italic; font-family: var(--font-display); }
+
+  /* ─── DO/DON'T ────────────────────────────────────────────── */
+  .dos-donts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .do-card { background: #f0faf2; border: 1.5px solid var(--green); border-radius: var(--radius-card); padding: 24px; }
+  .dont-card { background: #fdf2f0; border: 1.5px solid var(--red); border-radius: var(--radius-card); padding: 24px; }
+  .dos-donts h4 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 16px; }
+  .do-card h4 { color: var(--green); }
+  .dont-card h4 { color: var(--red); }
+  .dos-donts ul { list-style: none; display: flex; flex-direction: column; gap: 9px; }
+  .dos-donts ul li { font-size: 13px; color: var(--dark-grey); display: flex; gap: 8px; align-items: flex-start; }
+  .do-card ul li::before { content: '✓'; color: var(--green); font-weight: 700; flex-shrink: 0; }
+  .dont-card ul li::before { content: '✗'; color: var(--red); font-weight: 700; flex-shrink: 0; }
+
+  /* ─── ACCESSIBILITY TABLE ─────────────────────────────────── */
+  .a11y-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .a11y-row {
+    background: var(--white);
+    border: 1px solid var(--light-grey);
+    border-radius: 8px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .a11y-icon { font-size: 20px; flex-shrink: 0; width: 28px; text-align: center; }
+  .a11y-text { font-size: 13px; color: var(--dark-grey); line-height: 1.5; }
+  .contrast-demo {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+  .contrast-chip {
+    padding: 8px 16px;
+    border-radius: var(--radius-pill);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  /* ─── STATE TABLES ────────────────────────────────────────── */
+  .state-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .state-table th {
+    background: var(--black-coal);
+    color: var(--white);
+    padding: 10px 16px;
+    text-align: left;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+  }
+  .state-table th:first-child { border-radius: 8px 0 0 0; }
+  .state-table th:last-child { border-radius: 0 8px 0 0; }
+  .state-table td {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--light-grey);
+    vertical-align: middle;
+  }
+  .state-table tr:last-child td { border-bottom: none; }
+  .state-table tr:nth-child(even) td { background: var(--pearl); }
+  .state-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--pearl);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--dark-grey);
+    border: 1px solid var(--light-grey);
+  }
+
+  /* ─── SPACING SECTION ─────────────────────────────────────── */
+  .spacing-demo {
+    display: flex;
+    gap: 16px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+  }
+  .space-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .space-vis {
+    background: var(--lavender-blue);
+    border-radius: 4px;
+    width: 32px;
+  }
+  .space-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--mid-grey);
+  }
+
+  /* ─── RESPONSIVE ──────────────────────────────────────────── */
+  @media (max-width: 900px) {
+    .page-wrapper { grid-template-columns: 1fr; padding: 32px 24px 64px; }
+    .sidebar { display: none; }
+    .brand-overview-grid { grid-template-columns: 1fr; }
+    .component-grid { grid-template-columns: 1fr; }
+    .dos-donts { grid-template-columns: 1fr; }
+    .site-header { padding: 24px; }
+    .header-meta { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ─── SITE HEADER ─────────────────────────────────────────── -->
+<header class="site-header">
+  <div class="site-header__inner">
+    <span class="brand-mark">Ψ</span>
+    <div class="header-meta">
+      <h1>Design System — Single Source of Truth</h1>
+      <p>Brand Identity: Luxury Travel &amp; Hospitality · Last Updated: August 1, 2023</p>
+    </div>
+  </div>
+</header>
+
+<div class="page-wrapper">
+
+  <!-- ─── SIDEBAR ──────────────────────────────────────────── -->
+  <aside class="sidebar">
+    <div class="sidebar-label">Contents</div>
+    <nav>
+      <a href="#brand" class="active">1 · Brand Overview</a>
+      <a href="#colors">2 · Color Palette</a>
+      <a href="#typography">3 · Typography</a>
+      <a href="#buttons">4.1 · Buttons</a>
+      <a href="#inputs">4.2 · Inputs</a>
+      <a href="#filters">4.3 · Filters</a>
+      <a href="#tabs">4.4 · Tabs</a>
+      <a href="#tags">4.5 · Tags</a>
+      <a href="#controls">4.6 · Controls</a>
+      <a href="#avatars">4.7 · Avatars</a>
+      <a href="#spacing">5 · Spacing</a>
+      <a href="#iconography">6 · Iconography</a>
+      <a href="#states">7 · States</a>
+      <a href="#accessibility">9 · Accessibility</a>
+      <a href="#dosdont">10 · Do's &amp; Don'ts</a>
+    </nav>
+  </aside>
+
+  <!-- ─── MAIN ──────────────────────────────────────────────── -->
+  <main class="main-content">
+
+    <!-- 1. BRAND OVERVIEW -->
+    <section class="section" id="brand">
+      <div class="section-header">
+        <span class="section-number">01</span>
+        <h2 class="section-title">Brand Overview</h2>
+      </div>
+      <div class="brand-overview-grid">
+        <div class="brand-panel">
+          <span class="logomark">Ψ</span>
+        </div>
+        <div class="brand-desc">
+          <h3>Luxury travel &amp; hospitality</h3>
+          <p>The brand uses a trident-style logomark (Ψ) in Black Coal against Saffron Yellow. The aesthetic communicates premium luxury travel with warmth, clarity, and confidence — refined yet approachable, never cold or overly minimal.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. COLORS -->
+    <section class="section" id="colors">
+      <div class="section-header">
+        <span class="section-number">02</span>
+        <h2 class="section-title">Color Palette</h2>
+      </div>
+
+      <div class="palette-group">
+        <div class="palette-group-label">Brand Colors</div>
+        <div class="color-grid">
+          <div class="color-swatch"><div class="swatch-color" style="background:#000000"></div><div class="swatch-info"><div class="swatch-name">Black Coal</div><div class="swatch-hex">#000000</div></div></div>
+          <div class="color-swatch"><div class="swatch-color" style="background:#1E2643"></div><div class="swatch-info"><div class="swatch-name">Ultramarine Blue</div><div class="swatch-hex">#1E2643</div></div></div>
+          <div class="color-swatch"><div class="swatch-color" style="background:#9EAEF4"></div><div class="swatch-info"><div class="swatch-name">Lavender Blue</div><div class="swatch-hex">#9EAEF4</div></div></div>
+          <div class="color-swatch"><div class="swatch-color" style="background:#ACBEB9"></div><div class="swatch-info"><div class="swatch-name">Verdigris</div><div class="swatch-hex">#ACBEB9</div></div></div>
+          <div class="color-swatch"><div class="swatch-color" style="background:#D5CDC2"></div><div class="swatch-info"><div class="swatch-name">Sand</div><div class="swatch-hex">#D5CDC2</div></div></div>
+          <div class="color-swatch"><div class="swatch-color" style="background:#F6EFE7"></div><div class="swatch-info"><div class="swatch-name">Light Sand</div><div class="swatch-hex">#F6EFE7</div></div></div>
+          <div class="color-swatch"><div class="swatch-color" style="background:#FDBE00"></div><div class="swatch-info"><div class="swatch-name">Saffron Yellow ★</div><div class="swatch-hex">#FDBE00</div></div></div>
+          <div class="color-swatch"><div class="swatch-color" style="background:#9D432C"></div><div class="swatch-info"><div class="swatch-name">Sienna</div><div class="swatch-hex">#9D432C</div></div></div>
+        </div>
+      </div>
+
+      <div class="palette-group">
+        <div class="palette-group-label">China Branding (Region-Specific)</div>
+        <div class="color-grid">
+          <div class="color-swatch"><div class="swatch-color" style="background:#00807D"></div><div class="swatch-info"><div class="swatch-name">Blue Wave</div><div class="swatch-hex">#00807D</div></div></div>
+          <div class="color-swatch"><div class="swatch-color" style="background:#FB9100"></div><div class="swatch-info"><div class="swatch-name">Marigold</div><div class="swatch-hex">#FB9100</div></div></div>
+        </div>
+      </div>
+
+      <div class="palette-group">
+        <div class="palette-group-label">Layout / Neutral</div>
+        <div class="color-grid">
+          <div class="color-swatch"><div class="swatch-color" style="background:#333333"></div><div class="swatch-info"><div class="swatch-name">Dark Grey</div><div class="swatch-hex">#333333</div></div></div>
+          <div class="color-swatch"><div class="swatch-color" style="background:#666666"></div><div class="swatch-info"><div class="swatch-name">Middle Grey</div><div class="swatch-hex">#666666</div></div></div>
+          <div class="color-swatch"><div class="swatch-color" style="background:#999999"></div><div class="swatch-info"><div class="swatch-name">Grey</div><div class="swatch-hex">#999999</div></div></div>
+          <div class="color-swatch"><div class="swatch-color" style="background:#CCCCCC"></div><div class="swatch-info"><div class="swatch-name">Light Grey</div><div class="swatch-hex">#CCCCCC</div></div></div>
+          <div class="color-swatch"><div class="swatch-color" style="background:#F8F8F8; border: 1px solid #eee"></div><div class="swatch-info"><div class="swatch-name">Pearl</div><div class="swatch-hex">#F8F8F8</div></div></div>
+          <div class="color-swatch"><div class="swatch-color" style="background:#FFFFFF; border: 1px solid #eee"></div><div class="swatch-info"><div class="swatch-name">Cloud White</div><div class="swatch-hex">#FFFFFF</div></div></div>
+        </div>
+      </div>
+
+      <div class="palette-group">
+        <div class="palette-group-label">Semantic / Feedback</div>
+        <div class="color-grid">
+          <div class="color-swatch"><div class="swatch-color" style="background:#088A20"></div><div class="swatch-info"><div class="swatch-name">Green</div><div class="swatch-hex">#088A20 · Success</div></div></div>
+          <div class="color-swatch"><div class="swatch-color" style="background:#BF2F17"></div><div class="swatch-info"><div class="swatch-name">Red</div><div class="swatch-hex">#BF2F17 · Error</div></div></div>
+          <div class="color-swatch"><div class="swatch-color" style="background:#C75300"></div><div class="swatch-info"><div class="swatch-name">Orange</div><div class="swatch-hex">#C75300 · Warning</div></div></div>
+        </div>
+      </div>
+
+      <div class="usage-rules">
+        <h4>Color Usage Rules</h4>
+        <ul>
+          <li>Saffron Yellow is the hero color — primary CTAs, active/selected states, branded headers, active filter chips.</li>
+          <li>Black Coal for primary text, headings, filled dark buttons, and icon buttons.</li>
+          <li>White as text on dark fills; default card and surface color.</li>
+          <li>Semantic colors (Green, Red, Orange) are only for validation states and status tags — never decorative.</li>
+          <li>Text on Saffron Yellow must be Black Coal. Text on Black Coal must be White.</li>
+          <li>China branding colors (Blue Wave, Marigold) are restricted to the China market only.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 3. TYPOGRAPHY -->
+    <section class="section" id="typography">
+      <div class="section-header">
+        <span class="section-number">03</span>
+        <h2 class="section-title">Typography</h2>
+      </div>
+      <div class="card">
+        <p class="card-title">Type Hierarchy</p>
+        <div class="type-scale">
+          <div class="type-row">
+            <span class="type-label">Page Title</span>
+            <span style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;">Filters &amp; Results</span>
+            <span class="type-context">Bold · Sections</span>
+          </div>
+          <div class="type-row">
+            <span class="type-label">Component Label</span>
+            <span style="font-size:15px;font-weight:600;">Departure City</span>
+            <span class="type-context">Semi-bold · Labels</span>
+          </div>
+          <div class="type-row">
+            <span class="type-label">Body / Placeholder</span>
+            <span style="font-size:14px;font-weight:400;color:#999;">Enter destination...</span>
+            <span class="type-context">Regular · Inputs</span>
+          </div>
+          <div class="type-row">
+            <span class="type-label">Helper Text</span>
+            <span style="font-size:13px;font-weight:400;color:#666;">Additional information</span>
+            <span class="type-context">Regular · Subtext</span>
+          </div>
+          <div class="type-row">
+            <span class="type-label">Error Text</span>
+            <span style="font-size:13px;font-weight:400;color:#BF2F17;">⚠ This field is required</span>
+            <span class="type-context">Regular · Red</span>
+          </div>
+          <div class="type-row">
+            <span class="type-label">Button Text</span>
+            <span style="font-size:14px;font-weight:600;">Book Now</span>
+            <span class="type-context">Semi-bold · Buttons</span>
+          </div>
+          <div class="type-row">
+            <span class="type-label">Tag Text</span>
+            <span style="font-size:12px;font-weight:600;letter-spacing:0.2px;">Best Seller</span>
+            <span class="type-context">Semi-bold · Tags</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4.1 BUTTONS -->
+    <section class="section" id="buttons">
+      <div class="section-header">
+        <span class="section-number">4.1</span>
+        <h2 class="section-title">Buttons</h2>
+      </div>
+
+      <div class="component-grid">
+        <div class="card">
+          <p class="card-title">Text Button Variants</p>
+          <div class="btn-demo-grid" style="margin-bottom:16px;">
+            <button class="btn btn-saffron">Saffron Yellow</button>
+            <button class="btn btn-coal">Black Coal</button>
+            <button class="btn btn-white">White</button>
+          </div>
+          <div class="btn-demo-grid">
+            <button class="btn btn-outline-black">Outlined</button>
+            <button class="btn btn-ghost">Ghost →</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Size Tiers</p>
+          <div class="btn-demo-grid">
+            <button class="btn btn-saffron btn-lg">Large</button>
+            <button class="btn btn-saffron">Medium</button>
+            <button class="btn btn-saffron btn-sm">Small</button>
+          </div>
+          <div class="btn-demo-grid" style="margin-top:12px;">
+            <button class="btn btn-coal">With Arrow →</button>
+            <button class="btn btn-coal" disabled>Disabled</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Icon &amp; Arrow Buttons</p>
+          <div class="btn-demo-grid">
+            <button class="btn btn-saffron btn-icon lg">✦</button>
+            <button class="btn btn-coal btn-icon lg">←</button>
+            <button class="btn btn-white btn-icon lg">→</button>
+            <button class="btn btn-saffron btn-icon">✦</button>
+            <button class="btn btn-coal btn-icon">←</button>
+            <button class="btn btn-white btn-icon btn-sm">→</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Link Styles</p>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <a href="#" class="btn btn-white" style="width:fit-content;border:1.5px solid #ccc;">Boxed Link</a>
+            <a href="#" style="font-size:14px;font-weight:500;color:#000;text-decoration:underline;text-underline-offset:3px;">Underlined Link</a>
+            <a href="#" style="font-size:14px;font-weight:500;color:#000;text-decoration:none;display:flex;gap:6px;align-items:center;">With Arrow <span>→</span></a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4.2 INPUTS -->
+    <section class="section" id="inputs">
+      <div class="section-header">
+        <span class="section-number">4.2</span>
+        <h2 class="section-title">Input Fields</h2>
+      </div>
+
+      <div class="component-grid">
+        <div class="card">
+          <p class="card-title">Textfield States</p>
+          <div class="input-group">
+            <label class="input-label">Destination</label>
+            <span class="input-helper">Additional information</span>
+            <div class="input-wrap">
+              <input class="field" type="text" placeholder="Enter destination...">
+            </div>
+          </div>
+          <div class="input-group">
+            <label class="input-label">City (Focus)</label>
+            <div class="input-wrap">
+              <input class="field" type="text" placeholder="Paris, France" style="border-color:#000;">
+            </div>
+          </div>
+          <div class="input-group">
+            <label class="input-label">Email (Valid)</label>
+            <div class="input-wrap">
+              <input class="field valid has-icon-trail" type="text" value="guest@resort.com">
+              <span class="icon-trail valid">✓</span>
+            </div>
+          </div>
+          <div class="input-group">
+            <label class="input-label">Phone (Error)</label>
+            <div class="input-wrap">
+              <input class="field error has-icon-trail" type="text" value="123">
+              <span class="icon-trail error">✗</span>
+            </div>
+            <span class="input-error">⚠ Error message displays here.</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">Dropdown &amp; Icon Variants</p>
+          <div class="input-group">
+            <label class="input-label">Resort Category</label>
+            <div class="input-wrap">
+              <select class="field has-icon-trail" style="padding-right:38px;">
+                <option>Select category...</option>
+                <option>Luxury Resorts</option>
+                <option>Villas &amp; Châlets</option>
+              </select>
+              <span class="icon-trail">˅</span>
+            </div>
+          </div>
+          <div class="input-group">
+            <label class="input-label">Search</label>
+            <div class="input-wrap">
+              <span class="icon-lead">⊕</span>
+              <input class="field has-icon-lead" type="text" placeholder="Search resorts...">
+            </div>
+          </div>
+          <div class="input-group">
+            <label class="input-label">Date of Birth</label>
+            <span class="input-helper">Format: YYYY / MM / DD</span>
+            <div class="input-wrap" style="gap:8px;">
+              <input class="field" type="text" placeholder="2000" style="width:80px;text-align:center;">
+              <span style="color:#999;">/</span>
+              <input class="field" type="text" placeholder="07" style="width:60px;text-align:center;">
+              <span style="color:#999;">/</span>
+              <input class="field" type="text" placeholder="04" style="width:60px;text-align:center;">
+            </div>
+          </div>
+          <div class="input-group">
+            <label class="input-label">Phone Number</label>
+            <div class="input-wrap" style="gap:8px;">
+              <select class="field" style="width:90px;">
+                <option>+33</option>
+                <option>+1</option>
+                <option>+44</option>
+              </select>
+              <input class="field" type="text" placeholder="00 00 00 00" style="flex:1;">
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="grid-column:1/-1;">
+          <p class="card-title">Password Field — Real-time Validation</p>
+          <div class="input-group" style="max-width:380px;">
+            <label class="input-label">Password</label>
+            <div class="input-wrap">
+              <input class="field has-icon-trail" type="password" value="MyP@ss1">
+              <span class="icon-trail" style="cursor:pointer;">👁</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:5px;margin-top:8px;font-size:12px;">
+            <div style="display:flex;gap:6px;align-items:center;color:#088A20;">✓ At least 12 characters</div>
+            <div style="display:flex;gap:6px;align-items:center;color:#088A20;">✓ At least one lowercase letter</div>
+            <div style="display:flex;gap:6px;align-items:center;color:#BF2F17;">⚠ At least one uppercase letter</div>
+            <div style="display:flex;gap:6px;align-items:center;color:#088A20;">✓ At least one special character #$%&amp;</div>
+            <div style="display:flex;gap:6px;align-items:center;color:#088A20;">✓ At least one number</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4.3 FILTERS -->
+    <section class="section" id="filters">
+      <div class="section-header">
+        <span class="section-number">4.3</span>
+        <h2 class="section-title">Filters</h2>
+      </div>
+      <div class="card">
+        <p class="card-title">Filter Pills</p>
+        <div class="filter-row" style="margin-bottom:16px;">
+          <button class="filter-pill">Filters</button>
+          <button class="filter-pill active">✓ Beach Resorts</button>
+          <button class="filter-pill">Mountain ˅</button>
+          <button class="filter-pill active">✓ All-Inclusive ˅</button>
+          <button class="filter-pill">City ˅</button>
+        </div>
+        <div class="filter-row">
+          <button class="filter-pill sm">Filters</button>
+          <button class="filter-pill sm active">✓ Summer</button>
+          <button class="filter-pill sm">Winter ˅</button>
+          <button class="filter-pill sm active">✓ Luxury</button>
+        </div>
+      </div>
+      <div class="card">
+        <p class="card-title">Range Slider</p>
+        <div style="padding:0 12px;">
+          <div class="slider-container">
+            <div class="slider-track">
+              <div class="slider-fill"></div>
+              <div class="slider-thumb left"><span class="slider-label">1h</span></div>
+              <div class="slider-thumb right"><span class="slider-label">4h</span></div>
+            </div>
+            <div class="slider-ticks">
+              <span></span><span></span><span></span><span></span><span></span>
+              <span></span><span></span><span></span><span></span><span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4.4 TABS -->
+    <section class="section" id="tabs">
+      <div class="section-header">
+        <span class="section-number">4.4</span>
+        <h2 class="section-title">Tabs</h2>
+      </div>
+      <div class="card">
+        <p class="card-title">Tab Group</p>
+        <div class="tab-group">
+          <button class="tab">All Resorts</button>
+          <button class="tab selected">Beach</button>
+          <button class="tab">Mountain</button>
+          <button class="tab">City</button>
+        </div>
+        <p style="font-size:12px;color:#999;margin-top:16px;">Selected tab uses Black Coal fill with white text in a rounded pill.</p>
+      </div>
+    </section>
+
+    <!-- 4.5 TAGS -->
+    <section class="section" id="tags">
+      <div class="section-header">
+        <span class="section-number">4.5</span>
+        <h2 class="section-title">Tags</h2>
+      </div>
+      <div class="card">
+        <p class="card-title">Range / Product Tier</p>
+        <div class="tags-row">
+          <span class="tag tag-luxe">◆ Gamme Luxe</span>
+          <span class="tag tag-luxe">◆ Avec Espace Luxe</span>
+          <span class="tag tag-luxe">◆ Exclusive Collection</span>
+          <span class="tag tag-luxe">◆ With Exclusive Spaces</span>
+        </div>
+      </div>
+      <div class="component-grid">
+        <div class="card">
+          <p class="card-title">Market Tags</p>
+          <div class="tags-row">
+            <span class="tag tag-best-seller">Best Seller</span>
+            <span class="tag tag-new">New</span>
+            <span class="tag tag-included">Included</span>
+            <span class="tag tag-addon">Add-ons</span>
+            <span class="tag tag-unavail">Unavailable</span>
+          </div>
+        </div>
+        <div class="card">
+          <p class="card-title">Offer Tags</p>
+          <div class="tags-row">
+            <span class="tag tag-summer">Summer Deals</span>
+            <span class="tag tag-winter">Winter Deals</span>
+            <span class="tag tag-bf">Black Friday</span>
+          </div>
+        </div>
+        <div class="card">
+          <p class="card-title">Season Tags (Small)</p>
+          <div class="tags-row">
+            <span class="tag tag-season">Winter</span>
+            <span class="tag tag-season">Summer</span>
+            <span class="tag" style="background:#088A20;color:#fff;font-size:11px;padding:3px 9px;">New Resort</span>
+            <span class="tag" style="background:#BF2F17;color:#fff;font-size:11px;padding:3px 9px;">Offer</span>
+          </div>
+        </div>
+        <div class="card">
+          <p class="card-title">Badge Variants</p>
+          <div class="tags-row" style="align-items:center;">
+            <span style="width:28px;height:28px;background:#F8F8F8;border:1.5px solid #ccc;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;">ℹ</span>
+            <span style="width:28px;height:28px;background:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;">8</span>
+            <span style="width:28px;height:28px;background:#fff;border:1.5px solid #ccc;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#4285F4;">G</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4.6 CONTROLS -->
+    <section class="section" id="controls">
+      <div class="section-header">
+        <span class="section-number">4.6</span>
+        <h2 class="section-title">Controls</h2>
+      </div>
+      <div class="component-grid">
+        <div class="card">
+          <p class="card-title">Checkbox</p>
+          <div class="checkbox-group"><div class="checkbox-box"></div><span style="font-size:14px;">Unchecked</span></div>
+          <div class="checkbox-group"><div class="checkbox-box checked">✓</div><span style="font-size:14px;">Checked</span></div>
+          <div class="checkbox-group"><div class="checkbox-box checked" style="font-size:14px;letter-spacing:-1px;">—</div><span style="font-size:14px;">Indeterminate</span></div>
+        </div>
+        <div class="card">
+          <p class="card-title">Radio Button</p>
+          <div class="radio-group"><div class="radio-circle"></div><span style="font-size:14px;">Unselected</span></div>
+          <div class="radio-group"><div class="radio-circle selected"></div><span style="font-size:14px;">Selected</span></div>
+        </div>
+        <div class="card">
+          <p class="card-title">Toggle / Switch</p>
+          <div class="toggle-wrap"><div class="toggle"></div><span style="font-size:14px;">Off</span></div>
+          <div class="toggle-wrap" style="margin-top:12px;"><div class="toggle on"></div><span style="font-size:14px;">On</span></div>
+        </div>
+        <div class="card">
+          <p class="card-title">Pagination</p>
+          <div class="pagination">
+            <button class="page-btn arrow">‹</button>
+            <button class="page-btn">1</button>
+            <button class="page-btn active">2</button>
+            <button class="page-btn">3</button>
+            <button class="page-btn">…</button>
+            <button class="page-btn">8</button>
+            <button class="page-btn arrow">›</button>
+          </div>
+        </div>
+        <div class="card">
+          <p class="card-title">Sort By</p>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-white btn-icon" style="border:1.5px solid #ccc;">👤</button>
+            <button class="btn btn-coal btn-icon">⊞</button>
+            <button class="btn btn-white btn-icon" style="border:1.5px solid #ccc;">☰</button>
+          </div>
+        </div>
+        <div class="card">
+          <p class="card-title">Progress / Scroll</p>
+          <div style="margin-bottom:12px;">
+            <div class="scroll-track"><div class="scroll-fill saffron"></div></div>
+            <div class="scroll-track"><div class="scroll-fill coal"></div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:16px;">
+            <div class="spinner"></div>
+            <div class="brand-loader" style="flex:1;">
+              <span class="loader-mark">Ψ</span>
+              <span class="loader-msg">Seeking the finest for you…</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4.7 AVATARS -->
+    <section class="section" id="avatars">
+      <div class="section-header">
+        <span class="section-number">4.7</span>
+        <h2 class="section-title">Avatars</h2>
+      </div>
+      <div class="card">
+        <p class="card-title">Avatar Types &amp; Sizes</p>
+        <div class="avatar-row">
+          <div class="avatar avatar-letter lg">JD</div>
+          <div class="avatar avatar-icon lg">👤</div>
+          <div class="avatar lg" style="background:#9D432C;">M</div>
+          <div class="avatar avatar-letter sm">JD</div>
+          <div class="avatar avatar-icon sm">👤</div>
+          <div class="avatar sm" style="background:#9D432C;">M</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. SPACING -->
+    <section class="section" id="spacing">
+      <div class="section-header">
+        <span class="section-number">05</span>
+        <h2 class="section-title">Spacing &amp; Layout</h2>
+      </div>
+      <div class="card">
+        <p class="card-title">Spacing Scale</p>
+        <div class="spacing-demo">
+          <div class="space-block"><div class="space-vis" style="height:4px;"></div><span class="space-label">4px</span></div>
+          <div class="space-block"><div class="space-vis" style="height:8px;"></div><span class="space-label">8px</span></div>
+          <div class="space-block"><div class="space-vis" style="height:12px;"></div><span class="space-label">12px</span></div>
+          <div class="space-block"><div class="space-vis" style="height:16px;"></div><span class="space-label">16px</span></div>
+          <div class="space-block"><div class="space-vis" style="height:24px;"></div><span class="space-label">24px</span></div>
+          <div class="space-block"><div class="space-vis" style="height:32px;"></div><span class="space-label">32px</span></div>
+          <div class="space-block"><div class="space-vis" style="height:48px;"></div><span class="space-label">48px</span></div>
+        </div>
+        <div class="usage-rules" style="margin-top:20px;">
+          <h4>Layout Rules</h4>
+          <ul>
+            <li>Full pill border-radius for buttons, tags, tabs, and filters.</li>
+            <li>8–12px radius for input fields and cards.</li>
+            <li>Buttons/filters: 16–24px horizontal, 8–12px vertical padding.</li>
+            <li>Input fields: 12–16px internal padding.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. ICONOGRAPHY -->
+    <section class="section" id="iconography">
+      <div class="section-header">
+        <span class="section-number">06</span>
+        <h2 class="section-title">Iconography</h2>
+      </div>
+      <div class="card">
+        <p class="card-title">Common Icons — Line Style</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;">
+          <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--pearl);border-radius:8px;">
+            <span style="font-size:20px;">˅</span><span style="font-size:12px;color:#666;">Chevron down</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--pearl);border-radius:8px;">
+            <span style="font-size:20px;">✓</span><span style="font-size:12px;color:#666;">Checkmark</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--pearl);border-radius:8px;">
+            <span style="font-size:20px;">✗</span><span style="font-size:12px;color:#666;">X / Error</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--pearl);border-radius:8px;">
+            <span style="font-size:20px;">→</span><span style="font-size:12px;color:#666;">Arrow right</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--pearl);border-radius:8px;">
+            <span style="font-size:20px;">←</span><span style="font-size:12px;color:#666;">Arrow left</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--pearl);border-radius:8px;">
+            <span style="font-size:20px;">👁</span><span style="font-size:12px;color:#666;">Eye toggle</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--pearl);border-radius:8px;">
+            <span style="font-size:20px;">📅</span><span style="font-size:12px;color:#666;">Calendar</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--pearl);border-radius:8px;">
+            <span style="font-size:20px;color:#FDBE00;">◆</span><span style="font-size:12px;color:#666;">Diamond tier</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--pearl);border-radius:8px;">
+            <span style="font-size:20px;color:#BF2F17;">⚠</span><span style="font-size:12px;color:#666;">Warning</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. STATES -->
+    <section class="section" id="states">
+      <div class="section-header">
+        <span class="section-number">07</span>
+        <h2 class="section-title">State Design Rules</h2>
+      </div>
+      <div class="card" style="margin-bottom:16px;">
+        <p class="card-title">Button States</p>
+        <table class="state-table">
+          <thead><tr><th>State</th><th>Visual Treatment</th></tr></thead>
+          <tbody>
+            <tr><td><span class="state-dot" style="background:#FDBE00;"></span>Default</td><td>Standard fill/border per variant</td></tr>
+            <tr><td><span class="state-dot" style="background:#e6ac00;"></span>Hover</td><td>Slight darkening or highlight shift</td></tr>
+            <tr><td><span class="state-dot" style="background:#ccc;"></span>Disabled</td><td>~40–50% opacity, no pointer cursor</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card" style="margin-bottom:16px;">
+        <p class="card-title">Input Field States</p>
+        <table class="state-table">
+          <thead><tr><th>State</th><th>Border</th><th>Icon</th><th>Message</th></tr></thead>
+          <tbody>
+            <tr><td>Default</td><td><code>#CCCCCC</code> Light Grey</td><td>—</td><td>—</td></tr>
+            <tr><td>Hover</td><td><code>#333333</code> Dark Grey</td><td>—</td><td>—</td></tr>
+            <tr><td>Focus</td><td><code>#000000</code> Black Coal</td><td>—</td><td>—</td></tr>
+            <tr><td>Filled</td><td><code>#CCCCCC</code> Light Grey</td><td>—</td><td>—</td></tr>
+            <tr><td>Valid</td><td><code>#088A20</code> Green</td><td>✓ green</td><td>—</td></tr>
+            <tr><td>Error</td><td><code>#BF2F17</code> Red</td><td>✗ red</td><td>Red text below</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <p class="card-title">Selection States (Tabs / Filters / Sort)</p>
+        <table class="state-table">
+          <thead><tr><th>State</th><th>Treatment</th></tr></thead>
+          <tbody>
+            <tr><td>Default</td><td>No fill, plain text</td></tr>
+            <tr><td>Selected (Tab)</td><td>Black Coal fill, white text, pill shape</td></tr>
+            <tr><td>Selected (Filter)</td><td>Saffron Yellow fill, black text, ✓ icon</td></tr>
+            <tr><td>Hover</td><td>Subtle fill preview</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 9. ACCESSIBILITY -->
+    <section class="section" id="accessibility">
+      <div class="section-header">
+        <span class="section-number">09</span>
+        <h2 class="section-title">Accessibility Guidelines</h2>
+      </div>
+      <div class="card">
+        <div class="a11y-grid">
+          <div class="a11y-row"><span class="a11y-icon">⌨</span><span class="a11y-text">All interactive elements must have visible focus indicators.</span></div>
+          <div class="a11y-row"><span class="a11y-icon">🎨</span><span class="a11y-text">Color alone must never convey meaning — always pair semantic colors with icons (✓ success, ✗ error, ⚠ warning).</span></div>
+          <div class="a11y-row"><span class="a11y-icon">🔍</span><span class="a11y-text">Minimum contrast ratios: 4.5:1 for normal text, 3:1 for large text.</span></div>
+          <div class="a11y-row"><span class="a11y-icon">⚠</span><span class="a11y-text">Saffron Yellow (#FDBE00) on white does <strong>not</strong> meet WCAG AA — always pair it with Black Coal text, or use as background with dark text.</span></div>
+          <div class="a11y-row"><span class="a11y-icon">🚫</span><span class="a11y-text">Disabled states must be visually distinct — use reduced opacity and cursor change, not color alone.</span></div>
+        </div>
+        <div class="contrast-demo" style="margin-top:20px;">
+          <div class="contrast-chip" style="background:#FDBE00;color:#000;">✓ Saffron + Black Coal</div>
+          <div class="contrast-chip" style="background:#000;color:#fff;">✓ Black + White</div>
+          <div class="contrast-chip" style="background:#333;color:#fff;">✓ Dark Grey + White</div>
+          <div class="contrast-chip" style="background:#FDBE00;color:#fff;opacity:0.7;">✗ Saffron + White</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 10. DO'S & DON'TS -->
+    <section class="section" id="dosdont">
+      <div class="section-header">
+        <span class="section-number">10</span>
+        <h2 class="section-title">Do's &amp; Don'ts</h2>
+      </div>
+      <div class="dos-donts">
+        <div class="do-card">
+          <h4>Do</h4>
+          <ul>
+            <li>Use Saffron Yellow as the primary action color for CTAs and active states.</li>
+            <li>Use Black Coal for high-contrast text buttons and selected tabs.</li>
+            <li>Keep input labels above the field, helper text between label and input.</li>
+            <li>Use full rounded pill shapes for buttons, filters, tabs, and tags.</li>
+            <li>Show real-time validation feedback with icons and semantic colors.</li>
+          </ul>
+        </div>
+        <div class="dont-card">
+          <h4>Don't</h4>
+          <ul>
+            <li>Use Red or Green for decorative purposes — reserved for validation only.</li>
+            <li>Place light text on Saffron Yellow — always use Black Coal.</li>
+            <li>Mix border-radius styles — maintain pill shapes across interactive components.</li>
+            <li>Use Saffron Yellow as a text color — fills and backgrounds only.</li>
+            <li>Use China branding colors (Blue Wave, Marigold) outside the China market.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+  // Sidebar active state on scroll
+  const sections = document.querySelectorAll('.section');
+  const navLinks = document.querySelectorAll('.sidebar nav a');
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.id;
+        navLinks.forEach(a => {
+          a.classList.toggle('active', a.getAttribute('href') === `#${id}`);
+        });
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+
+  sections.forEach(s => observer.observe(s));
+
+  // Stagger section animations
+  sections.forEach((s, i) => {
+    s.style.animationDelay = `${i * 0.04}s`;
+  });
+</script>
+</body>
+</html>
