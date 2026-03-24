@@ -525,6 +525,37 @@
     /* ── Accent saffron bar ───────────────────────────── */
     .accent-bar { height: 3px; border-radius: 999px; background: #FDBE00; }
 
+    /* ── Material linear progress (on-mountain) ───────── */
+    @keyframes mlp-primary {
+      0%   { transform: scaleX(0.08) translateX(-150%); }
+      40%  { transform: scaleX(0.6)  translateX(80%); }
+      100% { transform: scaleX(0.08) translateX(600%); }
+    }
+    @keyframes mlp-secondary {
+      0%   { transform: scaleX(0.0)  translateX(-200%); }
+      30%  { transform: scaleX(0.8)  translateX(30%); }
+      80%  { transform: scaleX(0.3)  translateX(300%); }
+      100% { transform: scaleX(0.0)  translateX(600%); }
+    }
+    .mlp {
+      position: relative;
+      width: 100%;
+      height: 3px;
+      background: rgba(253,190,0,0.22);
+      overflow: hidden;
+    }
+    .mlp::before, .mlp::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: #FDBE00;
+      transform-origin: left center;
+      will-change: transform;
+    }
+    .mlp::before { animation: mlp-primary   2.1s cubic-bezier(0.4,0,0.2,1) infinite; }
+    .mlp::after  { animation: mlp-secondary 2.1s cubic-bezier(0.4,0,0.2,1) infinite 0.85s; }
+
     @media (prefers-reduced-motion: reduce) {
       #bottom-nav,
       .nav-indicator,
@@ -535,7 +566,9 @@
       .card-row,
       .book-lesson-card,
       .wizard-step-enter-right,
-      .wizard-step-enter-left {
+      .wizard-step-enter-left,
+      .mlp::before,
+      .mlp::after {
         transition: none !important;
         animation: none !important;
       }
