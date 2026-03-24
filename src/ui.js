@@ -30,12 +30,13 @@ export function injectHeadAvatar(session, content) {
     </button>
   `);
 
-  head.style.position = 'relative';
+  const titleRow = head.querySelector('div');
+  titleRow.style.alignItems = 'center';
   const btn = document.createElement('button');
-  btn.style.cssText = 'position:absolute;top:calc(env(safe-area-inset-top,0px)+10px);right:16px;background:none;border:none;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent;';
+  btn.style.cssText = 'margin-left:auto;flex-shrink:0;background:none;border:none;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent;';
   btn.innerHTML = av(session.avatar, 'md');
   btn.addEventListener('click', () => window.__snowShowAccount());
-  head.appendChild(btn);
+  titleRow.appendChild(btn);
 }
 
 // ── Bottom navigation ────────────────────────────────────────────────────────
