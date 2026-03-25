@@ -450,6 +450,20 @@
     /* ── Section label ────────────────────────────────── */
 	    .sec-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.2px; color: #85786f; }
 
+    /* ── New booking card shake ───────────────────────── */
+    @keyframes bkg-new-shake {
+      0%        { transform: translateX(0) scale(1); }
+      12%       { transform: translateX(-6px) scale(1.02); }
+      25%       { transform: translateX(6px)  scale(1.02); }
+      37%       { transform: translateX(-5px); }
+      50%       { transform: translateX(5px); }
+      62%       { transform: translateX(-3px); }
+      75%       { transform: translateX(3px); }
+      88%       { transform: translateX(-1px); }
+      100%      { transform: translateX(0) scale(1); }
+    }
+    .bkg-new-shake { animation: bkg-new-shake 0.55s ease-out both; }
+
     /* ── Empty state ──────────────────────────────────── */
     .empty-state { text-align: center; padding: 52px 24px; }
     .empty-icon  { font-size: 52px; display: block; margin-bottom: 14px; }

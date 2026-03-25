@@ -360,40 +360,41 @@ function _step2(body, container, ctx) {
     ? DB.getBookingsByGuest(session.id).find(b => b.lessonId === lesson.id && b.status === 'confirmed')
     : null;
 
+  const spotsLeft = tmpl.maxGuests - taken;
+  const sportEmoji = tmpl.sport === 'snowboard' ? '🏂' : '⛷️';
+  const instFirst  = inst ? inst.name.split(' ')[0] : null;
+  const instLast   = inst ? inst.name.split(' ').slice(1).join(' ') : null;
+
   body.innerHTML = `
-    <div class="sec-label" style="margin-bottom:12px;">Booking summary</div>
-    <div class="glass book-summary-card" style="padding:20px;margin-bottom:20px;">
-      <div style="display:flex;flex-direction:column;gap:14px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:13px;color:#888;">Class</span>
-          <span style="font-weight:600;font-size:15px;color:#000;">${tmpl.id} — ${tmpl.name}</span>
-        </div>
-        <div class="div"></div>
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:13px;color:#888;">Date</span>
-          <span style="font-weight:600;">${fmtDateLong(wiz.date)}</span>
-        </div>
-        <div class="div"></div>
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:13px;color:#888;">Schedule</span>
-          <span style="font-weight:600;">${lessonTimes(tmpl)}</span>
-        </div>
-        <div class="div"></div>
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:13px;color:#888;">Instructor</span>
-          <span style="font-weight:600;">${inst ? inst.name : 'TBD'}</span>
-        </div>
-        <div class="div"></div>
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:13px;color:#888;">Availability</span>
-          <span style="font-weight:600;">${tmpl.maxGuests - taken} of ${tmpl.maxGuests} spots left</span>
-        </div>
+    <!-- Hero -->
+    <div style="text-align:center;padding:12px 0 36px;">
+      <div style="font-size:72px;line-height:1;margin-bottom:20px;">${sportEmoji}</div>
+      <div style="font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+        color:#aaa;margin-bottom:10px;">${tmpl.sport} · ${tmpl.audience} · ${tmpl.level}</div>
+      <div style="font-family:'Newsreader',serif;font-size:36px;font-weight:800;color:#1E2643;
+        line-height:1.1;margin-bottom:10px;">${fmtDateLong(wiz.date)}</div>
+      <div style="font-size:16px;color:#888;">${lessonTimes(tmpl)}</div>
+    </div>
+
+    <!-- Instructor + Spots -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:32px;">
+      <div style="background:var(--bg-section-soft);border-radius:16px;padding:18px 14px;text-align:center;">
+        <div class="sec-label" style="margin-bottom:8px;">Instructor</div>
+        ${inst
+          ? `<div style="font-weight:800;font-size:16px;color:#1E2643;line-height:1.1;">${instFirst}</div>
+             <div style="font-size:12px;color:#aaa;margin-top:2px;">${instLast}</div>`
+          : `<div style="font-weight:700;font-size:15px;color:#aaa;">TBD</div>`}
+      </div>
+      <div style="background:var(--bg-section-soft);border-radius:16px;padding:18px 14px;text-align:center;">
+        <div class="sec-label" style="margin-bottom:8px;">Spots left</div>
+        <div style="font-family:'Newsreader',serif;font-weight:800;font-size:32px;color:${spotsLeft <= 2 ? '#BF2F17' : '#1E2643'};line-height:1;">${spotsLeft}</div>
+        <div style="font-size:12px;color:#aaa;margin-top:2px;">of ${tmpl.maxGuests}</div>
       </div>
     </div>
 
     ${existing ? `
-      <div style="background:var(--bg-action-soft);border:1px solid rgba(253,190,0,0.46);border-radius:8px;padding:12px 14px;
-        color:#875700;font-size:14px;margin-bottom:16px;">
+      <div style="background:var(--bg-action-soft);border:1px solid rgba(253,190,0,0.46);border-radius:10px;
+        padding:12px 14px;color:#875700;font-size:14px;margin-bottom:20px;display:flex;align-items:center;gap:8px;">
         ${iWarn()} You already have a booking for this lesson.
       </div>` : ''}
 
@@ -499,6 +500,14 @@ export function renderMyBookings(container, { session }) {
   }
 
   render();
+  if (newBookingId) {
+    const card = container.querySelector(`[data-booking-card="${newBookingId}"]`);
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      card.classList.add('bkg-new-shake');
+      card.addEventListener('animationend', () => card.classList.remove('bkg-new-shake'), { once: true });
+    }
+  }
   sessionStorage.removeItem('snow_new_booking_id');
 }
 
