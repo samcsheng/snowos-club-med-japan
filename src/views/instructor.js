@@ -8,6 +8,71 @@ import {
   injectHeadAvatar,
 } from '../ui.js';
 
+// ── Inline strip confirmation helper ─────────────────────────────────────────
+// Manages 3 states inside a strip element: primary → confirming → undo
+function _initStripConfirm(stripEl, { confirmLabel, confirmBtnText, confirmBg, successLabel, onCommit, onUndo, onDone }) {
+  const FADE = 130;
+
+  function swap(html, cb) {
+    stripEl.style.transition = `opacity ${FADE}ms ease`;
+    stripEl.style.opacity = '0';
+    setTimeout(() => { stripEl.innerHTML = html; stripEl.style.opacity = '1'; cb?.(); }, FADE);
+  }
+
+  const primaryHTML = stripEl.innerHTML;
+
+  function bindPrimary() {
+    stripEl.querySelector('[data-sc-trigger]')?.addEventListener('click', showConfirm);
+  }
+
+  function showConfirm() {
+    swap(`
+      <div style="display:flex;align-items:stretch;border-top:1px solid rgba(0,0,0,0.07);">
+        <span style="flex:1;padding:13px 16px;font-size:13px;font-weight:500;color:#444;align-self:center;">
+          ${confirmLabel}
+        </span>
+        <button data-sc="cancel" style="padding:13px 16px;background:none;border:none;
+          border-left:1px solid rgba(0,0,0,0.07);cursor:pointer;font-size:14px;color:#888;
+          font-weight:500;font-family:'Inter',sans-serif;white-space:nowrap;">Cancel</button>
+        <button data-sc="ok" style="padding:13px 18px;background:${confirmBg};border:none;
+          cursor:pointer;font-size:14px;color:#fff;font-weight:700;
+          font-family:'Inter',sans-serif;white-space:nowrap;border-radius:0 0 16px 0;">
+          ${confirmBtnText}
+        </button>
+      </div>`, () => {
+        stripEl.querySelector('[data-sc="cancel"]').addEventListener('click', () => {
+          swap(primaryHTML, bindPrimary);
+        });
+        stripEl.querySelector('[data-sc="ok"]').addEventListener('click', () => {
+          onCommit();
+          showUndo();
+        });
+      });
+  }
+
+  function showUndo() {
+    swap(`
+      <div style="display:flex;align-items:stretch;
+        background:var(--bg-success-soft);border-top:1px solid rgba(8,138,32,0.14);">
+        <span style="flex:1;padding:12px 16px;font-size:13px;font-weight:500;
+          color:#076b1a;align-self:center;">${successLabel}</span>
+        <button data-sc="undo" style="padding:12px 18px;background:none;border:none;
+          border-left:1px solid rgba(8,138,32,0.15);cursor:pointer;font-size:13px;
+          color:#076b1a;font-weight:600;font-family:'Inter',sans-serif;white-space:nowrap;
+          border-radius:0 0 16px 0;">Undo</button>
+      </div>`, () => {
+        const timer = setTimeout(onDone, 4000);
+        stripEl.querySelector('[data-sc="undo"]').addEventListener('click', () => {
+          clearTimeout(timer);
+          onUndo();
+          swap(primaryHTML, bindPrimary);
+        });
+      });
+  }
+
+  bindPrimary();
+}
+
 // ── Instructor Dashboard ──────────────────────────────────────────────────────
 export function renderInstructorDashboard(container, { session }) {
   const today   = todayStr();
@@ -102,25 +167,35 @@ export function renderInstructorDashboard(container, { session }) {
     });
   });
 
-  // Start Lesson: scheduled → on-mountain
+  // Start Lesson: scheduled → on-mountain (with inline confirmation)
   container.querySelectorAll('[data-start-lesson]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const lesson = DB.getLessonById(btn.dataset.startLesson);
-      if (!lesson) return;
-      DB.upsertLesson({ ...lesson, status: 'on-mountain' });
-      toast('Lesson started — have a great session! 🏔', 'success');
-      renderInstructorDashboard(container, { session });
+    const stripEl = document.getElementById(`strip-${btn.dataset.startLesson}`);
+    if (!stripEl) return;
+    const lessonId = btn.dataset.startLesson;
+    _initStripConfirm(stripEl, {
+      confirmLabel:   'Start lesson now?',
+      confirmBtnText: 'Start',
+      confirmBg:      '#1E2643',
+      successLabel:   `${iCheck()} Lesson started`,
+      onCommit: () => { const l = DB.getLessonById(lessonId); if (l) DB.upsertLesson({ ...l, status: 'on-mountain' }); },
+      onUndo:   () => { const l = DB.getLessonById(lessonId); if (l) DB.upsertLesson({ ...l, status: 'scheduled' }); },
+      onDone:   _rerender,
     });
   });
 
-  // Complete Lesson: on-mountain → completed
+  // Complete Lesson: on-mountain → completed (with inline confirmation)
   container.querySelectorAll('[data-complete-lesson]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const lesson = DB.getLessonById(btn.dataset.completeLesson);
-      if (!lesson) return;
-      DB.upsertLesson({ ...lesson, status: 'completed' });
-      toast('Lesson complete — please submit your report', 'info');
-      renderInstructorDashboard(container, { session });
+    const stripEl = document.getElementById(`strip-${btn.dataset.completeLesson}`);
+    if (!stripEl) return;
+    const lessonId = btn.dataset.completeLesson;
+    _initStripConfirm(stripEl, {
+      confirmLabel:   'Mark lesson complete?',
+      confirmBtnText: 'Complete',
+      confirmBg:      '#875700',
+      successLabel:   `${iCheck()} Lesson complete`,
+      onCommit: () => { const l = DB.getLessonById(lessonId); if (l) DB.upsertLesson({ ...l, status: 'completed' }); },
+      onUndo:   () => { const l = DB.getLessonById(lessonId); if (l) DB.upsertLesson({ ...l, status: 'on-mountain' }); },
+      onDone:   _rerender,
     });
   });
 
@@ -148,20 +223,24 @@ function _instructorLessonCard(lesson) {
   let actionStrip = '';
   if (lesson.status === 'scheduled') {
     actionStrip = `
-      <button data-start-lesson="${lesson.id}"
-        style="display:flex;align-items:center;gap:8px;padding:13px 22px;width:100%;
-        background:rgba(30,38,67,0.06);border:none;border-top:1px solid rgba(30,38,67,0.1);
-        cursor:pointer;color:#1E2643;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;">
-        ${iPlay()} Start Lesson
-      </button>`;
+      <div id="strip-${lesson.id}">
+        <button data-start-lesson="${lesson.id}" data-sc-trigger
+          style="display:flex;align-items:center;gap:8px;padding:13px 22px;width:100%;
+          background:rgba(30,38,67,0.06);border:none;border-top:1px solid rgba(30,38,67,0.1);
+          cursor:pointer;color:#1E2643;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;">
+          ${iPlay()} Start Lesson
+        </button>
+      </div>`;
   } else if (lesson.status === 'on-mountain') {
     actionStrip = `
-      <button data-complete-lesson="${lesson.id}"
-        style="display:flex;align-items:center;gap:8px;padding:13px 22px;width:100%;
-        background:rgba(253,190,0,0.12);border:none;border-top:1px solid rgba(253,190,0,0.22);
-        cursor:pointer;color:#875700;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;">
-        ${iFlag()} Complete Lesson
-      </button>`;
+      <div id="strip-${lesson.id}">
+        <button data-complete-lesson="${lesson.id}" data-sc-trigger
+          style="display:flex;align-items:center;gap:8px;padding:13px 22px;width:100%;
+          background:rgba(253,190,0,0.12);border:none;border-top:1px solid rgba(253,190,0,0.22);
+          cursor:pointer;color:#875700;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;">
+          ${iFlag()} Complete Lesson
+        </button>
+      </div>`;
   } else if (lesson.status === 'completed' && !report) {
     actionStrip = `
       <button data-report-id="${lesson.id}"
