@@ -700,7 +700,7 @@ function openReportModal(lesson, session, onSuccess = null) {
   function buildBody() {
     return `
       <!-- Terrains -->
-      <div style="padding:0 2px 6px;">${secLabel('Terrains covered')}</div>
+      <div class="sec-label" style="margin-bottom:8px;">Terrains covered</div>
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;">
         ${TERRAINS.map(t => `
           <label class="check-pill${draft.terrains.has(t.id) ? ' checked' : ''}">
@@ -711,7 +711,7 @@ function openReportModal(lesson, session, onSuccess = null) {
       </div>
 
       <!-- Skills -->
-      <div style="padding:0 2px 6px;">${secLabel('Skills practiced')}</div>
+      <div class="sec-label" style="margin-bottom:8px;">Skills practiced</div>
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;">
         ${SKILLS.map(s => `
           <label class="check-pill${draft.skills.has(s.id) ? ' checked' : ''}">
@@ -722,7 +722,7 @@ function openReportModal(lesson, session, onSuccess = null) {
       </div>
 
       <!-- Per-guest -->
-      <div style="padding:0 2px 8px;">${secLabel(`Per-Guest (${guests.length})`)}</div>
+      <div class="sec-label" style="margin-bottom:8px;">Per-Guest (${guests.length})</div>
       <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
         ${guests.map(({ guestId, guest }) => {
           const g = draft.guests[guestId] || { attendance: 'BOTH', nextClass: lesson.templateId, notes: '' };
@@ -842,7 +842,6 @@ function openReportModal(lesson, session, onSuccess = null) {
       overlay.remove();
       toast('Report submitted successfully!', 'success');
       if (onSuccess) onSuccess();
-      else navigate('/instructor/dashboard');
     });
   }
 
