@@ -715,7 +715,7 @@ function _openBookingDetailModal(booking, onDone) {
       swapStrip(`
         <div style="display:flex;align-items:stretch;border-top:1px solid rgba(139,58,46,0.12);">
           <span style="flex:1;padding:13px 16px;font-size:13px;font-weight:500;
-            color:#6C4040;align-self:center;">Cancel and release your spot?</span>
+            color:#6C4040;align-self:center;">Confirm cancel?</span>
           <button data-sc="keep" style="padding:13px 16px;background:none;border:none;
             border-left:1px solid rgba(0,0,0,0.07);cursor:pointer;font-size:14px;color:#888;
             font-weight:500;font-family:'Inter',sans-serif;white-space:nowrap;">Keep</button>
@@ -730,9 +730,15 @@ function _openBookingDetailModal(booking, onDone) {
           });
           cancelStrip.querySelector('[data-sc="yes"]').addEventListener('click', () => {
             DB.cancelBooking(booking.id);
-            closeModal('guest-booking-detail');
-            toast('Booking cancelled.', 'info');
-            onDone();
+            const overlay = document.getElementById('modal-guest-booking-detail');
+            if (overlay) {
+              overlay.classList.add('closing');
+              setTimeout(() => { overlay.remove(); toast('Booking cancelled.', 'info'); onDone(); }, 240);
+            } else {
+              closeModal('guest-booking-detail');
+              toast('Booking cancelled.', 'info');
+              onDone();
+            }
           });
         });
     }
