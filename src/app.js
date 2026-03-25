@@ -1,6 +1,6 @@
 import { seed, resetSeed }              from './data.js';
 import { getSession, logout }       from './auth.js';
-import { renderNav, closeModal, injectHeadAvatar } from './ui.js';
+import { renderNav, closeModal, dismissModal, injectHeadAvatar } from './ui.js';
 import { renderLogin, renderRegister } from './views/login.js';
 import {
   renderGuestDashboard,
@@ -124,9 +124,7 @@ window.addEventListener('load', () => {
 
 // Global logout helper (called from profile / nav)
 window.__snowLogout = () => {
-  closeModal('account');
-  logout();
-  navigate('/login');
+  dismissModal('account', () => { logout(); navigate('/login'); });
 };
 
 // Global reset helper (called from account modal)

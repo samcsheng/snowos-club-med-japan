@@ -2,7 +2,7 @@ import { DB, TEMPLATES, getTemplate, isoDate } from '../data.js';
 import { navigate } from '../app.js';
 import {
   toast, pageHead, statusBadge, bookingDisplayStatus, sportBadge, audienceBadge,
-  av, secLabel, emptyState, openModal, closeModal,
+  av, secLabel, emptyState, openModal, closeModal, dismissModal,
   fmtDate, fmtDateLong, todayStr,
   tabBar, lessonTimes, iChevR, iCalendar, iPeople, iPlus,
   iClipboard, iCheck, iWarn, iEdit,
@@ -323,9 +323,7 @@ function _addInstModal(onDone) {
         avatar:   name.trim().split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase(),
       };
       DB.upsertUser(newInst);
-      closeModal('add-inst');
-      toast(`${newInst.name} added.`, 'success');
-      onDone();
+      dismissModal('add-inst', () => { toast(`${newInst.name} added.`, 'success'); onDone(); });
     });
   }, 50);
 }
@@ -353,9 +351,7 @@ function _editInstModal(inst, onDone) {
         avatar: name.trim().split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase(),
       };
       DB.upsertUser(updated);
-      closeModal('edit-inst');
-      toast('Instructor updated.', 'success');
-      onDone();
+      dismissModal('edit-inst', () => { toast('Instructor updated.', 'success'); onDone(); });
     });
   }, 50);
 }

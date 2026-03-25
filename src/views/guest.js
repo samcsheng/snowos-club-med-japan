@@ -4,7 +4,7 @@ import {
   toast, pageHead, injectHeadAvatar, statusBadge, bookingDisplayStatus, sportBadge, av,
   secLabel, emptyState, fmtDate, fmtDateLong, todayStr,
   greeting, lessonTimes, iCalendar, iPlus, iChevR, iUser,
-  iCheck, iWarn, iBack, setNavHidden, openModal, closeModal, iClipboard,
+  iCheck, iWarn, iBack, setNavHidden, openModal, closeModal, dismissModal, iClipboard,
 } from '../ui.js';
 
 // ── Guest Dashboard ──────────────────────────────────────────────────────────
@@ -692,8 +692,7 @@ function _openBookingDetailModal(booking, onDone) {
   `);
 
   document.getElementById('detail-report-card')?.addEventListener('click', () => {
-    closeModal('guest-booking-detail');
-    _openReportCardModal(booking);
+    dismissModal('guest-booking-detail', () => _openReportCardModal(booking));
   });
 
   const cancelStrip = document.getElementById('cancel-strip');
@@ -730,15 +729,7 @@ function _openBookingDetailModal(booking, onDone) {
           });
           cancelStrip.querySelector('[data-sc="yes"]').addEventListener('click', () => {
             DB.cancelBooking(booking.id);
-            const overlay = document.getElementById('modal-guest-booking-detail');
-            if (overlay) {
-              overlay.classList.add('closing');
-              setTimeout(() => { overlay.remove(); toast('Booking cancelled.', 'info'); onDone(); }, 240);
-            } else {
-              closeModal('guest-booking-detail');
-              toast('Booking cancelled.', 'info');
-              onDone();
-            }
+            dismissModal('guest-booking-detail', () => { toast('Booking cancelled.', 'info'); onDone(); });
           });
         });
     }

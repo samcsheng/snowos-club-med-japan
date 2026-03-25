@@ -147,6 +147,15 @@ export function toast(msg, type = 'success') {
 }
 
 // ── Modal (bottom sheet) ─────────────────────────────────────────────────────
+const MODAL_CLOSE_MS = 240;
+
+export function dismissModal(id, cb) {
+  const overlay = document.getElementById(`modal-${id}`);
+  if (!overlay) { cb?.(); return; }
+  overlay.classList.add('closing');
+  setTimeout(() => { overlay.remove(); cb?.(); }, MODAL_CLOSE_MS);
+}
+
 export function openModal(id, title, body) {
   closeModal(id);
   const overlay = document.createElement('div');
@@ -157,7 +166,7 @@ export function openModal(id, title, body) {
       <div class="modal-handle-wrap"><div class="modal-handle"></div></div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding:0 2px;">
         <h3 style="font-family:'Newsreader',serif;font-size:22px;font-weight:700;color:#000;margin:0;">${title}</h3>
-        <button onclick="document.getElementById('modal-${id}')?.remove()"
+        <button data-modal-close
           style="background:none;border:none;padding:6px;cursor:pointer;color:#888;border-radius:50%;display:flex;">
           ${iX()}
         </button>
@@ -165,7 +174,8 @@ export function openModal(id, title, body) {
       <div id="modal-${id}-body">${body}</div>
     </div>
   `;
-  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  overlay.querySelector('[data-modal-close]').addEventListener('click', () => dismissModal(id));
+  overlay.addEventListener('click', e => { if (e.target === overlay) dismissModal(id); });
   document.body.appendChild(overlay);
 }
 

@@ -4,7 +4,7 @@ import {
   toast, pageHead, statusBadge, sportBadge, av, secLabel,
   emptyState, fmtDate, fmtDateLong, todayStr,
   lessonTimes, iCalendar, iChevR, iClipboard, iCheck,
-  iBack, iX, iPlay, iFlag, openModal, closeModal,
+  iBack, iX, iPlay, iFlag, openModal, closeModal, dismissModal,
   injectHeadAvatar,
 } from '../ui.js';
 
@@ -420,8 +420,7 @@ function _openInstructorLessonModal(lesson, session, onReportSuccess = null) {
   });
 
   document.getElementById('modal-report-btn')?.addEventListener('click', () => {
-    closeModal('instructor-lesson-detail');
-    openReportModal(lesson, session, onReportSuccess);
+    dismissModal('instructor-lesson-detail', () => openReportModal(lesson, session, onReportSuccess));
   });
 }
 
