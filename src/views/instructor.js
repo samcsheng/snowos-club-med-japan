@@ -10,7 +10,7 @@ import {
 
 // ── Inline strip confirmation helper ─────────────────────────────────────────
 // Manages 3 states inside a strip element: primary → confirming → undo
-function _initStripConfirm(stripEl, { confirmLabel, confirmBtnText, confirmBg, successLabel, onCommit, onUndo, onDone }) {
+function _initStripConfirm(stripEl, containerEl, { confirmLabel, confirmBtnText, confirmBg, successLabel, onCommit, onUndo, onDone }) {
   const FADE = 130;
 
   function swap(html, cb) {
@@ -55,13 +55,17 @@ function _initStripConfirm(stripEl, { confirmLabel, confirmBtnText, confirmBg, s
       <div style="display:flex;align-items:stretch;
         background:var(--bg-success-soft);border-top:1px solid rgba(8,138,32,0.14);">
         <span style="flex:1;padding:12px 16px;font-size:13px;font-weight:500;
-          color:#076b1a;align-self:center;">${successLabel}</span>
+          color:#076b1a;display:flex;align-items:center;gap:6px;">${successLabel}</span>
         <button data-sc="undo" style="padding:12px 18px;background:none;border:none;
           border-left:1px solid rgba(8,138,32,0.15);cursor:pointer;font-size:13px;
           color:#076b1a;font-weight:600;font-family:'Inter',sans-serif;white-space:nowrap;
           border-radius:0 0 16px 0;">Undo</button>
       </div>`, () => {
-        const timer = setTimeout(onDone, 4000);
+        const timer = setTimeout(() => {
+          containerEl.style.transition = 'opacity 220ms ease';
+          containerEl.style.opacity = '0';
+          setTimeout(() => { onDone(); requestAnimationFrame(() => { containerEl.style.opacity = '1'; }); }, 220);
+        }, 4000);
         stripEl.querySelector('[data-sc="undo"]').addEventListener('click', () => {
           clearTimeout(timer);
           onUndo();
@@ -172,7 +176,7 @@ export function renderInstructorDashboard(container, { session }) {
     const stripEl = document.getElementById(`strip-${btn.dataset.startLesson}`);
     if (!stripEl) return;
     const lessonId = btn.dataset.startLesson;
-    _initStripConfirm(stripEl, {
+    _initStripConfirm(stripEl, container, {
       confirmLabel:   'Start lesson now?',
       confirmBtnText: 'Start',
       confirmBg:      '#1E2643',
@@ -188,7 +192,7 @@ export function renderInstructorDashboard(container, { session }) {
     const stripEl = document.getElementById(`strip-${btn.dataset.completeLesson}`);
     if (!stripEl) return;
     const lessonId = btn.dataset.completeLesson;
-    _initStripConfirm(stripEl, {
+    _initStripConfirm(stripEl, container, {
       confirmLabel:   'Mark lesson complete?',
       confirmBtnText: 'Complete',
       confirmBg:      '#875700',
