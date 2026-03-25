@@ -228,6 +228,13 @@ function _renderWizardStep(container, ctx) {
 }
 
 // Step 1 — Date picker + class list combined
+function _bookingCutoffPassed(dateStr) {
+  // Booking closes at 20:00 the night before the lesson date
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const cutoff = new Date(y, m - 1, d - 1, 20, 0, 0);
+  return Date.now() >= cutoff.getTime();
+}
+
 function _step1(body, container, ctx) {
   const chips = [];
   for (let i = 0; i < 14; i++) {
@@ -239,6 +246,23 @@ function _step1(body, container, ctx) {
   function renderLessonList(listEl) {
     if (!wiz.date) {
       listEl.innerHTML = `<div style="text-align:center;padding:40px 0;color:#AAA;font-size:14px;">Select a date to see available classes</div>`;
+      return;
+    }
+    if (_bookingCutoffPassed(wiz.date)) {
+      const today = todayStr();
+      const tomorrow = isoDate(new Date(Date.now() + 864e5));
+      const dayLabel = wiz.date === today ? 'today' : wiz.date === tomorrow ? 'tomorrow' : fmtDate(wiz.date);
+      listEl.innerHTML = `
+        <div style="text-align:center;padding:32px 20px;background:linear-gradient(135deg,#FFF8EE,#FFF0DD);
+          border-radius:16px;border:1px solid rgba(180,110,40,0.15);">
+          <div style="font-size:40px;margin-bottom:14px;">🏔️</div>
+          <div style="font-weight:700;font-size:16px;color:#5C3A1E;margin-bottom:8px;">
+            Booking for ${dayLabel} has finalized.
+          </div>
+          <div style="font-size:14px;color:#8A6040;line-height:1.6;">
+            Contact the front desk or ski school counter<br>for late bookings.
+          </div>
+        </div>`;
       return;
     }
     const filtered = TEMPLATES.filter(t => t.sport === wiz.sport && t.audience === wiz.audience);
