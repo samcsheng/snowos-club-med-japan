@@ -28,14 +28,12 @@ export function renderInstructorDashboard(container, { session }) {
       headTitle  = 'On the Mountain';
       headSub    = fmtDateLong(today);
       stateBanner = `
-        <div style="padding:0 12px 20px;">
+        <div class="mlp-wave" style="margin:0 -1px;"></div>
+        <div style="padding:12px 12px 20px;">
           <div class="glass-strong" style="padding:16px;border-radius:14px;
             background:rgba(30,38,67,0.07);border:1.5px solid rgba(30,38,67,0.15);">
             <div style="display:flex;align-items:center;gap:12px;">
-              <svg class="mcp" viewBox="0 0 48 48" width="28" height="28">
-                <circle class="mcp-track" cx="24" cy="24" r="20" fill="none" stroke-width="4"/>
-                <circle class="mcp-arc"   cx="24" cy="24" r="20" fill="none" stroke-width="4"/>
-              </svg>
+              <span style="font-size:22px;line-height:1;">🏔</span>
               <div>
                 <div style="font-weight:700;color:#1E2643;font-size:15px;">Lesson in progress</div>
                 <div style="font-size:13px;color:#5a6070;margin-top:2px;">Enjoy your time with the guests. Show them the best you have :)</div>
