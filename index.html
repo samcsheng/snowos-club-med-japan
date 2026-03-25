@@ -322,8 +322,12 @@
     }
     .modal-handle-wrap { display: flex; justify-content: center; padding: 12px 0 4px; }
     .modal-handle { width: 36px; height: 4px; background: rgba(116,99,82,0.24); border-radius: 2px; }
-    @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    @keyframes overlayIn  { from { opacity: 0; }                  to { opacity: 1; } }
+    @keyframes overlayOut { from { opacity: 1; }                  to { opacity: 0; } }
+    @keyframes sheetUp    { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    @keyframes sheetDown  { from { transform: translateY(0); }    to { transform: translateY(100%); } }
+    .modal-overlay.closing              { animation: overlayOut 0.24s ease forwards; }
+    .modal-overlay.closing .modal-sheet { animation: sheetDown  0.24s cubic-bezier(0.32,0.72,0,1) forwards; }
 
     /* ── Toast ────────────────────────────────────────── */
     .toast {
@@ -413,9 +417,9 @@
 
     /* ── Attendance pills ─────────────────────────────── */
 	    .att-pill {
-	      padding: 8px 16px; border-radius: 999px;
+	      padding: 5px 12px; border-radius: 999px;
 	      border: 1.5px solid var(--line-soft); background: linear-gradient(180deg, rgba(255,255,255,0.34), rgba(255,255,255,0.08)), var(--bg-section-soft);
-	      color: #514943; font-size: 13px; font-weight: 500; cursor: pointer;
+	      color: #514943; font-size: 12px; font-weight: 600; cursor: pointer;
 	      transition: all 0.15s; -webkit-tap-highlight-color: transparent;
 	      font-family: 'Inter', sans-serif;
 	    }
@@ -424,11 +428,11 @@
     /* ── Check pills (terrain/skills) ─────────────────── */
 	    .check-pill {
 	      display: inline-flex; align-items: center; gap: 5px;
-	      padding: 8px 14px; border-radius: 999px;
+	      padding: 5px 12px; border-radius: 999px;
 	      border: 1.5px solid var(--line-soft); background: linear-gradient(180deg, rgba(255,255,255,0.34), rgba(255,255,255,0.08)), var(--bg-section-soft);
-	      color: #514943; font-size: 13px; cursor: pointer;
+	      color: #514943; font-size: 12px; cursor: pointer;
 	      transition: all 0.15s; user-select: none; -webkit-tap-highlight-color: transparent;
-	      font-family: 'Inter', sans-serif; font-weight: 500;
+	      font-family: 'Inter', sans-serif; font-weight: 600;
 	    }
     .check-pill.checked { background: #1E2643; color: #fff; border-color: #1E2643; }
     .check-pill input { display: none; }
@@ -449,6 +453,20 @@
 
     /* ── Section label ────────────────────────────────── */
 	    .sec-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.2px; color: #85786f; }
+
+    /* ── New booking card shake ───────────────────────── */
+    @keyframes bkg-new-shake {
+      0%        { transform: translateX(0) scale(1); }
+      12%       { transform: translateX(-6px) scale(1.02); }
+      25%       { transform: translateX(6px)  scale(1.02); }
+      37%       { transform: translateX(-5px); }
+      50%       { transform: translateX(5px); }
+      62%       { transform: translateX(-3px); }
+      75%       { transform: translateX(3px); }
+      88%       { transform: translateX(-1px); }
+      100%      { transform: translateX(0) scale(1); }
+    }
+    .bkg-new-shake { animation: bkg-new-shake 0.55s ease-out both; }
 
     /* ── Empty state ──────────────────────────────────── */
     .empty-state { text-align: center; padding: 52px 24px; }
@@ -525,6 +543,39 @@
     /* ── Accent saffron bar ───────────────────────────── */
     .accent-bar { height: 3px; border-radius: 999px; background: #FDBE00; }
 
+    /* ── Wavy linear progress (on-mountain) ──────────────── */
+    /* Ghost track + animated sine-wave indicator tiled via SVG data URI */
+    .mlp-wave {
+      position: relative;
+      width: 100%;
+      height: 10px;
+      overflow: hidden;
+    }
+    /* flat ghost track */
+    .mlp-wave::before {
+      content: '';
+      position: absolute;
+      top: 50%; left: 0; right: 0;
+      height: 3px;
+      margin-top: -1.5px;
+      background: rgba(253,190,0,0.22);
+    }
+    /* animated wavy indicator — one tile = one full sine period (48 × 10 px) */
+    .mlp-wave::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 10'><path d='M 0,5 C 9,1 15,1 24,5 C 33,9 39,9 48,5' stroke='%23FDBE00' stroke-width='3.5' fill='none' stroke-linecap='round'/></svg>");
+      background-size: 48px 10px;
+      background-repeat: repeat-x;
+      background-position-y: center;
+      animation: mlp-wave-scroll 700ms linear infinite;
+    }
+    @keyframes mlp-wave-scroll {
+      from { background-position-x: 0; }
+      to   { background-position-x: -48px; }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       #bottom-nav,
       .nav-indicator,
@@ -535,7 +586,8 @@
       .card-row,
       .book-lesson-card,
       .wizard-step-enter-right,
-      .wizard-step-enter-left {
+      .wizard-step-enter-left,
+      .mlp-wave::after {
         transition: none !important;
         animation: none !important;
       }

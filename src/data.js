@@ -5,7 +5,7 @@ export const KEYS = {
   BOOKINGS: 'snow_bookings',
   REPORTS:  'snow_reports',
   SESSION:  'snow_session',
-  SEEDED:   'snow_seeded_v5',
+  SEEDED:   'snow_seeded_v6',
 };
 
 // ── Generic helpers ──────────────────────────────────────────────────────────
@@ -197,7 +197,7 @@ function _doSeed() {
     const dateStr = isoDate(d);
     const isPast  = offset < 0;
     const isToday = offset === 0;
-    const status  = isPast ? 'completed' : isToday ? 'on-mountain' : 'scheduled';
+    const status  = isPast ? 'completed' : 'scheduled';
 
     TEMPLATES.forEach((tmpl, ti) => {
       // Future: leave ~1-in-8 slots unassigned for supervisor demo

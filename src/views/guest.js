@@ -4,7 +4,7 @@ import {
   toast, pageHead, injectHeadAvatar, statusBadge, bookingDisplayStatus, sportBadge, av,
   secLabel, emptyState, fmtDate, fmtDateLong, todayStr,
   greeting, lessonTimes, iCalendar, iPlus, iChevR, iUser,
-  iCheck, iWarn, iBack, setNavHidden, openModal, closeModal, iClipboard,
+  iCheck, iWarn, iBack, setNavHidden, openModal, closeModal, dismissModal, iClipboard,
 } from '../ui.js';
 
 // ── Guest Dashboard ──────────────────────────────────────────────────────────
@@ -193,15 +193,18 @@ function _renderWizardStep(container, ctx) {
 
   if (wiz.step === 2) {
     setNavHidden(true);
-    wrap.innerHTML = pageHead('Confirm booking');
+    wrap.innerHTML = pageHead('');
     container.appendChild(wrap);
     const titleRow = wrap.querySelector('.page-head > div');
     titleRow.style.alignItems = 'center';
+    // Hide empty h1
+    const h1 = titleRow.querySelector('h1');
+    if (h1) h1.remove();
     const backBtn = document.createElement('button');
     backBtn.id = 'wiz-back';
     backBtn.type = 'button';
-    backBtn.style.cssText = 'flex-shrink:0;margin-bottom:2px;padding:6px;background:var(--bg-section-soft);border:1px solid var(--line-soft);border-radius:999px;display:inline-flex;color:#1E2643;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent;';
-    backBtn.innerHTML = iBack();
+    backBtn.style.cssText = 'flex-shrink:0;display:inline-flex;align-items:center;gap:6px;padding:8px 14px 8px 10px;background:var(--bg-section-soft);border:1px solid var(--line-soft);border-radius:999px;color:#1E2643;font-size:14px;font-weight:600;font-family:\'Inter\',sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent;';
+    backBtn.innerHTML = iBack() + '<span>Back</span>';
     titleRow.prepend(backBtn);
     wrap.querySelector('#wiz-back').addEventListener('click', () => {
       _runWizardTransition(container, ctx, () => {
@@ -225,6 +228,13 @@ function _renderWizardStep(container, ctx) {
 }
 
 // Step 1 — Date picker + class list combined
+function _bookingCutoffPassed(dateStr) {
+  // Booking closes at 20:00 the night before the lesson date
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const cutoff = new Date(y, m - 1, d - 1, 20, 0, 0);
+  return Date.now() >= cutoff.getTime();
+}
+
 function _step1(body, container, ctx) {
   const chips = [];
   for (let i = 0; i < 14; i++) {
@@ -233,9 +243,32 @@ function _step1(body, container, ctx) {
     chips.push(d);
   }
 
+  // Pre-select the first date that hasn't passed its booking cutoff
+  if (!wiz.date) {
+    const firstOpen = chips.find(d => !_bookingCutoffPassed(isoDate(d)));
+    if (firstOpen) wiz.date = isoDate(firstOpen);
+  }
+
   function renderLessonList(listEl) {
     if (!wiz.date) {
       listEl.innerHTML = `<div style="text-align:center;padding:40px 0;color:#AAA;font-size:14px;">Select a date to see available classes</div>`;
+      return;
+    }
+    if (_bookingCutoffPassed(wiz.date)) {
+      const today = todayStr();
+      const tomorrow = isoDate(new Date(Date.now() + 864e5));
+      const dayLabel = wiz.date === today ? 'today' : wiz.date === tomorrow ? 'tomorrow' : fmtDate(wiz.date);
+      listEl.innerHTML = `
+        <div style="text-align:center;padding:32px 20px;background:linear-gradient(135deg,#FFF8EE,#FFF0DD);
+          border-radius:16px;border:1px solid rgba(180,110,40,0.15);">
+          <div style="font-size:40px;margin-bottom:14px;">🏔️</div>
+          <div style="font-weight:700;font-size:16px;color:#5C3A1E;margin-bottom:8px;">
+            Booking for ${dayLabel} has finalized.
+          </div>
+          <div style="font-size:14px;color:#8A6040;line-height:1.6;">
+            Contact the front desk or ski school counter<br>for late bookings.
+          </div>
+        </div>`;
       return;
     }
     const filtered = TEMPLATES.filter(t => t.sport === wiz.sport && t.audience === wiz.audience);
@@ -290,14 +323,15 @@ function _step1(body, container, ctx) {
       </div>
       <div class="sx" style="display:flex;gap:8px;padding:4px 0;">
         ${chips.map(d => {
-          const ds  = isoDate(d);
-          const dow = d.toLocaleDateString('en-US', { weekday: 'short' });
-          const day = d.getDate();
-          const mon = d.toLocaleDateString('en-US', { month: 'short' });
-          const sel = ds === wiz.date;
+          const ds      = isoDate(d);
+          const dow     = d.toLocaleDateString('en-US', { weekday: 'short' });
+          const day     = d.getDate();
+          const mon     = d.toLocaleDateString('en-US', { month: 'short' });
+          const sel     = ds === wiz.date;
+          const cutoff  = _bookingCutoffPassed(ds);
           return `
             <div class="date-chip${sel ? ' selected' : ''}${ds === todayStr() ? ' today' : ''}"
-              data-date="${ds}" style="flex-shrink:0;">
+              data-date="${ds}" style="flex-shrink:0;${cutoff && !sel ? 'opacity:0.38;' : ''}">
               <div class="date-chip-dow">${dow}</div>
               <div class="date-chip-day">${day}</div>
               <div style="font-size:9px;color:${sel ? 'rgba(255,255,255,0.7)' : '#AAA'};margin-top:1px;">${mon}</div>
@@ -360,40 +394,40 @@ function _step2(body, container, ctx) {
     ? DB.getBookingsByGuest(session.id).find(b => b.lessonId === lesson.id && b.status === 'confirmed')
     : null;
 
+  const spotsLeft = tmpl.maxGuests - taken;
+  const sportEmoji = tmpl.sport === 'snowboard' ? '🏂' : '⛷️';
+  const instFirst  = inst ? inst.name.split(' ')[0] : null;
+  const instLast   = inst ? inst.name.split(' ').slice(1).join(' ') : null;
+
   body.innerHTML = `
-    <div class="sec-label" style="margin-bottom:12px;">Booking summary</div>
-    <div class="glass book-summary-card" style="padding:20px;margin-bottom:20px;">
-      <div style="display:flex;flex-direction:column;gap:14px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:13px;color:#888;">Class</span>
-          <span style="font-weight:600;font-size:15px;color:#000;">${tmpl.id} — ${tmpl.name}</span>
-        </div>
-        <div class="div"></div>
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:13px;color:#888;">Date</span>
-          <span style="font-weight:600;">${fmtDateLong(wiz.date)}</span>
-        </div>
-        <div class="div"></div>
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:13px;color:#888;">Schedule</span>
-          <span style="font-weight:600;">${lessonTimes(tmpl)}</span>
-        </div>
-        <div class="div"></div>
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:13px;color:#888;">Instructor</span>
-          <span style="font-weight:600;">${inst ? inst.name : 'TBD'}</span>
-        </div>
-        <div class="div"></div>
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:13px;color:#888;">Availability</span>
-          <span style="font-weight:600;">${tmpl.maxGuests - taken} of ${tmpl.maxGuests} spots left</span>
-        </div>
+    <!-- Hero -->
+    <div style="text-align:center;padding:12px 0 36px;">
+      <div style="font-size:72px;line-height:1;margin-bottom:20px;">${sportEmoji}</div>
+      <div style="font-family:'Newsreader',serif;font-size:36px;font-weight:800;color:#1E2643;
+        line-height:1.1;margin-bottom:10px;">${tmpl.name}</div>
+      <div style="font-size:16px;color:#888;margin-bottom:4px;">${fmtDateLong(wiz.date)}</div>
+      <div style="font-size:16px;color:#888;">${lessonTimes(tmpl)}</div>
+    </div>
+
+    <!-- Instructor + Spots -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:32px;">
+      <div style="background:var(--bg-section-soft);border-radius:16px;padding:18px 14px;text-align:center;">
+        <div class="sec-label" style="margin-bottom:8px;">Instructor</div>
+        ${inst
+          ? `<div style="font-family:'Newsreader',serif;font-weight:800;font-size:32px;color:#1E2643;line-height:1;">${instFirst}</div>
+             <div style="font-size:12px;color:#aaa;margin-top:4px;">${instLast}</div>`
+          : `<div style="font-family:'Newsreader',serif;font-weight:800;font-size:32px;color:#aaa;line-height:1;">—</div>`}
+      </div>
+      <div style="background:var(--bg-section-soft);border-radius:16px;padding:18px 14px;text-align:center;">
+        <div class="sec-label" style="margin-bottom:8px;">Spots left</div>
+        <div style="font-family:'Newsreader',serif;font-weight:800;font-size:32px;color:${spotsLeft <= 2 ? '#BF2F17' : '#1E2643'};line-height:1;">${spotsLeft}</div>
+        <div style="font-size:12px;color:#aaa;margin-top:4px;">of ${tmpl.maxGuests}</div>
       </div>
     </div>
 
     ${existing ? `
-      <div style="background:var(--bg-action-soft);border:1px solid rgba(253,190,0,0.46);border-radius:8px;padding:12px 14px;
-        color:#875700;font-size:14px;margin-bottom:16px;">
+      <div style="background:var(--bg-action-soft);border:1px solid rgba(253,190,0,0.46);border-radius:10px;
+        padding:12px 14px;color:#875700;font-size:14px;margin-bottom:20px;display:flex;align-items:center;gap:8px;">
         ${iWarn()} You already have a booking for this lesson.
       </div>` : ''}
 
@@ -499,6 +533,14 @@ export function renderMyBookings(container, { session }) {
   }
 
   render();
+  if (newBookingId) {
+    const card = container.querySelector(`[data-booking-card="${newBookingId}"]`);
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      card.classList.add('bkg-new-shake');
+      card.addEventListener('animationend', () => card.classList.remove('bkg-new-shake'), { once: true });
+    }
+  }
   sessionStorage.removeItem('snow_new_booking_id');
 }
 
@@ -628,53 +670,72 @@ function _openBookingDetailModal(booking, onDone) {
         </button>` : ''}
 
       ${canCancel ? `
-        <div class="glass" style="padding:16px;border-radius:14px;background:var(--bg-section);">
-          <div style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#8A6B53;">
-            Need to change plans?
+        <div class="glass" style="border-radius:14px;overflow:hidden;background:var(--bg-section);">
+          <div style="padding:16px 16px 14px;">
+            <div style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#8A6B53;">
+              Need to change plans?
+            </div>
+            <div style="font-size:14px;color:#5D4B40;line-height:1.55;margin-top:8px;">
+              You can manage this booking here if your plans changed.
+            </div>
           </div>
-          <div style="font-size:14px;color:#5D4B40;line-height:1.55;margin-top:8px;">
-            You can manage this booking here if your plans changed.
+          <div id="cancel-strip">
+            <button data-sc-trigger style="display:flex;align-items:center;gap:8px;padding:13px 20px;width:100%;
+              background:rgba(139,58,46,0.06);border:none;border-top:1px solid rgba(139,58,46,0.12);
+              cursor:pointer;color:#8B3A2E;font-size:14px;font-weight:600;
+              font-family:'Inter',sans-serif;">
+              Cancel booking
+            </button>
           </div>
-          <button id="detail-cancel-booking" class="btn btn-ghost btn-md btn-full"
-            style="margin-top:14px;color:#8B3A2E;border-color:rgba(139,58,46,0.18);background:var(--bg-card-strong);">
-            Cancel booking
-          </button>
-          <div id="detail-cancel-confirm"></div>
         </div>` : ''}
     </div>
   `);
 
   document.getElementById('detail-report-card')?.addEventListener('click', () => {
-    closeModal('guest-booking-detail');
-    _openReportCardModal(booking);
+    dismissModal('guest-booking-detail', () => _openReportCardModal(booking));
   });
 
-  document.getElementById('detail-cancel-booking')?.addEventListener('click', () => {
-    const confirmEl = document.getElementById('detail-cancel-confirm');
-    if (!confirmEl) return;
+  const cancelStrip = document.getElementById('cancel-strip');
+  if (cancelStrip) {
+    const FADE = 130;
+    const primaryHTML = cancelStrip.innerHTML;
 
-    confirmEl.innerHTML = `
-      <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(30,38,67,0.07);">
-        <div style="font-size:13px;color:#6C5146;line-height:1.45;margin-bottom:12px;">
-          Cancel this booking and release your spot?
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn btn-danger btn-sm" id="detail-cancel-confirm-yes">Yes, cancel</button>
-          <button class="btn btn-ghost btn-sm" id="detail-cancel-confirm-no">Keep booking</button>
-        </div>
-      </div>`;
+    function swapStrip(html, cb) {
+      cancelStrip.style.transition = `opacity ${FADE}ms ease`;
+      cancelStrip.style.opacity = '0';
+      setTimeout(() => { cancelStrip.innerHTML = html; cancelStrip.style.opacity = '1'; cb?.(); }, FADE);
+    }
 
-    document.getElementById('detail-cancel-confirm-yes')?.addEventListener('click', () => {
-      DB.cancelBooking(booking.id);
-      closeModal('guest-booking-detail');
-      toast('Booking cancelled.', 'info');
-      onDone();
-    });
+    function bindPrimary() {
+      cancelStrip.querySelector('[data-sc-trigger]')?.addEventListener('click', showConfirm);
+    }
 
-    document.getElementById('detail-cancel-confirm-no')?.addEventListener('click', () => {
-      confirmEl.innerHTML = '';
-    });
-  });
+    function showConfirm() {
+      swapStrip(`
+        <div style="display:flex;align-items:stretch;border-top:1px solid rgba(139,58,46,0.12);">
+          <span style="flex:1;padding:13px 16px;font-size:13px;font-weight:500;
+            color:#6C4040;align-self:center;">Confirm cancel?</span>
+          <button data-sc="keep" style="padding:13px 16px;background:none;border:none;
+            border-left:1px solid rgba(0,0,0,0.07);cursor:pointer;font-size:14px;color:#888;
+            font-weight:500;font-family:'Inter',sans-serif;white-space:nowrap;">Keep</button>
+          <button data-sc="yes" style="padding:13px 18px;background:#8B3A2E;border:none;
+            cursor:pointer;font-size:14px;color:#fff;font-weight:700;
+            font-family:'Inter',sans-serif;white-space:nowrap;border-radius:0 0 14px 0;">
+            Yes, cancel
+          </button>
+        </div>`, () => {
+          cancelStrip.querySelector('[data-sc="keep"]').addEventListener('click', () => {
+            swapStrip(primaryHTML, bindPrimary);
+          });
+          cancelStrip.querySelector('[data-sc="yes"]').addEventListener('click', () => {
+            DB.cancelBooking(booking.id);
+            dismissModal('guest-booking-detail', () => { toast('Booking cancelled.', 'info'); onDone(); });
+          });
+        });
+    }
+
+    bindPrimary();
+  }
 }
 
 function _openReportCardModal(booking) {

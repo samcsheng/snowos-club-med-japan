@@ -4,8 +4,78 @@ import {
   toast, pageHead, statusBadge, sportBadge, av, secLabel,
   emptyState, fmtDate, fmtDateLong, todayStr,
   lessonTimes, iCalendar, iChevR, iClipboard, iCheck,
-  iBack, iX, iPlay, iFlag, openModal, closeModal,
+  iBack, iX, iPlay, iFlag, openModal, closeModal, dismissModal,
+  injectHeadAvatar,
 } from '../ui.js';
+
+// ── Inline strip confirmation helper ─────────────────────────────────────────
+// Manages 3 states inside a strip element: primary → confirming → undo
+function _initStripConfirm(stripEl, containerEl, { confirmLabel, confirmBtnText, confirmBg, successLabel, onCommit, onUndo, onDone }) {
+  const FADE = 130;
+
+  function swap(html, cb) {
+    stripEl.style.transition = `opacity ${FADE}ms ease`;
+    stripEl.style.opacity = '0';
+    setTimeout(() => { stripEl.innerHTML = html; stripEl.style.opacity = '1'; cb?.(); }, FADE);
+  }
+
+  const primaryHTML = stripEl.innerHTML;
+
+  function bindPrimary() {
+    stripEl.querySelector('[data-sc-trigger]')?.addEventListener('click', showConfirm);
+  }
+
+  function showConfirm() {
+    swap(`
+      <div style="display:flex;align-items:stretch;border-top:1px solid rgba(0,0,0,0.07);">
+        <span style="flex:1;padding:13px 16px;font-size:13px;font-weight:500;color:#444;align-self:center;">
+          ${confirmLabel}
+        </span>
+        <button data-sc="cancel" style="padding:13px 16px;background:none;border:none;
+          border-left:1px solid rgba(0,0,0,0.07);cursor:pointer;font-size:14px;color:#888;
+          font-weight:500;font-family:'Inter',sans-serif;white-space:nowrap;">Cancel</button>
+        <button data-sc="ok" style="padding:13px 18px;background:${confirmBg};border:none;
+          cursor:pointer;font-size:14px;color:#fff;font-weight:700;
+          font-family:'Inter',sans-serif;white-space:nowrap;border-radius:0 0 16px 0;">
+          ${confirmBtnText}
+        </button>
+      </div>`, () => {
+        stripEl.querySelector('[data-sc="cancel"]').addEventListener('click', () => {
+          swap(primaryHTML, bindPrimary);
+        });
+        stripEl.querySelector('[data-sc="ok"]').addEventListener('click', () => {
+          onCommit();
+          showUndo();
+        });
+      });
+  }
+
+  function showUndo() {
+    swap(`
+      <div style="display:flex;align-items:stretch;
+        background:var(--bg-success-soft);border-top:1px solid rgba(8,138,32,0.14);">
+        <span style="flex:1;padding:12px 16px;font-size:13px;font-weight:500;
+          color:#076b1a;display:flex;align-items:center;gap:6px;">${successLabel}</span>
+        <button data-sc="undo" style="padding:12px 18px;background:none;border:none;
+          border-left:1px solid rgba(8,138,32,0.15);cursor:pointer;font-size:13px;
+          color:#076b1a;font-weight:600;font-family:'Inter',sans-serif;white-space:nowrap;
+          border-radius:0 0 16px 0;">Undo</button>
+      </div>`, () => {
+        const timer = setTimeout(() => {
+          containerEl.style.transition = 'opacity 220ms ease';
+          containerEl.style.opacity = '0';
+          setTimeout(() => { onDone(); requestAnimationFrame(() => { containerEl.style.opacity = '1'; }); }, 220);
+        }, 4000);
+        stripEl.querySelector('[data-sc="undo"]').addEventListener('click', () => {
+          clearTimeout(timer);
+          onUndo();
+          swap(primaryHTML, bindPrimary);
+        });
+      });
+  }
+
+  bindPrimary();
+}
 
 // ── Instructor Dashboard ──────────────────────────────────────────────────────
 export function renderInstructorDashboard(container, { session }) {
@@ -27,7 +97,8 @@ export function renderInstructorDashboard(container, { session }) {
       headTitle  = 'On the Mountain';
       headSub    = fmtDateLong(today);
       stateBanner = `
-        <div style="padding:0 12px 20px;">
+        <div class="mlp-wave" style="margin:0 -1px;"></div>
+        <div style="padding:12px 12px 20px;">
           <div class="glass-strong" style="padding:16px;border-radius:14px;
             background:rgba(30,38,67,0.07);border:1.5px solid rgba(30,38,67,0.15);">
             <div style="display:flex;align-items:center;gap:12px;">
@@ -100,25 +171,35 @@ export function renderInstructorDashboard(container, { session }) {
     });
   });
 
-  // Start Lesson: scheduled → on-mountain
+  // Start Lesson: scheduled → on-mountain (with inline confirmation)
   container.querySelectorAll('[data-start-lesson]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const lesson = DB.getLessonById(btn.dataset.startLesson);
-      if (!lesson) return;
-      DB.upsertLesson({ ...lesson, status: 'on-mountain' });
-      toast('Lesson started — have a great session! 🏔', 'success');
-      renderInstructorDashboard(container, { session });
+    const stripEl = document.getElementById(`strip-${btn.dataset.startLesson}`);
+    if (!stripEl) return;
+    const lessonId = btn.dataset.startLesson;
+    _initStripConfirm(stripEl, container, {
+      confirmLabel:   'Start lesson now?',
+      confirmBtnText: 'Start',
+      confirmBg:      '#1E2643',
+      successLabel:   `${iCheck()} Lesson started`,
+      onCommit: () => { const l = DB.getLessonById(lessonId); if (l) DB.upsertLesson({ ...l, status: 'on-mountain' }); },
+      onUndo:   () => { const l = DB.getLessonById(lessonId); if (l) DB.upsertLesson({ ...l, status: 'scheduled' }); },
+      onDone:   _rerender,
     });
   });
 
-  // Complete Lesson: on-mountain → completed
+  // Complete Lesson: on-mountain → completed (with inline confirmation)
   container.querySelectorAll('[data-complete-lesson]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const lesson = DB.getLessonById(btn.dataset.completeLesson);
-      if (!lesson) return;
-      DB.upsertLesson({ ...lesson, status: 'completed' });
-      toast('Lesson complete — please submit your report', 'info');
-      renderInstructorDashboard(container, { session });
+    const stripEl = document.getElementById(`strip-${btn.dataset.completeLesson}`);
+    if (!stripEl) return;
+    const lessonId = btn.dataset.completeLesson;
+    _initStripConfirm(stripEl, container, {
+      confirmLabel:   'Mark lesson complete?',
+      confirmBtnText: 'Complete',
+      confirmBg:      '#875700',
+      successLabel:   `${iCheck()} Lesson complete`,
+      onCommit: () => { const l = DB.getLessonById(lessonId); if (l) DB.upsertLesson({ ...l, status: 'completed' }); },
+      onUndo:   () => { const l = DB.getLessonById(lessonId); if (l) DB.upsertLesson({ ...l, status: 'on-mountain' }); },
+      onDone:   _rerender,
     });
   });
 
@@ -129,6 +210,9 @@ export function renderInstructorDashboard(container, { session }) {
       if (lesson) openReportModal(lesson, session, _rerender);
     });
   });
+
+  // Re-inject avatar since we rebuilt container.innerHTML
+  injectHeadAvatar(session, container);
 }
 
 function _instructorLessonCard(lesson) {
@@ -143,20 +227,24 @@ function _instructorLessonCard(lesson) {
   let actionStrip = '';
   if (lesson.status === 'scheduled') {
     actionStrip = `
-      <button data-start-lesson="${lesson.id}"
-        style="display:flex;align-items:center;gap:8px;padding:13px 22px;width:100%;
-        background:rgba(30,38,67,0.06);border:none;border-top:1px solid rgba(30,38,67,0.1);
-        cursor:pointer;color:#1E2643;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;">
-        ${iPlay()} Start Lesson
-      </button>`;
+      <div id="strip-${lesson.id}">
+        <button data-start-lesson="${lesson.id}" data-sc-trigger
+          style="display:flex;align-items:center;gap:8px;padding:13px 22px;width:100%;
+          background:rgba(30,38,67,0.06);border:none;border-top:1px solid rgba(30,38,67,0.1);
+          cursor:pointer;color:#1E2643;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;">
+          ${iPlay()} Start Lesson
+        </button>
+      </div>`;
   } else if (lesson.status === 'on-mountain') {
     actionStrip = `
-      <button data-complete-lesson="${lesson.id}"
-        style="display:flex;align-items:center;gap:8px;padding:13px 22px;width:100%;
-        background:rgba(253,190,0,0.12);border:none;border-top:1px solid rgba(253,190,0,0.22);
-        cursor:pointer;color:#875700;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;">
-        ${iFlag()} Complete Lesson
-      </button>`;
+      <div id="strip-${lesson.id}">
+        <button data-complete-lesson="${lesson.id}" data-sc-trigger
+          style="display:flex;align-items:center;gap:8px;padding:13px 22px;width:100%;
+          background:rgba(253,190,0,0.12);border:none;border-top:1px solid rgba(253,190,0,0.22);
+          cursor:pointer;color:#875700;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;">
+          ${iFlag()} Complete Lesson
+        </button>
+      </div>`;
   } else if (lesson.status === 'completed' && !report) {
     actionStrip = `
       <button data-report-id="${lesson.id}"
@@ -266,8 +354,8 @@ function _openInstructorLessonModal(lesson, session, onReportSuccess = null) {
                     background:var(--bg-section-soft);border:1px solid var(--line-soft);
                     border-radius:999px;padding:5px 12px;cursor:pointer;
                     font-family:'Inter',sans-serif;flex-shrink:0;white-space:nowrap;
-                    display:inline-flex;align-items:center;gap:4px;line-height:1;">
-                    Report ${iChevR()}
+                    display:inline-flex;align-items:center;line-height:1;">
+                    Report
                   </button>` : ''}
               </div>`;
           }).join('')}
@@ -312,11 +400,10 @@ function _openInstructorLessonModal(lesson, session, onReportSuccess = null) {
       <!-- CTA: submit report / pending state -->
       ${needsReport ? `
       <button id="modal-report-btn"
-        style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;width:100%;
+        style="display:flex;align-items:center;gap:8px;padding:14px 16px;width:100%;
         background:rgba(253,190,0,0.1);border:none;border-radius:14px;cursor:pointer;color:#875700;
         font-size:14px;font-weight:600;font-family:'Inter',sans-serif;text-align:left;">
-        <span style="display:flex;align-items:center;gap:8px;">${iClipboard()} Submit lesson report</span>
-        <span style="color:#B07A00;">${iChevR()}</span>
+        ${iClipboard()} Submit lesson report
       </button>` : ''}
 
     </div>
@@ -333,8 +420,7 @@ function _openInstructorLessonModal(lesson, session, onReportSuccess = null) {
   });
 
   document.getElementById('modal-report-btn')?.addEventListener('click', () => {
-    closeModal('instructor-lesson-detail');
-    openReportModal(lesson, session, onReportSuccess);
+    dismissModal('instructor-lesson-detail', () => openReportModal(lesson, session, onReportSuccess));
   });
 }
 
@@ -696,29 +782,29 @@ function openReportModal(lesson, session, onSuccess = null) {
   function buildBody() {
     return `
       <!-- Terrains -->
-      <div style="padding:0 2px 6px;">${secLabel('Terrains covered')}</div>
+      <div class="sec-label" style="margin-bottom:8px;">Terrains covered</div>
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;">
         ${TERRAINS.map(t => `
           <label class="check-pill${draft.terrains.has(t.id) ? ' checked' : ''}">
             <input type="checkbox" data-group="terrain" value="${t.id}"
               ${draft.terrains.has(t.id) ? 'checked' : ''}>
-            ${draft.terrains.has(t.id) ? '✓ ' : ''}${t.label}
+            ${t.label}
           </label>`).join('')}
       </div>
 
       <!-- Skills -->
-      <div style="padding:0 2px 6px;">${secLabel('Skills practiced')}</div>
+      <div class="sec-label" style="margin-bottom:8px;">Skills practiced</div>
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;">
         ${SKILLS.map(s => `
           <label class="check-pill${draft.skills.has(s.id) ? ' checked' : ''}">
             <input type="checkbox" data-group="skill" value="${s.id}"
               ${draft.skills.has(s.id) ? 'checked' : ''}>
-            ${draft.skills.has(s.id) ? '✓ ' : ''}${s.label}
+            ${s.label}
           </label>`).join('')}
       </div>
 
       <!-- Per-guest -->
-      <div style="padding:0 2px 8px;">${secLabel(`Per-Guest (${guests.length})`)}</div>
+      <div class="sec-label" style="margin-bottom:8px;">Per-Guest (${guests.length})</div>
       <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
         ${guests.map(({ guestId, guest }) => {
           const g = draft.guests[guestId] || { attendance: 'BOTH', nextClass: lesson.templateId, notes: '' };
@@ -787,7 +873,7 @@ function openReportModal(lesson, session, onSuccess = null) {
         const gid = btn.dataset.guest;
         if (!draft.guests[gid]) draft.guests[gid] = { attendance: 'BOTH', nextClass: lesson.templateId, notes: '' };
         draft.guests[gid].attendance = btn.dataset.att;
-        rerender();
+        body.querySelectorAll(`[data-att][data-guest="${gid}"]`).forEach(b => b.classList.toggle('active', b === btn));
       });
     });
 
@@ -796,7 +882,7 @@ function openReportModal(lesson, session, onSuccess = null) {
         const gid = btn.dataset.ncGuest;
         if (!draft.guests[gid]) draft.guests[gid] = { attendance: 'BOTH', nextClass: lesson.templateId, notes: '' };
         draft.guests[gid].nextClass = btn.dataset.ncVal;
-        rerender();
+        body.querySelectorAll(`[data-nc-guest="${gid}"]`).forEach(b => b.classList.toggle('active', b === btn));
       });
     });
 
@@ -838,7 +924,6 @@ function openReportModal(lesson, session, onSuccess = null) {
       overlay.remove();
       toast('Report submitted successfully!', 'success');
       if (onSuccess) onSuccess();
-      else navigate('/instructor/dashboard');
     });
   }
 
