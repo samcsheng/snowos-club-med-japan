@@ -706,7 +706,7 @@ function openReportModal(lesson, session, onSuccess = null) {
           <label class="check-pill${draft.terrains.has(t.id) ? ' checked' : ''}">
             <input type="checkbox" data-group="terrain" value="${t.id}"
               ${draft.terrains.has(t.id) ? 'checked' : ''}>
-            ${draft.terrains.has(t.id) ? '✓ ' : ''}${t.label}
+            ${t.label}
           </label>`).join('')}
       </div>
 
@@ -717,7 +717,7 @@ function openReportModal(lesson, session, onSuccess = null) {
           <label class="check-pill${draft.skills.has(s.id) ? ' checked' : ''}">
             <input type="checkbox" data-group="skill" value="${s.id}"
               ${draft.skills.has(s.id) ? 'checked' : ''}>
-            ${draft.skills.has(s.id) ? '✓ ' : ''}${s.label}
+            ${s.label}
           </label>`).join('')}
       </div>
 
