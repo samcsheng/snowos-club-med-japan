@@ -670,18 +670,23 @@ function _openBookingDetailModal(booking, onDone) {
         </button>` : ''}
 
       ${canCancel ? `
-        <div class="glass" style="padding:16px;border-radius:14px;background:var(--bg-section);">
-          <div style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#8A6B53;">
-            Need to change plans?
+        <div class="glass" style="border-radius:14px;overflow:hidden;background:var(--bg-section);">
+          <div style="padding:16px 16px 14px;">
+            <div style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#8A6B53;">
+              Need to change plans?
+            </div>
+            <div style="font-size:14px;color:#5D4B40;line-height:1.55;margin-top:8px;">
+              You can manage this booking here if your plans changed.
+            </div>
           </div>
-          <div style="font-size:14px;color:#5D4B40;line-height:1.55;margin-top:8px;">
-            You can manage this booking here if your plans changed.
+          <div id="cancel-strip">
+            <button data-sc-trigger style="display:flex;align-items:center;gap:8px;padding:13px 20px;width:100%;
+              background:rgba(139,58,46,0.06);border:none;border-top:1px solid rgba(139,58,46,0.12);
+              cursor:pointer;color:#8B3A2E;font-size:14px;font-weight:600;
+              font-family:'Inter',sans-serif;">
+              Cancel booking
+            </button>
           </div>
-          <button id="detail-cancel-booking" class="btn btn-ghost btn-md btn-full"
-            style="margin-top:14px;color:#8B3A2E;border-color:rgba(139,58,46,0.18);background:var(--bg-card-strong);">
-            Cancel booking
-          </button>
-          <div id="detail-cancel-confirm"></div>
         </div>` : ''}
     </div>
   `);
@@ -691,32 +696,49 @@ function _openBookingDetailModal(booking, onDone) {
     _openReportCardModal(booking);
   });
 
-  document.getElementById('detail-cancel-booking')?.addEventListener('click', () => {
-    const confirmEl = document.getElementById('detail-cancel-confirm');
-    if (!confirmEl) return;
+  const cancelStrip = document.getElementById('cancel-strip');
+  if (cancelStrip) {
+    const FADE = 130;
+    const primaryHTML = cancelStrip.innerHTML;
 
-    confirmEl.innerHTML = `
-      <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(30,38,67,0.07);">
-        <div style="font-size:13px;color:#6C5146;line-height:1.45;margin-bottom:12px;">
-          Cancel this booking and release your spot?
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn btn-danger btn-sm" id="detail-cancel-confirm-yes">Yes, cancel</button>
-          <button class="btn btn-ghost btn-sm" id="detail-cancel-confirm-no">Keep booking</button>
-        </div>
-      </div>`;
+    function swapStrip(html, cb) {
+      cancelStrip.style.transition = `opacity ${FADE}ms ease`;
+      cancelStrip.style.opacity = '0';
+      setTimeout(() => { cancelStrip.innerHTML = html; cancelStrip.style.opacity = '1'; cb?.(); }, FADE);
+    }
 
-    document.getElementById('detail-cancel-confirm-yes')?.addEventListener('click', () => {
-      DB.cancelBooking(booking.id);
-      closeModal('guest-booking-detail');
-      toast('Booking cancelled.', 'info');
-      onDone();
-    });
+    function bindPrimary() {
+      cancelStrip.querySelector('[data-sc-trigger]')?.addEventListener('click', showConfirm);
+    }
 
-    document.getElementById('detail-cancel-confirm-no')?.addEventListener('click', () => {
-      confirmEl.innerHTML = '';
-    });
-  });
+    function showConfirm() {
+      swapStrip(`
+        <div style="display:flex;align-items:stretch;border-top:1px solid rgba(139,58,46,0.12);">
+          <span style="flex:1;padding:13px 16px;font-size:13px;font-weight:500;
+            color:#6C4040;align-self:center;">Cancel and release your spot?</span>
+          <button data-sc="keep" style="padding:13px 16px;background:none;border:none;
+            border-left:1px solid rgba(0,0,0,0.07);cursor:pointer;font-size:14px;color:#888;
+            font-weight:500;font-family:'Inter',sans-serif;white-space:nowrap;">Keep</button>
+          <button data-sc="yes" style="padding:13px 18px;background:#8B3A2E;border:none;
+            cursor:pointer;font-size:14px;color:#fff;font-weight:700;
+            font-family:'Inter',sans-serif;white-space:nowrap;border-radius:0 0 14px 0;">
+            Yes, cancel
+          </button>
+        </div>`, () => {
+          cancelStrip.querySelector('[data-sc="keep"]').addEventListener('click', () => {
+            swapStrip(primaryHTML, bindPrimary);
+          });
+          cancelStrip.querySelector('[data-sc="yes"]').addEventListener('click', () => {
+            DB.cancelBooking(booking.id);
+            closeModal('guest-booking-detail');
+            toast('Booking cancelled.', 'info');
+            onDone();
+          });
+        });
+    }
+
+    bindPrimary();
+  }
 }
 
 function _openReportCardModal(booking) {
