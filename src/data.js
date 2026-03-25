@@ -6,6 +6,8 @@ export const KEYS = {
   REPORTS:  'snow_reports',
   SESSION:  'snow_session',
   SEEDED:   'snow_seeded_v6',
+  TIME_OFF: 'snow_time_off',
+  TMPL_OVERRIDES: 'snow_tmpl_overrides',
 };
 
 // ── Generic helpers ──────────────────────────────────────────────────────────
@@ -56,7 +58,22 @@ export const TEMPLATES = [
   { id:'RD',  name:'RIDER',     sport:'snowboard',  audience:'kids',  level:'beginner',     maxGuests:6, amStart:'09:00', amEnd:'11:00', pmStart:'13:00', pmEnd:'15:00' },
 ];
 
-export function getTemplate(id) { return TEMPLATES.find(t => t.id === id) ?? null; }
+export function getTemplate(id) {
+  const base = TEMPLATES.find(t => t.id === id) ?? null;
+  if (!base) return null;
+  try {
+    const overrides = JSON.parse(localStorage.getItem(KEYS.TMPL_OVERRIDES) || '{}');
+    return overrides[id] ? { ...base, ...overrides[id] } : base;
+  } catch { return base; }
+}
+
+export function saveTemplateOverride(id, fields) {
+  try {
+    const overrides = JSON.parse(localStorage.getItem(KEYS.TMPL_OVERRIDES) || '{}');
+    overrides[id] = { ...(overrides[id] || {}), ...fields };
+    localStorage.setItem(KEYS.TMPL_OVERRIDES, JSON.stringify(overrides));
+  } catch {}
+}
 
 // ── DB API ───────────────────────────────────────────────────────────────────
 export const DB = {
@@ -117,6 +134,23 @@ export const DB = {
     const i = arr.findIndex(r => r.id === report.id);
     if (i >= 0) arr[i] = report; else arr.push(report);
     write(KEYS.REPORTS, arr);
+  },
+
+  // Lesson deletion
+  deleteLesson: (id) => {
+    const arr = read(KEYS.LESSONS).filter(l => l.id !== id);
+    write(KEYS.LESSONS, arr);
+  },
+
+  // Time-off requests
+  getTimeOff:              ()    => read(KEYS.TIME_OFF),
+  getTimeOffByInstructor:  (iid) => read(KEYS.TIME_OFF).filter(t => t.instructorId === iid),
+  getTimeOffPending:       ()    => read(KEYS.TIME_OFF).filter(t => t.status === 'pending'),
+  upsertTimeOff: (tor) => {
+    const arr = read(KEYS.TIME_OFF);
+    const i = arr.findIndex(t => t.id === tor.id);
+    if (i >= 0) arr[i] = tor; else arr.push(tor);
+    write(KEYS.TIME_OFF, arr);
   },
 };
 

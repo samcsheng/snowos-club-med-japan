@@ -541,7 +541,8 @@ export function renderMySchedule(container, { session }) {
       <div id="sched-date-label" style="font-size:11px;font-weight:700;text-transform:uppercase;
         letter-spacing:0.08em;color:#8A6B53;">${fmtDateLong(today)}</div>
     </div>
-    <div id="sched-lessons" style="padding:0 20px 32px;display:flex;flex-direction:column;gap:8px;"></div>
+    <div id="sched-lessons" style="padding:0 20px 16px;display:flex;flex-direction:column;gap:8px;"></div>
+    <div id="sched-time-off" style="padding:0 20px 32px;"></div>
   `;
 
   const pickerEl   = container.querySelector('#date-picker');
@@ -577,6 +578,52 @@ export function renderMySchedule(container, { session }) {
         if (lesson) _openInstructorLessonModal(lesson, session);
       });
     });
+
+    // Render time-off section below lessons
+    const torEl = container.querySelector('#sched-time-off');
+    if (!torEl) return;
+    const existingTor = DB.getTimeOffByInstructor(session.id).find(t => t.date === selDate);
+    const isPast = selDate < today;
+
+    if (existingTor) {
+      const statusColor = existingTor.status === 'approved' ? '#088A20'
+        : existingTor.status === 'denied' ? '#BF2F17' : '#875700';
+      torEl.innerHTML = `
+        <div class="glass-strong" style="border-radius:12px;padding:14px 16px;">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;
+            letter-spacing:0.08em;color:#8A6B53;margin-bottom:8px;">Time Off Request</div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="flex:1;">
+              <div style="font-size:14px;font-weight:600;color:${statusColor};">
+                ${existingTor.status.charAt(0).toUpperCase() + existingTor.status.slice(1)}
+              </div>
+              ${existingTor.reason
+                ? `<div style="font-size:13px;color:#666;margin-top:3px;">${existingTor.reason}</div>`
+                : ''}
+            </div>
+            ${existingTor.status === 'pending'
+              ? `<button id="cancel-tor" class="btn btn-ghost btn-xs"
+                  style="color:#BF2F17;border-color:rgba(191,47,23,0.25);">Cancel</button>`
+              : ''}
+          </div>
+        </div>`;
+      torEl.querySelector('#cancel-tor')?.addEventListener('click', () => {
+        DB.upsertTimeOff({ ...existingTor, status: 'cancelled' });
+        _renderLessons();
+      });
+    } else if (!isPast) {
+      torEl.innerHTML = `
+        <button id="req-time-off"
+          style="width:100%;padding:13px 16px;background:none;
+          border:1.5px dashed rgba(30,38,67,0.15);border-radius:12px;cursor:pointer;
+          font-size:14px;font-weight:500;color:#888;font-family:'Inter',sans-serif;">
+          + Request time off for this day
+        </button>`;
+      torEl.querySelector('#req-time-off')?.addEventListener('click', () =>
+        _openTimeOffModal(session.id, selDate, _renderLessons));
+    } else {
+      torEl.innerHTML = '';
+    }
   }
 
   function _selectDate(dateStr) {
@@ -962,4 +1009,51 @@ function openReportModal(lesson, session, onSuccess = null) {
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
   document.body.appendChild(overlay);
   attach();
+}
+// ── Time-off request modal ────────────────────────────────────────────────────
+function _openTimeOffModal(instructorId, defaultDate, onDone) {
+  openModal('time-off-req', 'Request Time Off', `
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div>
+        <label class="field-label">Date</label>
+        <input type="date" class="field-input" id="tor-date" value="${defaultDate}"
+          min="${defaultDate}">
+      </div>
+      <div>
+        <label class="field-label">Reason (optional)</label>
+        <input type="text" class="field-input" id="tor-reason"
+          placeholder="e.g. Personal appointment">
+      </div>
+      <div id="tor-err" style="display:none;"></div>
+      <button id="tor-submit" class="btn btn-primary btn-lg btn-full">Submit Request</button>
+    </div>`);
+
+  setTimeout(() => {
+    document.getElementById('tor-submit')?.addEventListener('click', () => {
+      const date   = document.getElementById('tor-date')?.value;
+      const reason = document.getElementById('tor-reason')?.value?.trim() ?? '';
+      const errEl  = document.getElementById('tor-err');
+      if (!date) {
+        if (errEl) { errEl.innerHTML = '<div class="err-box">Please select a date.</div>'; errEl.style.display = 'block'; }
+        return;
+      }
+      // Check for duplicate
+      const existing = DB.getTimeOffByInstructor(instructorId).find(
+        t => t.date === date && t.status !== 'cancelled' && t.status !== 'denied');
+      if (existing) {
+        if (errEl) { errEl.innerHTML = '<div class="err-box">A request already exists for this date.</div>'; errEl.style.display = 'block'; }
+        return;
+      }
+      DB.upsertTimeOff({
+        id:           'tor-' + Date.now().toString(36),
+        instructorId,
+        date,
+        reason,
+        status:       'pending',
+        createdAt:    new Date().toISOString(),
+      });
+      toast('Time off request submitted.', 'success');
+      dismissModal('time-off-req', onDone);
+    });
+  }, 50);
 }

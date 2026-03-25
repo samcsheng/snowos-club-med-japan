@@ -13,10 +13,10 @@ import {
   renderLessonDetail,
 } from './views/instructor.js';
 import {
-  renderSupervisorDashboard,
-  renderAllBookings,
-  renderInstructorMgmt,
-  renderAssign,
+  renderSupervisorToday,
+  renderSupervisorPlan,
+  renderSupervisorInstructors,
+  renderSupervisorSchool,
 } from './views/supervisor.js';
 
 // ── Bootstrap ────────────────────────────────────────────────────────────────
@@ -39,10 +39,11 @@ const ROUTES = [
   { pat: /^\/instructor\/dashboard$/,         view: renderInstructorDashboard, roles: ['instructor'] },
   { pat: /^\/instructor\/schedule$/,          view: renderMySchedule,          roles: ['instructor'] },
   { pat: /^\/instructor\/lesson\/(?<id>.+)$/, view: renderLessonDetail,        roles: ['instructor'], back: p => '/instructor/dashboard' },
-  { pat: /^\/supervisor\/dashboard$/,         view: renderSupervisorDashboard, roles: ['supervisor'] },
-  { pat: /^\/supervisor\/bookings$/,          view: renderAllBookings,         roles: ['supervisor'] },
-  { pat: /^\/supervisor\/instructors$/,       view: renderInstructorMgmt,      roles: ['supervisor'] },
-  { pat: /^\/supervisor\/assign\/(?<id>.+)$/, view: renderAssign,              roles: ['supervisor'], back: p => '/supervisor/dashboard' },
+  { pat: /^\/supervisor\/dashboard$/,         view: (c,o) => { navigate('/supervisor/today'); }, roles: ['supervisor'] },
+  { pat: /^\/supervisor\/today$/,             view: renderSupervisorToday,        roles: ['supervisor'] },
+  { pat: /^\/supervisor\/plan$/,              view: renderSupervisorPlan,         roles: ['supervisor'] },
+  { pat: /^\/supervisor\/instructors$/,       view: renderSupervisorInstructors,  roles: ['supervisor'] },
+  { pat: /^\/supervisor\/school$/,            view: renderSupervisorSchool,       roles: ['supervisor'] },
 ];
 
 function matchRoute(path) {
