@@ -243,6 +243,12 @@ function _step1(body, container, ctx) {
     chips.push(d);
   }
 
+  // Pre-select the first date that hasn't passed its booking cutoff
+  if (!wiz.date) {
+    const firstOpen = chips.find(d => !_bookingCutoffPassed(isoDate(d)));
+    if (firstOpen) wiz.date = isoDate(firstOpen);
+  }
+
   function renderLessonList(listEl) {
     if (!wiz.date) {
       listEl.innerHTML = `<div style="text-align:center;padding:40px 0;color:#AAA;font-size:14px;">Select a date to see available classes</div>`;
@@ -317,14 +323,15 @@ function _step1(body, container, ctx) {
       </div>
       <div class="sx" style="display:flex;gap:8px;padding:4px 0;">
         ${chips.map(d => {
-          const ds  = isoDate(d);
-          const dow = d.toLocaleDateString('en-US', { weekday: 'short' });
-          const day = d.getDate();
-          const mon = d.toLocaleDateString('en-US', { month: 'short' });
-          const sel = ds === wiz.date;
+          const ds      = isoDate(d);
+          const dow     = d.toLocaleDateString('en-US', { weekday: 'short' });
+          const day     = d.getDate();
+          const mon     = d.toLocaleDateString('en-US', { month: 'short' });
+          const sel     = ds === wiz.date;
+          const cutoff  = _bookingCutoffPassed(ds);
           return `
             <div class="date-chip${sel ? ' selected' : ''}${ds === todayStr() ? ' today' : ''}"
-              data-date="${ds}" style="flex-shrink:0;">
+              data-date="${ds}" style="flex-shrink:0;${cutoff && !sel ? 'opacity:0.38;' : ''}">
               <div class="date-chip-dow">${dow}</div>
               <div class="date-chip-day">${day}</div>
               <div style="font-size:9px;color:${sel ? 'rgba(255,255,255,0.7)' : '#AAA'};margin-top:1px;">${mon}</div>
