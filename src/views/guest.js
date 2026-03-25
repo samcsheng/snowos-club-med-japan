@@ -193,15 +193,18 @@ function _renderWizardStep(container, ctx) {
 
   if (wiz.step === 2) {
     setNavHidden(true);
-    wrap.innerHTML = pageHead(getTemplate(wiz.templateId)?.name ?? 'Confirm booking');
+    wrap.innerHTML = pageHead('');
     container.appendChild(wrap);
     const titleRow = wrap.querySelector('.page-head > div');
     titleRow.style.alignItems = 'center';
+    // Hide empty h1
+    const h1 = titleRow.querySelector('h1');
+    if (h1) h1.remove();
     const backBtn = document.createElement('button');
     backBtn.id = 'wiz-back';
     backBtn.type = 'button';
-    backBtn.style.cssText = 'flex-shrink:0;margin-bottom:2px;padding:6px;background:var(--bg-section-soft);border:1px solid var(--line-soft);border-radius:999px;display:inline-flex;color:#1E2643;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent;';
-    backBtn.innerHTML = iBack();
+    backBtn.style.cssText = 'flex-shrink:0;display:inline-flex;align-items:center;gap:6px;padding:8px 14px 8px 10px;background:var(--bg-section-soft);border:1px solid var(--line-soft);border-radius:999px;color:#1E2643;font-size:14px;font-weight:600;font-family:\'Inter\',sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent;';
+    backBtn.innerHTML = iBack() + '<span>Back</span>';
     titleRow.prepend(backBtn);
     wrap.querySelector('#wiz-back').addEventListener('click', () => {
       _runWizardTransition(container, ctx, () => {
@@ -369,10 +372,9 @@ function _step2(body, container, ctx) {
     <!-- Hero -->
     <div style="text-align:center;padding:12px 0 36px;">
       <div style="font-size:72px;line-height:1;margin-bottom:20px;">${sportEmoji}</div>
-      <div style="font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
-        color:#aaa;margin-bottom:10px;">${tmpl.sport} · ${tmpl.audience} · ${tmpl.level}</div>
       <div style="font-family:'Newsreader',serif;font-size:36px;font-weight:800;color:#1E2643;
-        line-height:1.1;margin-bottom:10px;">${fmtDateLong(wiz.date)}</div>
+        line-height:1.1;margin-bottom:10px;">${tmpl.name}</div>
+      <div style="font-size:16px;color:#888;margin-bottom:4px;">${fmtDateLong(wiz.date)}</div>
       <div style="font-size:16px;color:#888;">${lessonTimes(tmpl)}</div>
     </div>
 
@@ -381,14 +383,14 @@ function _step2(body, container, ctx) {
       <div style="background:var(--bg-section-soft);border-radius:16px;padding:18px 14px;text-align:center;">
         <div class="sec-label" style="margin-bottom:8px;">Instructor</div>
         ${inst
-          ? `<div style="font-weight:800;font-size:16px;color:#1E2643;line-height:1.1;">${instFirst}</div>
-             <div style="font-size:12px;color:#aaa;margin-top:2px;">${instLast}</div>`
-          : `<div style="font-weight:700;font-size:15px;color:#aaa;">TBD</div>`}
+          ? `<div style="font-family:'Newsreader',serif;font-weight:800;font-size:32px;color:#1E2643;line-height:1;">${instFirst}</div>
+             <div style="font-size:12px;color:#aaa;margin-top:4px;">${instLast}</div>`
+          : `<div style="font-family:'Newsreader',serif;font-weight:800;font-size:32px;color:#aaa;line-height:1;">—</div>`}
       </div>
       <div style="background:var(--bg-section-soft);border-radius:16px;padding:18px 14px;text-align:center;">
         <div class="sec-label" style="margin-bottom:8px;">Spots left</div>
         <div style="font-family:'Newsreader',serif;font-weight:800;font-size:32px;color:${spotsLeft <= 2 ? '#BF2F17' : '#1E2643'};line-height:1;">${spotsLeft}</div>
-        <div style="font-size:12px;color:#aaa;margin-top:2px;">of ${tmpl.maxGuests}</div>
+        <div style="font-size:12px;color:#aaa;margin-top:4px;">of ${tmpl.maxGuests}</div>
       </div>
     </div>
 
