@@ -193,7 +193,7 @@ function _renderWizardStep(container, ctx) {
 
   if (wiz.step === 2) {
     setNavHidden(true);
-    wrap.innerHTML = pageHead('Confirm booking');
+    wrap.innerHTML = pageHead(getTemplate(wiz.templateId)?.name ?? 'Confirm booking');
     container.appendChild(wrap);
     const titleRow = wrap.querySelector('.page-head > div');
     titleRow.style.alignItems = 'center';
