@@ -791,7 +791,7 @@ function openReportModal(lesson, session, onSuccess = null) {
         const gid = btn.dataset.guest;
         if (!draft.guests[gid]) draft.guests[gid] = { attendance: 'BOTH', nextClass: lesson.templateId, notes: '' };
         draft.guests[gid].attendance = btn.dataset.att;
-        rerender();
+        body.querySelectorAll(`[data-att][data-guest="${gid}"]`).forEach(b => b.classList.toggle('active', b === btn));
       });
     });
 
@@ -800,7 +800,7 @@ function openReportModal(lesson, session, onSuccess = null) {
         const gid = btn.dataset.ncGuest;
         if (!draft.guests[gid]) draft.guests[gid] = { attendance: 'BOTH', nextClass: lesson.templateId, notes: '' };
         draft.guests[gid].nextClass = btn.dataset.ncVal;
-        rerender();
+        body.querySelectorAll(`[data-nc-guest="${gid}"]`).forEach(b => b.classList.toggle('active', b === btn));
       });
     });
 
