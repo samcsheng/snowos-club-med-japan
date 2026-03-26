@@ -17,6 +17,8 @@ import {
   renderSupervisorPlan,
   renderSupervisorInstructors,
   renderSupervisorSchool,
+  renderSupervisorLessonDetail,
+  supervisorLessonBackHref,
 } from './views/supervisor.js';
 
 // ── Bootstrap ────────────────────────────────────────────────────────────────
@@ -43,7 +45,8 @@ const ROUTES = [
   { pat: /^\/supervisor\/today$/,             view: renderSupervisorToday,        roles: ['supervisor'] },
   { pat: /^\/supervisor\/plan$/,              view: renderSupervisorPlan,         roles: ['supervisor'] },
   { pat: /^\/supervisor\/instructors$/,       view: renderSupervisorInstructors,  roles: ['supervisor'] },
-  { pat: /^\/supervisor\/school$/,            view: renderSupervisorSchool,       roles: ['supervisor'] },
+  { pat: /^\/supervisor\/school$/,            view: renderSupervisorSchool,          roles: ['supervisor'] },
+  { pat: /^\/supervisor\/lesson\/(?<id>.+)$/, view: renderSupervisorLessonDetail,    roles: ['supervisor'], back: supervisorLessonBackHref },
 ];
 
 function matchRoute(path) {

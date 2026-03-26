@@ -1,8 +1,9 @@
 import { DB, TEMPLATES, getTemplate, saveTemplateOverride, isoDate } from '../data.js';
+import { navigate } from '../app.js';
 import {
   toast, pageHead, statusBadge, sportBadge, audienceBadge, av, secLabel,
   emptyState, openModal, dismissModal, fmtDate, fmtDateLong, todayStr, lessonTimes,
-  iPlus, iCheck, iChevR, iWarn, iEdit, iSwap, iTrash, iUserPlus,
+  iPlus, iCheck, iChevR, iWarn, iEdit, iUserPlus,
 } from '../ui.js';
 
 // ── Date offset helper ────────────────────────────────────────────────────────
@@ -84,9 +85,7 @@ function _renderLessons(container, date, sport, audience) {
   }).join('');
 
   listEl.querySelectorAll('.lesson-tap').forEach(el => {
-    el.addEventListener('click', () => {
-      _openLessonDetail(el.dataset.lid, date, () => _renderLessons(container, date, sport, audience));
-    });
+    el.addEventListener('click', () => navigate('/supervisor/lesson/' + el.dataset.lid));
   });
 }
 
@@ -109,163 +108,172 @@ function _filterRow(sport, audience) {
     </div>`;
 }
 
-// ── Lesson detail modal ───────────────────────────────────────────────────────
-function _openLessonDetail(lessonId, date, onRefresh) {
-  function buildAndShow() {
-    const lesson = DB.getLessonById(lessonId);
-    if (!lesson) return;
+// ── Back-href helper (used by app.js route) ───────────────────────────────────
+export function supervisorLessonBackHref(params) {
+  const lesson = DB.getLessonById(params.id);
+  if (!lesson) return '/supervisor/today';
+  return lesson.date === todayStr() ? '/supervisor/today' : '/supervisor/plan';
+}
 
-    const allUsers   = DB.getUsers();
-    const usersById  = Object.fromEntries(allUsers.map(u => [u.id, u]));
-    const instructors = allUsers.filter(u => u.role === 'instructor');
-    const tmpl       = getTemplate(lesson.templateId);
-    const inst       = lesson.instructorId ? usersById[lesson.instructorId] : null;
-    const allBkgs    = DB.getBookings();
-    const confirmedBkgs = allBkgs.filter(b => b.lessonId === lessonId && b.status === 'confirmed');
+// ── Lesson detail page ────────────────────────────────────────────────────────
+export function renderSupervisorLessonDetail(container, { params, session }) {
+  const lessonId = params.id;
+
+  function _data() {
+    const lesson        = DB.getLessonById(lessonId);
+    const allUsers      = DB.getUsers();
+    const usersById     = Object.fromEntries(allUsers.map(u => [u.id, u]));
+    const instructors   = allUsers.filter(u => u.role === 'instructor');
+    const tmpl          = lesson ? getTemplate(lesson.templateId) : null;
+    const confirmedBkgs = lesson ? DB.getBookings().filter(b => b.lessonId === lessonId && b.status === 'confirmed') : [];
     const guestEntries  = confirmedBkgs.map(b => ({ booking: b, user: usersById[b.guestId] }));
-    const sameDayOthers = DB.getLessonsByDate(date).filter(l => l.id !== lessonId);
+    const sameDayOthers = lesson ? DB.getLessonsByDate(lesson.date).filter(l => l.id !== lessonId) : [];
+    return { lesson, tmpl, usersById, instructors, confirmedBkgs, guestEntries, sameDayOthers };
+  }
 
-    const title = tmpl?.name ?? lesson.templateId;
+  function _renderInstructorSection() {
+    const { lesson, instructors, usersById, sameDayOthers } = _data();
+    if (!lesson) return;
+    const inst = lesson.instructorId ? usersById[lesson.instructorId] : null;
+    const sec  = container.querySelector('[data-section="instructor"]');
+    if (!sec) return;
 
-    const body = `
-      <div style="display:flex;flex-direction:column;gap:16px;padding-bottom:8px;">
-
-        <!-- Info card -->
-        <div class="glass" style="padding:14px 16px;border-radius:14px;">
-          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
-            ${statusBadge(lesson.status)}
-            ${tmpl ? sportBadge(tmpl.sport) : ''}
-            ${tmpl ? audienceBadge(tmpl.audience) : ''}
-            ${tmpl ? `<span class="badge" style="background:var(--bg-tile);color:#555;border:1px solid var(--line-soft);">${tmpl.level}</span>` : ''}
-          </div>
-          <div style="font-size:13px;color:#6b625d;">${tmpl ? lessonTimes(tmpl) : '—'}</div>
-          <div style="font-size:12px;color:#999;margin-top:3px;">${fmtDate(lesson.date)}</div>
-        </div>
-
-        <!-- Instructor -->
-        <div>
-          <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
-            color:#8A6B53;margin-bottom:8px;padding:0 2px;">Instructor</div>
-          <div class="glass-strong" style="border-radius:14px;overflow:hidden;">
-            ${inst ? `
-              <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;">
-                ${av(inst.avatar, 'md')}
-                <div style="flex:1;font-weight:600;font-size:14px;color:#000;">${inst.name}</div>
-                <div style="display:flex;gap:6px;flex-shrink:0;">
-                  <button data-action="transfer-inst"
-                    style="font-size:12px;font-weight:600;color:#1E2643;
-                    background:var(--bg-section-soft);border:1px solid var(--line-soft);
-                    border-radius:999px;padding:5px 12px;cursor:pointer;font-family:'Inter',sans-serif;">
-                    Transfer
-                  </button>
-                  <button data-action="remove-inst"
-                    style="font-size:12px;font-weight:600;color:#BF2F17;
-                    background:rgba(191,47,23,0.06);border:1px solid rgba(191,47,23,0.2);
-                    border-radius:999px;padding:5px 12px;cursor:pointer;font-family:'Inter',sans-serif;">
-                    Remove
-                  </button>
-                </div>
-              </div>` : `
-              <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;">
-                <div style="flex:1;font-size:14px;color:#C75300;font-weight:500;
-                  display:flex;align-items:center;gap:6px;">
-                  ${iWarn()} No instructor assigned
-                </div>
-                <button data-action="assign-inst"
-                  style="font-size:12px;font-weight:600;color:#fff;background:#1E2643;border:none;
-                  border-radius:999px;padding:6px 14px;cursor:pointer;font-family:'Inter',sans-serif;">
-                  Assign
-                </button>
-              </div>`}
-          </div>
-        </div>
-
-        <!-- Guests -->
-        <div>
-          <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
-            color:#8A6B53;margin-bottom:8px;padding:0 2px;">
-            Guests (${guestEntries.length}/${tmpl?.maxGuests ?? '?'})
-          </div>
-          <div class="glass-strong" style="border-radius:14px;overflow:hidden;">
-            ${guestEntries.length === 0
-              ? `<div style="padding:16px;font-size:14px;color:#888;text-align:center;">No guests booked</div>`
-              : guestEntries.map((g, i) => `
-                <div style="display:flex;align-items:center;gap:10px;padding:11px 16px;
-                  ${i > 0 ? 'border-top:1px solid rgba(30,38,67,0.06);' : ''}">
-                  ${av(g.user?.avatar, 'sm')}
-                  <div style="flex:1;min-width:0;">
-                    <div style="font-weight:600;font-size:14px;color:#000;
-                      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                      ${g.user?.name ?? 'Guest'}
-                    </div>
-                    <div style="font-size:12px;color:#888;">${g.user?.level ?? ''} · ${g.user?.sport ?? ''}</div>
-                  </div>
-                  <div style="display:flex;gap:4px;flex-shrink:0;">
-                    <button data-action="transfer-guest" data-bid="${g.booking.id}"
-                      style="font-size:12px;font-weight:600;color:#1E2643;
-                      background:var(--bg-section-soft);border:1px solid var(--line-soft);
-                      border-radius:999px;padding:4px 10px;cursor:pointer;
-                      font-family:'Inter',sans-serif;" title="Transfer to another lesson">→</button>
-                    <button data-action="remove-guest" data-bid="${g.booking.id}"
-                      style="font-size:12px;font-weight:600;color:#BF2F17;
-                      background:rgba(191,47,23,0.06);border:1px solid rgba(191,47,23,0.2);
-                      border-radius:999px;padding:4px 10px;cursor:pointer;
-                      font-family:'Inter',sans-serif;" title="Remove from lesson">×</button>
-                  </div>
-                </div>`).join('')}
-            <div style="border-top:1px solid rgba(30,38,67,0.06);">
-              <button data-action="add-guest"
-                style="width:100%;padding:12px 16px;background:none;border:none;cursor:pointer;
-                font-size:14px;font-weight:600;color:#1E2643;font-family:'Inter',sans-serif;
-                display:flex;align-items:center;justify-content:center;gap:8px;">
-                ${iPlus()} Add Guest
+    sec.innerHTML = `
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
+        color:#8A6B53;margin-bottom:8px;">Instructor</div>
+      <div class="glass-strong" style="border-radius:14px;overflow:hidden;">
+        ${inst ? `
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;">
+            ${av(inst.avatar, 'md')}
+            <div style="flex:1;font-weight:600;font-size:14px;color:#000;">${inst.name}</div>
+            <div style="display:flex;gap:6px;flex-shrink:0;">
+              <button data-action="transfer-inst"
+                style="font-size:12px;font-weight:600;color:#1E2643;
+                background:var(--bg-section-soft);border:1px solid var(--line-soft);
+                border-radius:999px;padding:5px 12px;cursor:pointer;font-family:'Inter',sans-serif;">
+                Transfer
+              </button>
+              <button data-action="remove-inst"
+                style="font-size:12px;font-weight:600;color:#BF2F17;
+                background:rgba(191,47,23,0.06);border:1px solid rgba(191,47,23,0.2);
+                border-radius:999px;padding:5px 12px;cursor:pointer;font-family:'Inter',sans-serif;">
+                Remove
               </button>
             </div>
-          </div>
+          </div>` : `
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;">
+            <div style="flex:1;font-size:14px;color:#C75300;font-weight:500;
+              display:flex;align-items:center;gap:6px;">
+              ${iWarn()} No instructor assigned
+            </div>
+            <button data-action="assign-inst"
+              style="font-size:12px;font-weight:600;color:#fff;background:#1E2643;border:none;
+              border-radius:999px;padding:6px 14px;cursor:pointer;font-family:'Inter',sans-serif;">
+              Assign
+            </button>
+          </div>`}
+      </div>`;
+
+    sec.querySelector('[data-action="assign-inst"]')?.addEventListener('click', () =>
+      _openAssignInstructor(lesson, lesson.date, instructors, usersById, _renderInstructorSection));
+    sec.querySelector('[data-action="remove-inst"]')?.addEventListener('click', () => {
+      DB.upsertLesson({ ...lesson, instructorId: null });
+      toast('Instructor removed.', 'info');
+      _renderInstructorSection();
+    });
+    sec.querySelector('[data-action="transfer-inst"]')?.addEventListener('click', () =>
+      _openTransferInstructor(lesson, lesson.date, sameDayOthers, usersById, _renderInstructorSection));
+  }
+
+  function _renderGuestSection() {
+    const { lesson, tmpl, confirmedBkgs, guestEntries, usersById } = _data();
+    if (!lesson) return;
+    const sec = container.querySelector('[data-section="guests"]');
+    if (!sec) return;
+
+    sec.innerHTML = `
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
+        color:#8A6B53;margin-bottom:8px;">
+        Guests (${guestEntries.length}/${tmpl?.maxGuests ?? '?'})
+      </div>
+      <div class="glass-strong" style="border-radius:14px;overflow:hidden;">
+        ${guestEntries.length === 0
+          ? `<div style="padding:16px;font-size:14px;color:#888;text-align:center;">No guests booked</div>`
+          : guestEntries.map((g, i) => `
+            <div style="display:flex;align-items:center;gap:10px;padding:11px 16px;
+              ${i > 0 ? 'border-top:1px solid rgba(30,38,67,0.06);' : ''}">
+              ${av(g.user?.avatar, 'sm')}
+              <div style="flex:1;min-width:0;">
+                <div style="font-weight:600;font-size:14px;color:#000;
+                  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                  ${g.user?.name ?? 'Guest'}
+                </div>
+                <div style="font-size:12px;color:#888;">${g.user?.level ?? ''} · ${g.user?.sport ?? ''}</div>
+              </div>
+              <div style="display:flex;gap:4px;flex-shrink:0;">
+                <button data-action="transfer-guest" data-bid="${g.booking.id}"
+                  style="font-size:12px;font-weight:600;color:#1E2643;
+                  background:var(--bg-section-soft);border:1px solid var(--line-soft);
+                  border-radius:999px;padding:4px 10px;cursor:pointer;
+                  font-family:'Inter',sans-serif;" title="Transfer to another lesson">→</button>
+                <button data-action="remove-guest" data-bid="${g.booking.id}"
+                  style="font-size:12px;font-weight:600;color:#BF2F17;
+                  background:rgba(191,47,23,0.06);border:1px solid rgba(191,47,23,0.2);
+                  border-radius:999px;padding:4px 10px;cursor:pointer;
+                  font-family:'Inter',sans-serif;" title="Remove">×</button>
+              </div>
+            </div>`).join('')}
+        <div style="border-top:1px solid rgba(30,38,67,0.06);">
+          <button data-action="add-guest"
+            style="width:100%;padding:12px 16px;background:none;border:none;cursor:pointer;
+            font-size:14px;font-weight:600;color:#1E2643;font-family:'Inter',sans-serif;
+            display:flex;align-items:center;justify-content:center;gap:8px;">
+            ${iPlus()} Add Guest
+          </button>
         </div>
       </div>`;
 
-    openModal('lesson-detail', title, body);
-
-    setTimeout(() => {
-      const mb = document.getElementById('modal-lesson-detail-body');
-      if (!mb) return;
-
-      function refresh() {
-        dismissModal('lesson-detail', () => { onRefresh(); buildAndShow(); });
-      }
-
-      mb.querySelector('[data-action="assign-inst"]')?.addEventListener('click', () =>
-        _openAssignInstructor(lesson, date, instructors, usersById, refresh));
-
-      mb.querySelector('[data-action="remove-inst"]')?.addEventListener('click', () => {
-        DB.upsertLesson({ ...lesson, instructorId: null });
-        toast('Instructor removed.', 'info');
-        refresh();
-      });
-
-      mb.querySelector('[data-action="transfer-inst"]')?.addEventListener('click', () =>
-        _openTransferInstructor(lesson, date, sameDayOthers, usersById, refresh));
-
-      mb.querySelectorAll('[data-action="remove-guest"]').forEach(btn =>
-        btn.addEventListener('click', () => {
-          DB.cancelBooking(btn.dataset.bid);
-          toast('Guest removed from lesson.', 'info');
-          refresh();
-        }));
-
-      mb.querySelectorAll('[data-action="transfer-guest"]').forEach(btn =>
-        btn.addEventListener('click', () => {
-          const bkg = DB.getBookingById(btn.dataset.bid);
-          if (bkg) _openTransferGuest(bkg, lesson, date, usersById, refresh);
-        }));
-
-      mb.querySelector('[data-action="add-guest"]')?.addEventListener('click', () =>
-        _openAddGuest(lesson, confirmedBkgs, usersById, refresh));
-    }, 50);
+    sec.querySelectorAll('[data-action="remove-guest"]').forEach(btn =>
+      btn.addEventListener('click', () => {
+        DB.cancelBooking(btn.dataset.bid);
+        toast('Guest removed.', 'info');
+        _renderGuestSection();
+      }));
+    sec.querySelectorAll('[data-action="transfer-guest"]').forEach(btn =>
+      btn.addEventListener('click', () => {
+        const bkg = DB.getBookingById(btn.dataset.bid);
+        if (bkg) _openTransferGuest(bkg, _data().lesson, lesson.date, usersById, _renderGuestSection);
+      }));
+    sec.querySelector('[data-action="add-guest"]')?.addEventListener('click', () =>
+      _openAddGuest(lesson, confirmedBkgs, usersById, _renderGuestSection));
   }
 
-  buildAndShow();
+  // Build page skeleton once
+  const { lesson, tmpl } = _data();
+  if (!lesson) {
+    container.innerHTML = pageHead('Not Found') + emptyState('❓', 'Lesson not found', '');
+    return;
+  }
+
+  container.innerHTML = `
+    ${pageHead(tmpl?.name ?? lessonId, fmtDateLong(lesson.date))}
+    <div style="padding:0 20px 20px;">
+      <div class="glass" style="padding:14px 16px;border-radius:14px;">
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+          ${statusBadge(lesson.status)}
+          ${tmpl ? sportBadge(tmpl.sport) : ''}
+          ${tmpl ? audienceBadge(tmpl.audience) : ''}
+          ${tmpl ? `<span class="badge" style="background:var(--bg-tile);color:#555;border:1px solid var(--line-soft);">${tmpl.level}</span>` : ''}
+        </div>
+        <div style="font-size:13px;color:#6b625d;">${tmpl ? lessonTimes(tmpl) : '—'}</div>
+      </div>
+    </div>
+    <div data-section="instructor" style="padding:0 20px 16px;"></div>
+    <div data-section="guests"     style="padding:0 20px 32px;"></div>
+  `;
+
+  _renderInstructorSection();
+  _renderGuestSection();
 }
 
 // ── Assign instructor modal ───────────────────────────────────────────────────
@@ -490,22 +498,27 @@ export function renderSupervisorToday(container, { session }) {
   let sport    = 'ski';
   let audience = 'adult';
 
-  function render() {
-    container.innerHTML = `
-      ${pageHead('Today', fmtDateLong(date))}
-      ${_filterRow(sport, audience)}
-      <div style="padding:0 12px 32px;display:flex;flex-direction:column;gap:8px;"
-        data-lesson-list></div>`;
+  // Build skeleton once
+  container.innerHTML = `
+    ${pageHead('Today', fmtDateLong(date))}
+    ${_filterRow(sport, audience)}
+    <div style="padding:0 12px 32px;display:flex;flex-direction:column;gap:8px;"
+      data-lesson-list></div>`;
 
-    container.querySelectorAll('[data-sport]').forEach(btn =>
-      btn.addEventListener('click', () => { sport = btn.dataset.sport; render(); }));
-    container.querySelectorAll('[data-audience]').forEach(btn =>
-      btn.addEventListener('click', () => { audience = btn.dataset.audience; render(); }));
-
+  function _applyFilter() {
+    container.querySelectorAll('[data-sport]').forEach(b =>
+      b.classList.toggle('active', b.dataset.sport === sport));
+    container.querySelectorAll('[data-audience]').forEach(b =>
+      b.classList.toggle('active', b.dataset.audience === audience));
     _renderLessons(container, date, sport, audience);
   }
 
-  render();
+  container.querySelectorAll('[data-sport]').forEach(btn =>
+    btn.addEventListener('click', () => { sport = btn.dataset.sport; _applyFilter(); }));
+  container.querySelectorAll('[data-audience]').forEach(btn =>
+    btn.addEventListener('click', () => { audience = btn.dataset.audience; _applyFilter(); }));
+
+  _renderLessons(container, date, sport, audience);
 }
 
 // ── Tab 2: Plan ───────────────────────────────────────────────────────────────
@@ -515,30 +528,35 @@ export function renderSupervisorPlan(container, { session }) {
   let sport    = 'ski';
   let audience = 'adult';
 
-  function render() {
-    container.innerHTML = `
-      ${pageHead('Plan')}
-      <div style="padding:0 20px 16px;">
-        <label class="field-label">Date</label>
-        <input type="date" class="field-input" id="plan-date"
-          value="${date}" min="${tomorrowDate}">
-      </div>
-      ${_filterRow(sport, audience)}
-      <div style="padding:0 12px 32px;display:flex;flex-direction:column;gap:8px;"
-        data-lesson-list></div>`;
+  // Build skeleton once
+  container.innerHTML = `
+    ${pageHead('Plan')}
+    <div style="padding:0 20px 16px;">
+      <label class="field-label">Date</label>
+      <input type="date" class="field-input" id="plan-date"
+        value="${date}" min="${tomorrowDate}">
+    </div>
+    ${_filterRow(sport, audience)}
+    <div style="padding:0 12px 32px;display:flex;flex-direction:column;gap:8px;"
+      data-lesson-list></div>`;
 
-    container.querySelector('#plan-date')?.addEventListener('change', e => {
-      if (e.target.value) { date = e.target.value; render(); }
-    });
-    container.querySelectorAll('[data-sport]').forEach(btn =>
-      btn.addEventListener('click', () => { sport = btn.dataset.sport; render(); }));
-    container.querySelectorAll('[data-audience]').forEach(btn =>
-      btn.addEventListener('click', () => { audience = btn.dataset.audience; render(); }));
-
+  function _applyFilter() {
+    container.querySelectorAll('[data-sport]').forEach(b =>
+      b.classList.toggle('active', b.dataset.sport === sport));
+    container.querySelectorAll('[data-audience]').forEach(b =>
+      b.classList.toggle('active', b.dataset.audience === audience));
     _renderLessons(container, date, sport, audience);
   }
 
-  render();
+  container.querySelector('#plan-date')?.addEventListener('change', e => {
+    if (e.target.value) { date = e.target.value; _renderLessons(container, date, sport, audience); }
+  });
+  container.querySelectorAll('[data-sport]').forEach(btn =>
+    btn.addEventListener('click', () => { sport = btn.dataset.sport; _applyFilter(); }));
+  container.querySelectorAll('[data-audience]').forEach(btn =>
+    btn.addEventListener('click', () => { audience = btn.dataset.audience; _applyFilter(); }));
+
+  _renderLessons(container, date, sport, audience);
 }
 
 // ── Tab 3: Instructors ────────────────────────────────────────────────────────
@@ -673,51 +691,62 @@ function _openInstSchedule(instId, inst) {
 
 // ── Tab 4: School ─────────────────────────────────────────────────────────────
 export function renderSupervisorSchool(container, { session }) {
-  function render() {
+
+  // Build skeleton once — two independent update slots
+  container.innerHTML = `
+    ${pageHead('School')}
+    <div style="padding:0 20px 8px;">${secLabel('Lesson Templates')}</div>
+    <div data-section="templates"
+      style="padding:0 12px 28px;display:flex;flex-direction:column;gap:6px;"></div>
+    <div data-section="timeoff"></div>
+  `;
+
+  function _renderTemplates() {
+    const el = container.querySelector('[data-section="templates"]');
+    if (!el) return;
+    el.innerHTML = TEMPLATES.map(base => {
+      const eff = getTemplate(base.id);
+      return `
+        <div class="glass-strong" style="border-radius:12px;overflow:hidden;">
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;">
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:600;font-size:14px;color:#000;">${base.name}</div>
+              <div style="font-size:12px;color:#888;margin-top:2px;">
+                ${base.sport === 'ski' ? '⛷' : '🏂'} ${base.audience} · ${base.level}
+                · max ${eff.maxGuests}
+              </div>
+              <div style="font-size:12px;color:#6b625d;margin-top:1px;">
+                AM ${eff.amStart}–${eff.amEnd} · PM ${eff.pmStart}–${eff.pmEnd}
+              </div>
+            </div>
+            <button class="btn btn-ghost btn-xs edit-tmpl" data-tid="${base.id}"
+              title="Edit times & capacity">${iEdit()}</button>
+          </div>
+        </div>`;
+    }).join('');
+
+    el.querySelectorAll('.edit-tmpl').forEach(btn =>
+      btn.addEventListener('click', () =>
+        _openEditTemplate(btn.dataset.tid, () => { _renderTemplates(); _renderTimeOff(); })));
+  }
+
+  function _renderTimeOff() {
     const pending   = DB.getTimeOffPending();
     const history   = DB.getTimeOff()
       .filter(t => t.status !== 'pending')
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
       .slice(0, 20);
     const usersById = Object.fromEntries(DB.getUsers().map(u => [u.id, u]));
+    const el = container.querySelector('[data-section="timeoff"]');
+    if (!el) return;
 
-    container.innerHTML = `
-      ${pageHead('School')}
-
-      <!-- Templates section -->
-      <div style="padding:0 20px 8px;">${secLabel('Lesson Templates')}</div>
-      <div style="padding:0 12px 28px;display:flex;flex-direction:column;gap:6px;">
-        ${TEMPLATES.map(base => {
-          const eff = getTemplate(base.id);
-          return `
-            <div class="glass-strong" style="border-radius:12px;overflow:hidden;">
-              <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;">
-                <div style="flex:1;min-width:0;">
-                  <div style="font-weight:600;font-size:14px;color:#000;">${base.name}</div>
-                  <div style="font-size:12px;color:#888;margin-top:2px;">
-                    ${base.sport === 'ski' ? '⛷' : '🏂'} ${base.audience} · ${base.level}
-                    · max ${eff.maxGuests}
-                  </div>
-                  <div style="font-size:12px;color:#6b625d;margin-top:1px;">
-                    AM ${eff.amStart}–${eff.amEnd} · PM ${eff.pmStart}–${eff.pmEnd}
-                  </div>
-                </div>
-                <button class="btn btn-ghost btn-xs edit-tmpl" data-tid="${base.id}"
-                  title="Edit times & capacity">${iEdit()}</button>
-              </div>
-            </div>`;
-        }).join('')}
-      </div>
-
-      <!-- Time off section -->
+    el.innerHTML = `
       <div style="padding:0 20px 8px;">
         ${secLabel(`Time Off Requests${pending.length > 0 ? ` · ${pending.length} pending` : ''}`)}
       </div>
-
       ${pending.length === 0 && history.length === 0
         ? `<div style="padding:0 12px 32px;">${emptyState('🏔', 'No requests', 'No time off requests yet.')}</div>`
         : ''}
-
       ${pending.length > 0 ? `
         <div style="padding:0 12px 16px;display:flex;flex-direction:column;gap:8px;">
           ${pending.map(tor => {
@@ -734,14 +763,14 @@ export function renderSupervisorSchool(container, { session }) {
                   <div style="display:flex;gap:8px;">
                     <button class="btn btn-sm btn-full" style="background:#088A20;color:#fff;border:none;"
                       data-tor-approve="${tor.id}">Approve</button>
-                    <button class="btn btn-sm btn-ghost btn-full" style="color:#BF2F17;border-color:rgba(191,47,23,0.25);"
+                    <button class="btn btn-sm btn-ghost btn-full"
+                      style="color:#BF2F17;border-color:rgba(191,47,23,0.25);"
                       data-tor-deny="${tor.id}">Deny</button>
                   </div>
                 </div>
               </div>`;
           }).join('')}
         </div>` : ''}
-
       ${history.length > 0 ? `
         <div style="padding:0 20px 8px;">${secLabel('History')}</div>
         <div style="padding:0 12px 32px;display:flex;flex-direction:column;gap:6px;">
@@ -761,29 +790,26 @@ export function renderSupervisorSchool(container, { session }) {
         </div>` : ''}
     `;
 
-    container.querySelectorAll('.edit-tmpl').forEach(btn =>
-      btn.addEventListener('click', () => _openEditTemplate(btn.dataset.tid, render)));
-
-    container.querySelectorAll('[data-tor-approve]').forEach(btn =>
+    el.querySelectorAll('[data-tor-approve]').forEach(btn =>
       btn.addEventListener('click', () => {
         const tor = DB.getTimeOff().find(t => t.id === btn.dataset.torApprove);
         if (!tor) return;
         DB.upsertTimeOff({ ...tor, status: 'approved' });
         toast('Time off approved.', 'success');
-        render();
+        _renderTimeOff();
       }));
-
-    container.querySelectorAll('[data-tor-deny]').forEach(btn =>
+    el.querySelectorAll('[data-tor-deny]').forEach(btn =>
       btn.addEventListener('click', () => {
         const tor = DB.getTimeOff().find(t => t.id === btn.dataset.torDeny);
         if (!tor) return;
         DB.upsertTimeOff({ ...tor, status: 'denied' });
         toast('Request denied.', 'info');
-        render();
+        _renderTimeOff();
       }));
   }
 
-  render();
+  _renderTemplates();
+  _renderTimeOff();
 }
 
 // ── Edit template modal ───────────────────────────────────────────────────────
