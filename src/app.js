@@ -1,6 +1,6 @@
 import { seed, resetSeed }              from './data.js';
 import { getSession, logout }       from './auth.js';
-import { renderNav, closeModal, dismissModal, injectHeadAvatar } from './ui.js';
+import { renderNav, closeModal, dismissModal, injectHeadAvatar, setNavHidden } from './ui.js';
 import { renderLogin, renderRegister } from './views/login.js';
 import {
   renderGuestDashboard,
@@ -39,13 +39,13 @@ const ROUTES = [
   { pat: /^\/guest\/bookings$/,               view: renderMyBookings,          roles: ['guest'] },
   { pat: /^\/instructor\/dashboard$/,         view: renderInstructorDashboard, roles: ['instructor'] },
   { pat: /^\/instructor\/schedule$/,          view: renderMySchedule,          roles: ['instructor'] },
-  { pat: /^\/instructor\/lesson\/(?<id>.+)$/, view: renderLessonDetail,        roles: ['instructor'] },
+  { pat: /^\/instructor\/lesson\/(?<id>.+)$/, view: renderLessonDetail,        roles: ['instructor'], hideNav: true },
   { pat: /^\/supervisor\/dashboard$/,         view: (c,o) => { navigate('/supervisor/today'); }, roles: ['supervisor'] },
   { pat: /^\/supervisor\/today$/,             view: renderSupervisorToday,        roles: ['supervisor'] },
   { pat: /^\/supervisor\/plan$/,              view: renderSupervisorPlan,         roles: ['supervisor'] },
   { pat: /^\/supervisor\/instructors$/,       view: renderSupervisorInstructors,  roles: ['supervisor'] },
   { pat: /^\/supervisor\/school$/,            view: renderSupervisorSchool,          roles: ['supervisor'] },
-  { pat: /^\/supervisor\/lesson\/(?<id>.+)$/, view: renderSupervisorLessonDetail,    roles: ['supervisor'] },
+  { pat: /^\/supervisor\/lesson\/(?<id>.+)$/, view: renderSupervisorLessonDetail,    roles: ['supervisor'], hideNav: true },
 ];
 
 function matchRoute(path) {
@@ -89,8 +89,8 @@ function router() {
   window.scrollTo(0, 0);
 
   if (session) {
-    const backHref = route.back ? route.back(params) : null;
-    renderNav(session, backHref);
+    renderNav(session, null);
+    setNavHidden(!!route.hideNav);
     // Yellow accent for Book tab (immersive experience)
     const nav = document.getElementById('bottom-nav');
     if (nav) nav.dataset.accent = path === '/guest/book' ? 'yellow' : '';
