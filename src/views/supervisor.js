@@ -526,7 +526,7 @@ export function renderSupervisorToday(container, { session }) {
   container.innerHTML = `
     ${pageHead('Today', fmtDateLong(date))}
     ${_filterRow(f.sport, f.audience)}
-    <div style="padding:0 12px 32px;display:flex;flex-direction:column;gap:8px;"
+    <div style="padding:0 20px 32px;display:flex;flex-direction:column;gap:8px;"
       data-lesson-list></div>`;
 
   function _applyFilter() {
@@ -560,7 +560,7 @@ export function renderSupervisorPlan(container, { session }) {
         value="${f.date}" min="${tomorrowDate}">
     </div>
     ${_filterRow(f.sport, f.audience)}
-    <div style="padding:0 12px 32px;display:flex;flex-direction:column;gap:8px;"
+    <div style="padding:0 20px 32px;display:flex;flex-direction:column;gap:8px;"
       data-lesson-list></div>`;
 
   function _applyFilter() {
@@ -602,8 +602,8 @@ export function renderSupervisorInstructors(container, { session }) {
           ${iUserPlus()} Add Instructor
         </button>
       </div>
-      <div style="padding:0 20px 8px;">${secLabel(`Team (${instructors.length})`)}</div>
-      <div style="padding:0 12px 32px;display:flex;flex-direction:column;gap:8px;">
+      ${secLabel(`Team (${instructors.length})`)}
+      <div style="padding:0 20px 32px;display:flex;flex-direction:column;gap:8px;">
         ${instructors.length === 0
           ? emptyState('👤', 'No instructors yet', 'Add your first instructor above.')
           : instructors.map(inst => {
@@ -718,9 +718,9 @@ export function renderSupervisorSchool(container, { session }) {
   // Build skeleton once — two independent update slots
   container.innerHTML = `
     ${pageHead('School')}
-    <div style="padding:0 20px 8px;">${secLabel('Lesson Templates')}</div>
+    ${secLabel('Lesson Templates')}
     <div data-section="templates"
-      style="padding:0 12px 28px;display:flex;flex-direction:column;gap:6px;"></div>
+      style="padding:0 20px 28px;display:flex;flex-direction:column;gap:6px;"></div>
     <div data-section="timeoff"></div>
   `;
 
@@ -764,14 +764,12 @@ export function renderSupervisorSchool(container, { session }) {
     if (!el) return;
 
     el.innerHTML = `
-      <div style="padding:0 20px 8px;">
-        ${secLabel(`Time Off Requests${pending.length > 0 ? ` · ${pending.length} pending` : ''}`)}
-      </div>
+      ${secLabel(`Time Off Requests${pending.length > 0 ? ` · ${pending.length} pending` : ''}`)}
       ${pending.length === 0 && history.length === 0
-        ? `<div style="padding:0 12px 32px;">${emptyState('🏔', 'No requests', 'No time off requests yet.')}</div>`
+        ? `<div style="padding:0 20px 32px;">${emptyState('🏔', 'No requests', 'No time off requests yet.')}</div>`
         : ''}
       ${pending.length > 0 ? `
-        <div style="padding:0 12px 16px;display:flex;flex-direction:column;gap:8px;">
+        <div style="padding:0 20px 16px;display:flex;flex-direction:column;gap:8px;">
           ${pending.map(tor => {
             const inst = usersById[tor.instructorId];
             return `
@@ -795,8 +793,8 @@ export function renderSupervisorSchool(container, { session }) {
           }).join('')}
         </div>` : ''}
       ${history.length > 0 ? `
-        <div style="padding:0 20px 8px;">${secLabel('History')}</div>
-        <div style="padding:0 12px 32px;display:flex;flex-direction:column;gap:6px;">
+        ${secLabel('History')}
+        <div style="padding:0 20px 32px;display:flex;flex-direction:column;gap:6px;">
           ${history.map(tor => {
             const inst = usersById[tor.instructorId];
             return `
