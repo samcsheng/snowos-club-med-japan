@@ -65,7 +65,7 @@ function _renderLessons(container, date, sport, audience) {
               <span style="font-weight:700;font-size:15px;color:#000;">${tmpl?.name ?? lesson.templateId}</span>
               ${statusBadge(lesson.status)}
             </div>
-            <div style="font-size:12px;color:#6b625d;margin-bottom:5px;">${tmpl ? `AM ${tmpl.amStart}–${tmpl.amEnd}` : ''}</div>
+            <div style="font-size:12px;color:#6b625d;margin-bottom:5px;">${tmpl ? lessonTimes(tmpl) : ''}</div>
             <div style="font-size:13px;display:flex;align-items:center;gap:6px;
               ${unassigned ? 'color:#C75300;font-weight:500;' : 'color:#444;'}">
               ${unassigned
@@ -688,7 +688,7 @@ function _openInstSchedule(instId, inst) {
                   <div style="flex:1;">
                     <div style="font-weight:600;font-size:14px;color:#000;">${t?.name ?? l.templateId}</div>
                     <div style="font-size:12px;color:#888;margin-top:2px;">
-                      ${t ? `AM ${t.amStart}–${t.amEnd}` : ''}
+                      ${t ? lessonTimes(t) : ''}
                     </div>
                   </div>
                   ${statusBadge(l.status)}
