@@ -101,9 +101,8 @@ function _filterRow(sport, audience) {
     </div>`;
 }
 
-// ── Back-href helper (used by app.js route) ───────────────────────────────────
-export function supervisorLessonBackHref(params) {
-  const lesson = DB.getLessonById(params.id);
+// ── Back-href for lesson detail ───────────────────────────────────────────────
+function _lessonBackHref(lesson) {
   if (!lesson) return '/supervisor/today';
   return lesson.date === todayStr() ? '/supervisor/today' : '/supervisor/plan';
 }
@@ -249,7 +248,7 @@ export function renderSupervisorLessonDetail(container, { params, session }) {
   }
 
   container.innerHTML = `
-    ${pageHead(tmpl?.name ?? lessonId, fmtDateLong(lesson.date))}
+    ${pageHead(tmpl?.name ?? lessonId, fmtDateLong(lesson.date), _lessonBackHref(lesson))}
     <div style="padding:0 20px 20px;">
       <div class="glass" style="padding:14px 16px;border-radius:14px;">
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
