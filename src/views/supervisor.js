@@ -108,8 +108,15 @@ function _lessonBackHref(lesson) {
 }
 
 // ── Inline remove confirmation ────────────────────────────────────────────────
+const _IC_FADE = 130;
 function _confirmRemove(group, onConfirm, onCancel) {
-  group.innerHTML = `
+  function swap(html, cb) {
+    group.style.transition = `opacity ${_IC_FADE}ms ease`;
+    group.style.opacity = '0';
+    setTimeout(() => { group.innerHTML = html; group.style.opacity = '1'; cb?.(); }, _IC_FADE);
+  }
+
+  swap(`
     <span style="font-size:12px;color:#888;align-self:center;white-space:nowrap;margin-right:2px;">Remove?</span>
     <button data-ic="cancel"
       style="font-size:12px;font-weight:600;color:#555;background:var(--bg-section-soft);
@@ -118,9 +125,11 @@ function _confirmRemove(group, onConfirm, onCancel) {
     <button data-ic="confirm"
       style="font-size:12px;font-weight:600;color:#BF2F17;background:rgba(191,47,23,0.06);
       border:1px solid rgba(191,47,23,0.2);border-radius:999px;padding:5px 12px;
-      cursor:pointer;font-family:'Inter',sans-serif;">Remove</button>`;
-  group.querySelector('[data-ic="cancel"]').addEventListener('click', onCancel);
-  group.querySelector('[data-ic="confirm"]').addEventListener('click', onConfirm);
+      cursor:pointer;font-family:'Inter',sans-serif;">Remove</button>`,
+  () => {
+    group.querySelector('[data-ic="cancel"]').addEventListener('click', onCancel);
+    group.querySelector('[data-ic="confirm"]').addEventListener('click', onConfirm);
+  });
 }
 
 // ── Lesson detail page ────────────────────────────────────────────────────────
