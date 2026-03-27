@@ -192,27 +192,26 @@ export function renderSupervisorLessonDetail(container, { params, session }) {
         ${guestEntries.length === 0
           ? `<div style="padding:16px;font-size:14px;color:#888;text-align:center;">No guests booked</div>`
           : guestEntries.map((g, i) => `
-            <div style="display:flex;align-items:center;gap:10px;padding:11px 16px;
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;
               ${i > 0 ? 'border-top:1px solid rgba(30,38,67,0.06);' : ''}">
               ${av(g.user?.avatar, 'sm')}
-              <div style="flex:1;min-width:0;">
-                <div style="font-weight:600;font-size:14px;color:#000;
-                  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                  ${g.user?.name ?? 'Guest'}
-                </div>
-                <div style="font-size:12px;color:#888;">${g.user?.level ?? ''} · ${g.user?.sport ?? ''}</div>
+              <div style="flex:1;font-weight:600;font-size:14px;color:#000;
+                white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                ${g.user?.name ?? 'Guest'}
               </div>
-              <div style="display:flex;gap:4px;flex-shrink:0;">
+              <div style="display:flex;gap:6px;flex-shrink:0;">
                 <button data-action="transfer-guest" data-bid="${g.booking.id}"
                   style="font-size:12px;font-weight:600;color:#1E2643;
                   background:var(--bg-section-soft);border:1px solid var(--line-soft);
-                  border-radius:999px;padding:4px 10px;cursor:pointer;
-                  font-family:'Inter',sans-serif;" title="Transfer to another lesson">→</button>
+                  border-radius:999px;padding:5px 12px;cursor:pointer;font-family:'Inter',sans-serif;">
+                  Transfer
+                </button>
                 <button data-action="remove-guest" data-bid="${g.booking.id}"
                   style="font-size:12px;font-weight:600;color:#BF2F17;
                   background:rgba(191,47,23,0.06);border:1px solid rgba(191,47,23,0.2);
-                  border-radius:999px;padding:4px 10px;cursor:pointer;
-                  font-family:'Inter',sans-serif;" title="Remove">×</button>
+                  border-radius:999px;padding:5px 12px;cursor:pointer;font-family:'Inter',sans-serif;">
+                  Remove
+                </button>
               </div>
             </div>`).join('')}
         <div style="border-top:1px solid rgba(30,38,67,0.06);">
