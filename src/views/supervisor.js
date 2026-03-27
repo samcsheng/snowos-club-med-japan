@@ -485,71 +485,72 @@ function _openAddGuest(lesson, confirmedBkgs, usersById, onDone) {
   }, 50);
 }
 
+// ── Persistent filter state (survives tab navigation within the session) ──────
+const _todayFilter = { sport: 'ski', audience: 'adult' };
+const _planFilter  = { sport: 'ski', audience: 'adult', date: null };
+
 // ── Tab 1: Today ──────────────────────────────────────────────────────────────
 export function renderSupervisorToday(container, { session }) {
   const date = todayStr();
-  let sport    = 'ski';
-  let audience = 'adult';
+  const f = _todayFilter;
 
-  // Build skeleton once
   container.innerHTML = `
     ${pageHead('Today', fmtDateLong(date))}
-    ${_filterRow(sport, audience)}
+    ${_filterRow(f.sport, f.audience)}
     <div style="padding:0 12px 32px;display:flex;flex-direction:column;gap:8px;"
       data-lesson-list></div>`;
 
   function _applyFilter() {
     container.querySelectorAll('[data-sport]').forEach(b =>
-      b.classList.toggle('active', b.dataset.sport === sport));
+      b.classList.toggle('active', b.dataset.sport === f.sport));
     container.querySelectorAll('[data-audience]').forEach(b =>
-      b.classList.toggle('active', b.dataset.audience === audience));
-    _renderLessons(container, date, sport, audience);
+      b.classList.toggle('active', b.dataset.audience === f.audience));
+    _renderLessons(container, date, f.sport, f.audience);
   }
 
   container.querySelectorAll('[data-sport]').forEach(btn =>
-    btn.addEventListener('click', () => { sport = btn.dataset.sport; _applyFilter(); }));
+    btn.addEventListener('click', () => { f.sport = btn.dataset.sport; _applyFilter(); }));
   container.querySelectorAll('[data-audience]').forEach(btn =>
-    btn.addEventListener('click', () => { audience = btn.dataset.audience; _applyFilter(); }));
+    btn.addEventListener('click', () => { f.audience = btn.dataset.audience; _applyFilter(); }));
 
-  _renderLessons(container, date, sport, audience);
+  _renderLessons(container, date, f.sport, f.audience);
 }
 
 // ── Tab 2: Plan ───────────────────────────────────────────────────────────────
 export function renderSupervisorPlan(container, { session }) {
   const tomorrowDate = dateOffset(todayStr(), 1);
-  let date     = tomorrowDate;
-  let sport    = 'ski';
-  let audience = 'adult';
+  const f = _planFilter;
+  // Reset date if it's in the past (e.g. app left open overnight)
+  if (!f.date || f.date < tomorrowDate) f.date = tomorrowDate;
 
-  // Build skeleton once
   container.innerHTML = `
     ${pageHead('Plan')}
     <div style="padding:0 20px 16px;">
       <label class="field-label">Date</label>
       <input type="date" class="field-input" id="plan-date"
-        value="${date}" min="${tomorrowDate}">
+        value="${f.date}" min="${tomorrowDate}">
     </div>
-    ${_filterRow(sport, audience)}
+    ${_filterRow(f.sport, f.audience)}
     <div style="padding:0 12px 32px;display:flex;flex-direction:column;gap:8px;"
       data-lesson-list></div>`;
 
   function _applyFilter() {
     container.querySelectorAll('[data-sport]').forEach(b =>
-      b.classList.toggle('active', b.dataset.sport === sport));
+      b.classList.toggle('active', b.dataset.sport === f.sport));
     container.querySelectorAll('[data-audience]').forEach(b =>
-      b.classList.toggle('active', b.dataset.audience === audience));
-    _renderLessons(container, date, sport, audience);
+      b.classList.toggle('active', b.dataset.audience === f.audience));
+    _renderLessons(container, f.date, f.sport, f.audience);
   }
 
   container.querySelector('#plan-date')?.addEventListener('change', e => {
-    if (e.target.value) { date = e.target.value; _renderLessons(container, date, sport, audience); }
+    if (e.target.value) { f.date = e.target.value; _renderLessons(container, f.date, f.sport, f.audience); }
   });
   container.querySelectorAll('[data-sport]').forEach(btn =>
-    btn.addEventListener('click', () => { sport = btn.dataset.sport; _applyFilter(); }));
+    btn.addEventListener('click', () => { f.sport = btn.dataset.sport; _applyFilter(); }));
   container.querySelectorAll('[data-audience]').forEach(btn =>
-    btn.addEventListener('click', () => { audience = btn.dataset.audience; _applyFilter(); }));
+    btn.addEventListener('click', () => { f.audience = btn.dataset.audience; _applyFilter(); }));
 
-  _renderLessons(container, date, sport, audience);
+  _renderLessons(container, f.date, f.sport, f.audience);
 }
 
 // ── Tab 3: Instructors ────────────────────────────────────────────────────────
