@@ -433,27 +433,30 @@ function _openAddGuest(lesson, confirmedBkgs, usersById, onDone) {
 
   function listHTML(q) {
     const show = q
-      ? allGuests.filter(g => g.name.toLowerCase().includes(q.toLowerCase()))
-      : allGuests.slice(0, 30);
-    if (show.length === 0) return `<div style="text-align:center;padding:16px;color:#888;">No guests found</div>`;
-    return show.map(g => `
-      <div class="glass-strong guest-add-pick" data-gid="${g.id}"
-        style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;
-        cursor:pointer;margin-bottom:6px;">
-        ${av(g.avatar, 'sm')}
-        <div style="flex:1;">
-          <div style="font-weight:600;font-size:14px;color:#000;">${g.name}</div>
-          <div style="font-size:12px;color:#888;">${g.level} · ${g.sport}</div>
-        </div>
-        <div style="color:#CCC;">${iChevR()}</div>
-      </div>`).join('');
+      ? allGuests.filter(g => g.name.toLowerCase().includes(q.toLowerCase())).slice(0, 12)
+      : allGuests.slice(0, 12);
+    if (show.length === 0) return `<div style="padding:16px;text-align:center;color:#888;font-size:14px;">No guests found</div>`;
+    return `
+      <div class="glass-strong" style="border-radius:14px;overflow:hidden;">
+        ${show.map((g, i) => `
+          <div class="guest-add-pick" data-gid="${g.id}"
+            style="display:flex;align-items:center;gap:10px;padding:11px 16px;cursor:pointer;
+            ${i > 0 ? 'border-top:1px solid rgba(30,38,67,0.06);' : ''}">
+            ${av(g.avatar, 'sm')}
+            <div style="flex:1;">
+              <div style="font-weight:600;font-size:14px;color:#000;">${g.name}</div>
+              <div style="font-size:12px;color:#888;">${g.level} · ${g.sport}</div>
+            </div>
+            <div style="color:#CCC;">${iChevR()}</div>
+          </div>`).join('')}
+      </div>`;
   }
 
   openModal('add-guest', 'Add Guest', `
     <div style="margin-bottom:12px;">
       <input type="text" class="field-input" id="guest-search" placeholder="Search guests…">
     </div>
-    <div id="guest-list" style="max-height:320px;overflow-y:auto;">${listHTML('')}</div>`);
+    <div id="guest-list">${listHTML('')}</div>`);
 
   function attachPicks() {
     document.querySelectorAll('.guest-add-pick').forEach(el => {
