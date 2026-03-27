@@ -86,30 +86,24 @@ function router() {
   }
 
   const content = document.getElementById('content');
-  content.style.opacity = '0';
+  content.innerHTML = '';
+  window.scrollTo(0, 0);
 
-  // Small delay for the fade transition
-  setTimeout(() => {
-    content.innerHTML = '';
-    window.scrollTo(0, 0);
+  if (session) {
+    const backHref = route.back ? route.back(params) : null;
+    renderNav(session, backHref);
+    // Yellow accent for Book tab (immersive experience)
+    const nav = document.getElementById('bottom-nav');
+    if (nav) nav.dataset.accent = path === '/guest/book' ? 'yellow' : '';
+  } else {
+    document.getElementById('bottom-nav')?.remove();
+    content.classList.remove('nav-hidden-offset');
+  }
 
-    if (session) {
-      const backHref = route.back ? route.back(params) : null;
-      renderNav(session, backHref);
-      // Yellow accent for Book tab (immersive experience)
-      const nav = document.getElementById('bottom-nav');
-      if (nav) nav.dataset.accent = path === '/guest/book' ? 'yellow' : '';
-    } else {
-      document.getElementById('bottom-nav')?.remove();
-      content.classList.remove('nav-hidden-offset');
-    }
-
-    route.view(content, { params, session });
-    if (session && !route.noAvatar) injectHeadAvatar(session, content);
-    content.style.opacity = '1';
-    content.classList.add('fade-up');
-    setTimeout(() => content.classList.remove('fade-up'), 250);
-  }, 80);
+  route.view(content, { params, session });
+  if (session && !route.noAvatar) injectHeadAvatar(session, content);
+  content.classList.add('fade-up');
+  setTimeout(() => { content.classList.remove('fade-up'); content.style.opacity = ''; }, 250);
 }
 
 window.addEventListener('hashchange', router);

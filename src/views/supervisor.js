@@ -92,19 +92,12 @@ function _renderLessons(container, date, sport, audience) {
 // ── Filter row (sport + audience chips) ───────────────────────────────────────
 function _filterRow(sport, audience) {
   return `
-    <div style="padding:0 20px 16px;display:flex;flex-direction:column;gap:8px;">
-      <div style="display:flex;gap:8px;">
-        ${['ski', 'snowboard'].map(s => `
-          <button class="pill-filter${sport === s ? ' active' : ''}" data-sport="${s}">
-            ${s === 'ski' ? '⛷ Ski' : '🏂 Snowboard'}
-          </button>`).join('')}
-      </div>
-      <div style="display:flex;gap:8px;">
-        ${['adult', 'kids'].map(a => `
-          <button class="pill-filter${audience === a ? ' active' : ''}" data-audience="${a}">
-            ${a === 'adult' ? 'Adult' : 'Kids'}
-          </button>`).join('')}
-      </div>
+    <div style="display:flex;gap:8px;padding:0 20px 20px;flex-wrap:wrap;">
+      <button class="pill-filter${sport === 'ski' ? ' active' : ''}" data-sport="ski">⛷ Ski</button>
+      <button class="pill-filter${sport === 'snowboard' ? ' active' : ''}" data-sport="snowboard">🏂 Snowboard</button>
+      <div style="width:1px;background:var(--line-soft);align-self:stretch;margin:0 2px;"></div>
+      <button class="pill-filter${audience === 'adult' ? ' active' : ''}" data-audience="adult">Adult</button>
+      <button class="pill-filter${audience === 'kids' ? ' active' : ''}" data-audience="kids">Kids</button>
     </div>`;
 }
 
@@ -369,22 +362,25 @@ function _openTransferInstructor(lesson, date, otherLessons, usersById, onDone) 
 // ── Transfer guest to another lesson ─────────────────────────────────────────
 function _openTransferGuest(booking, currentLesson, date, usersById, onDone) {
   const curTmpl   = getTemplate(currentLesson.templateId);
-  const dayLessons = DB.getLessonsByDate(date).filter(l => l.id !== currentLesson.id);
+  const dayLessons = DB.getLessonsByDate(date).filter(l => {
+    if (l.id === currentLesson.id) return false;
+    const t = getTemplate(l.templateId);
+    return t && t.sport === curTmpl?.sport && t.audience === curTmpl?.audience;
+  });
   const guestName = usersById[booking.guestId]?.name ?? 'Guest';
 
-  // Sort: same sport first
-  const sorted = [...dayLessons].sort((a, b) => {
-    const ta = getTemplate(a.templateId);
-    const tb = getTemplate(b.templateId);
-    const sa = ta?.sport === curTmpl?.sport ? 0 : 1;
-    const sb = tb?.sport === curTmpl?.sport ? 0 : 1;
-    return sa - sb;
-  });
+  if (dayLessons.length === 0) {
+    openModal('transfer-guest', `Move ${guestName}`, `
+      <div style="text-align:center;padding:24px;color:#888;">
+        No other ${curTmpl?.sport ?? ''} ${curTmpl?.audience ?? ''} lessons today.
+      </div>`);
+    return;
+  }
 
   openModal('transfer-guest', `Move ${guestName}`, `
     <p style="font-size:13px;color:#888;margin:0 0 12px;">Select destination lesson:</p>
     <div style="display:flex;flex-direction:column;gap:8px;">
-      ${sorted.map(l => {
+      ${dayLessons.map(l => {
         const t     = getTemplate(l.templateId);
         const inst  = l.instructorId ? usersById[l.instructorId] : null;
         const count = DB.getConfirmedByLesson(l.id).length;
@@ -394,12 +390,7 @@ function _openTransferGuest(booking, currentLesson, date, usersById, onDone) {
             style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:12px;
             cursor:${isFull ? 'not-allowed' : 'pointer'};${isFull ? 'opacity:0.45;' : ''}">
             <div style="flex:1;">
-              <div style="font-weight:600;font-size:14px;color:#000;">
-                ${t?.name ?? l.templateId}
-                ${t?.sport !== curTmpl?.sport
-                  ? `<span style="font-size:11px;color:#888;margin-left:5px;">${t?.sport === 'ski' ? '⛷' : '🏂'}</span>`
-                  : ''}
-              </div>
+              <div style="font-weight:600;font-size:14px;color:#000;">${t?.name ?? l.templateId}</div>
               <div style="font-size:12px;color:#888;margin-top:2px;">
                 ${inst?.name ?? 'Unassigned'} · ${count}/${t?.maxGuests ?? '?'} guests
                 ${isFull ? ' · <span style="color:#C75300;">Full</span>' : ''}
