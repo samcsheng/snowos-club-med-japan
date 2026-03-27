@@ -65,7 +65,7 @@ function _renderLessons(container, date, sport, audience) {
               <span style="font-weight:700;font-size:15px;color:#000;">${tmpl?.name ?? lesson.templateId}</span>
               ${statusBadge(lesson.status)}
             </div>
-            <div style="font-size:12px;color:#6b625d;margin-bottom:5px;">${tmpl ? `AM ${tmpl.amStart}–${tmpl.amEnd}` : ''}</div>
+            <div style="font-size:12px;color:#6b625d;margin-bottom:5px;">${tmpl ? lessonTimes(tmpl) : ''}</div>
             <div style="font-size:13px;display:flex;align-items:center;gap:6px;
               ${unassigned ? 'color:#C75300;font-weight:500;' : 'color:#444;'}">
               ${unassigned
@@ -526,7 +526,7 @@ export function renderSupervisorToday(container, { session }) {
   container.innerHTML = `
     ${pageHead('Today', fmtDateLong(date))}
     ${_filterRow(f.sport, f.audience)}
-    <div style="padding:0 12px 32px;display:flex;flex-direction:column;gap:8px;"
+    <div style="padding:0 20px 32px;display:flex;flex-direction:column;gap:8px;"
       data-lesson-list></div>`;
 
   function _applyFilter() {
@@ -560,7 +560,7 @@ export function renderSupervisorPlan(container, { session }) {
         value="${f.date}" min="${tomorrowDate}">
     </div>
     ${_filterRow(f.sport, f.audience)}
-    <div style="padding:0 12px 32px;display:flex;flex-direction:column;gap:8px;"
+    <div style="padding:0 20px 32px;display:flex;flex-direction:column;gap:8px;"
       data-lesson-list></div>`;
 
   function _applyFilter() {
@@ -602,8 +602,8 @@ export function renderSupervisorInstructors(container, { session }) {
           ${iUserPlus()} Add Instructor
         </button>
       </div>
-      <div style="padding:0 20px 8px;">${secLabel(`Team (${instructors.length})`)}</div>
-      <div style="padding:0 12px 32px;display:flex;flex-direction:column;gap:8px;">
+      ${secLabel(`Team (${instructors.length})`)}
+      <div style="padding:0 20px 32px;display:flex;flex-direction:column;gap:8px;">
         ${instructors.length === 0
           ? emptyState('👤', 'No instructors yet', 'Add your first instructor above.')
           : instructors.map(inst => {
@@ -688,7 +688,7 @@ function _openInstSchedule(instId, inst) {
                   <div style="flex:1;">
                     <div style="font-weight:600;font-size:14px;color:#000;">${t?.name ?? l.templateId}</div>
                     <div style="font-size:12px;color:#888;margin-top:2px;">
-                      ${t ? `AM ${t.amStart}–${t.amEnd}` : ''}
+                      ${t ? lessonTimes(t) : ''}
                     </div>
                   </div>
                   ${statusBadge(l.status)}
@@ -718,9 +718,9 @@ export function renderSupervisorSchool(container, { session }) {
   // Build skeleton once — two independent update slots
   container.innerHTML = `
     ${pageHead('School')}
-    <div style="padding:0 20px 8px;">${secLabel('Lesson Templates')}</div>
+    ${secLabel('Lesson Templates')}
     <div data-section="templates"
-      style="padding:0 12px 28px;display:flex;flex-direction:column;gap:6px;"></div>
+      style="padding:0 20px 28px;display:flex;flex-direction:column;gap:6px;"></div>
     <div data-section="timeoff"></div>
   `;
 
@@ -764,14 +764,12 @@ export function renderSupervisorSchool(container, { session }) {
     if (!el) return;
 
     el.innerHTML = `
-      <div style="padding:0 20px 8px;">
-        ${secLabel(`Time Off Requests${pending.length > 0 ? ` · ${pending.length} pending` : ''}`)}
-      </div>
+      ${secLabel(`Time Off Requests${pending.length > 0 ? ` · ${pending.length} pending` : ''}`)}
       ${pending.length === 0 && history.length === 0
-        ? `<div style="padding:0 12px 32px;">${emptyState('🏔', 'No requests', 'No time off requests yet.')}</div>`
+        ? `<div style="padding:0 20px 32px;">${emptyState('🏔', 'No requests', 'No time off requests yet.')}</div>`
         : ''}
       ${pending.length > 0 ? `
-        <div style="padding:0 12px 16px;display:flex;flex-direction:column;gap:8px;">
+        <div style="padding:0 20px 16px;display:flex;flex-direction:column;gap:8px;">
           ${pending.map(tor => {
             const inst = usersById[tor.instructorId];
             return `
@@ -784,7 +782,7 @@ export function renderSupervisorSchool(container, { session }) {
                   </div>
                   ${tor.reason ? `<div style="font-size:13px;color:#555;margin:4px 0 8px 30px;">${tor.reason}</div>` : ''}
                   <div style="display:flex;gap:8px;">
-                    <button class="btn btn-sm btn-full" style="background:#088A20;color:#fff;border:none;"
+                    <button class="btn btn-sm btn-full" style="background:#088A20;color:#fff;border:none;border-radius:999px;"
                       data-tor-approve="${tor.id}">Approve</button>
                     <button class="btn btn-sm btn-ghost btn-full"
                       style="color:#BF2F17;border-color:rgba(191,47,23,0.25);"
@@ -795,8 +793,8 @@ export function renderSupervisorSchool(container, { session }) {
           }).join('')}
         </div>` : ''}
       ${history.length > 0 ? `
-        <div style="padding:0 20px 8px;">${secLabel('History')}</div>
-        <div style="padding:0 12px 32px;display:flex;flex-direction:column;gap:6px;">
+        ${secLabel('History')}
+        <div style="padding:0 20px 32px;display:flex;flex-direction:column;gap:6px;">
           ${history.map(tor => {
             const inst = usersById[tor.instructorId];
             return `

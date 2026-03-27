@@ -36,11 +36,11 @@ export function renderGuestDashboard(container, { session }) {
 
     <!-- Today's lesson (expanded) or empty state -->
     ${todayLesson ? `
-      <div style="padding:0 12px 20px;">
+      <div style="padding:0 20px 20px;">
         ${_todayCard(todayLesson)}
       </div>
     ` : `
-      <div style="padding:0 12px 20px;">
+      <div style="padding:0 20px 20px;">
         ${emptyState('📅', 'No lessons booked today', '')}
       </div>
     `}
@@ -497,7 +497,7 @@ export function renderMyBookings(container, { session }) {
       </div>
 
       <!-- Bookings list -->
-      <div style="padding:0 12px 32px;display:flex;flex-direction:column;gap:8px;">
+      <div style="padding:0 20px 32px;display:flex;flex-direction:column;gap:8px;">
         ${filtered.length === 0
           ? emptyState('📅', 'No bookings here',
               filter === 'all'

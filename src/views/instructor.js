@@ -115,7 +115,7 @@ export function renderInstructorDashboard(container, { session }) {
       headTitle  = 'Today\'s Sessions';
       headSub    = fmtDateLong(today);
       stateBanner = `
-        <div style="padding:0 12px 20px;">
+        <div style="padding:0 20px 20px;">
           <div class="glass-strong" style="padding:16px;border-radius:14px;
             background:rgba(253,190,0,0.09);border:1.5px solid rgba(253,190,0,0.28);">
             <div style="display:flex;align-items:center;gap:12px;">
@@ -132,7 +132,7 @@ export function renderInstructorDashboard(container, { session }) {
       headTitle  = `Well done, ${firstName}!`;
       headSub    = 'Thank you for your hard work today';
       stateBanner = `
-        <div style="padding:0 12px 20px;">
+        <div style="padding:0 20px 20px;">
           <div class="glass-strong" style="padding:16px;border-radius:14px;
             background:rgba(8,138,32,0.06);border:1.5px solid rgba(8,138,32,0.17);">
             <div style="display:flex;align-items:center;gap:12px;">
@@ -154,7 +154,7 @@ export function renderInstructorDashboard(container, { session }) {
   container.innerHTML = `
     ${pageHead(headTitle, headSub)}
     ${stateBanner}
-    <div style="padding:0 12px 20px;display:flex;flex-direction:column;gap:8px;" id="today-list">
+    <div style="padding:0 20px 20px;display:flex;flex-direction:column;gap:8px;" id="today-list">
       ${lessons.length === 0
         ? emptyState('🎿', 'No sessions today', 'Check your schedule for upcoming assignments.')
         : lessons.map(l => _instructorLessonCard(l)).join('')}
@@ -816,8 +816,8 @@ export function renderLessonDetail(container, { params, session }) {
     </div>` : ''}
 
     <!-- Guest roster -->
-    <div style="padding:0 20px 8px;">${secLabel(`Guest Roster (${guests.length})`)}</div>
-    <div style="padding:0 12px 32px;display:flex;flex-direction:column;gap:6px;">
+    ${secLabel(`Guest Roster (${guests.length})`)}
+    <div style="padding:0 20px 32px;display:flex;flex-direction:column;gap:6px;">
       ${guests.length === 0
         ? emptyState('👤', 'No guests booked', 'This session has no confirmed bookings yet.')
         : guests.map(({ guest }) => `
