@@ -107,6 +107,22 @@ function _lessonBackHref(lesson) {
   return lesson.date === todayStr() ? '/supervisor/today' : '/supervisor/plan';
 }
 
+// ── Inline remove confirmation ────────────────────────────────────────────────
+function _confirmRemove(group, onConfirm, onCancel) {
+  group.innerHTML = `
+    <span style="font-size:12px;color:#888;align-self:center;white-space:nowrap;margin-right:2px;">Remove?</span>
+    <button data-ic="cancel"
+      style="font-size:12px;font-weight:600;color:#555;background:var(--bg-section-soft);
+      border:1px solid var(--line-soft);border-radius:999px;padding:5px 12px;
+      cursor:pointer;font-family:'Inter',sans-serif;">Cancel</button>
+    <button data-ic="confirm"
+      style="font-size:12px;font-weight:600;color:#BF2F17;background:rgba(191,47,23,0.06);
+      border:1px solid rgba(191,47,23,0.2);border-radius:999px;padding:5px 12px;
+      cursor:pointer;font-family:'Inter',sans-serif;">Remove</button>`;
+  group.querySelector('[data-ic="cancel"]').addEventListener('click', onCancel);
+  group.querySelector('[data-ic="confirm"]').addEventListener('click', onConfirm);
+}
+
 // ── Lesson detail page ────────────────────────────────────────────────────────
 export function renderSupervisorLessonDetail(container, { params, session }) {
   const lessonId = params.id;
@@ -138,7 +154,7 @@ export function renderSupervisorLessonDetail(container, { params, session }) {
           <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;">
             ${av(inst.avatar, 'md')}
             <div style="flex:1;font-weight:600;font-size:14px;color:#000;">${inst.name}</div>
-            <div style="display:flex;gap:6px;flex-shrink:0;">
+            <div data-btn-group style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
               <button data-action="transfer-inst"
                 style="font-size:12px;font-weight:600;color:#1E2643;
                 background:var(--bg-section-soft);border:1px solid var(--line-soft);
@@ -168,10 +184,12 @@ export function renderSupervisorLessonDetail(container, { params, session }) {
 
     sec.querySelector('[data-action="assign-inst"]')?.addEventListener('click', () =>
       _openAssignInstructor(lesson, lesson.date, instructors, usersById, _renderInstructorSection));
-    sec.querySelector('[data-action="remove-inst"]')?.addEventListener('click', () => {
-      DB.upsertLesson({ ...lesson, instructorId: null });
-      toast('Instructor removed.', 'info');
-      _renderInstructorSection();
+    sec.querySelector('[data-action="remove-inst"]')?.addEventListener('click', function() {
+      const group = this.closest('[data-btn-group]');
+      _confirmRemove(group,
+        () => { DB.upsertLesson({ ...lesson, instructorId: null }); toast('Instructor removed.', 'info'); _renderInstructorSection(); },
+        () => _renderInstructorSection()
+      );
     });
     sec.querySelector('[data-action="transfer-inst"]')?.addEventListener('click', () =>
       _openTransferInstructor(lesson, lesson.date, sameDayOthers, usersById, _renderInstructorSection));
@@ -199,7 +217,7 @@ export function renderSupervisorLessonDetail(container, { params, session }) {
                 white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                 ${g.user?.name ?? 'Guest'}
               </div>
-              <div style="display:flex;gap:6px;flex-shrink:0;">
+              <div data-btn-group style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
                 <button data-action="transfer-guest" data-bid="${g.booking.id}"
                   style="font-size:12px;font-weight:600;color:#1E2643;
                   background:var(--bg-section-soft);border:1px solid var(--line-soft);
@@ -225,10 +243,13 @@ export function renderSupervisorLessonDetail(container, { params, session }) {
       </div>`;
 
     sec.querySelectorAll('[data-action="remove-guest"]').forEach(btn =>
-      btn.addEventListener('click', () => {
-        DB.cancelBooking(btn.dataset.bid);
-        toast('Guest removed.', 'info');
-        _renderGuestSection();
+      btn.addEventListener('click', function() {
+        const group = this.closest('[data-btn-group]');
+        const bid = this.dataset.bid;
+        _confirmRemove(group,
+          () => { DB.cancelBooking(bid); toast('Guest removed.', 'info'); _renderGuestSection(); },
+          () => _renderGuestSection()
+        );
       }));
     sec.querySelectorAll('[data-action="transfer-guest"]').forEach(btn =>
       btn.addEventListener('click', () => {
