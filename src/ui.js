@@ -52,9 +52,10 @@ const NAV_CONFIG = {
     { href: '/instructor/schedule',  label: 'Schedule', icon: iCalendar() },
   ],
   supervisor: [
-    { href: '/supervisor/dashboard',    label: 'Overview',    icon: iHome() },
-    { href: '/supervisor/bookings',     label: 'Bookings',    icon: iList() },
-    { href: '/supervisor/instructors',  label: 'Instructors', icon: iPeople() },
+    { href: '/supervisor/today',       label: 'Today',       icon: iHome() },
+    { href: '/supervisor/plan',        label: 'Plan',        icon: iCalendar() },
+    { href: '/supervisor/instructors', label: 'Instructors', icon: iPeople() },
+    { href: '/supervisor/school',      label: 'School',      icon: iSchool() },
   ],
 };
 
@@ -156,7 +157,7 @@ export function dismissModal(id, cb) {
   setTimeout(() => { overlay.remove(); cb?.(); }, MODAL_CLOSE_MS);
 }
 
-export function openModal(id, title, body) {
+export function openModal(id, title, body, { onClose } = {}) {
   closeModal(id);
   const overlay = document.createElement('div');
   overlay.id        = `modal-${id}`;
@@ -174,8 +175,8 @@ export function openModal(id, title, body) {
       <div id="modal-${id}-body">${body}</div>
     </div>
   `;
-  overlay.querySelector('[data-modal-close]').addEventListener('click', () => dismissModal(id));
-  overlay.addEventListener('click', e => { if (e.target === overlay) dismissModal(id); });
+  overlay.querySelector('[data-modal-close]').addEventListener('click', () => dismissModal(id, onClose));
+  overlay.addEventListener('click', e => { if (e.target === overlay) dismissModal(id, onClose); });
   document.body.appendChild(overlay);
 }
 
@@ -323,3 +324,8 @@ export function iLogout()   { return svg('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0
 export function iRefresh()  { return svg('<polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>'); }
 export function iPlay()     { return svg('<polygon points="5 3 19 12 5 21 5 3"/>'); }
 export function iFlag()     { return svg('<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>'); }
+export function iSchool()   { return svg('<path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"/>'); }
+export function iSwap()     { return svg('<polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/>'); }
+export function iTrash()    { return svg('<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>'); }
+export function iUserPlus() { return svg('<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/>'); }
+export function iChevDown() { return svg('<polyline points="6 9 12 15 18 9"/>'); }

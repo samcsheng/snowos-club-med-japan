@@ -1,6 +1,6 @@
 import { seed, resetSeed }              from './data.js';
 import { getSession, logout }       from './auth.js';
-import { renderNav, closeModal, dismissModal, injectHeadAvatar } from './ui.js';
+import { renderNav, closeModal, dismissModal, injectHeadAvatar, setNavHidden } from './ui.js';
 import { renderLogin, renderRegister } from './views/login.js';
 import {
   renderGuestDashboard,
@@ -13,10 +13,11 @@ import {
   renderLessonDetail,
 } from './views/instructor.js';
 import {
-  renderSupervisorDashboard,
-  renderAllBookings,
-  renderInstructorMgmt,
-  renderAssign,
+  renderSupervisorToday,
+  renderSupervisorPlan,
+  renderSupervisorInstructors,
+  renderSupervisorSchool,
+  renderSupervisorLessonDetail,
 } from './views/supervisor.js';
 
 // ── Bootstrap ────────────────────────────────────────────────────────────────
@@ -38,11 +39,13 @@ const ROUTES = [
   { pat: /^\/guest\/bookings$/,               view: renderMyBookings,          roles: ['guest'] },
   { pat: /^\/instructor\/dashboard$/,         view: renderInstructorDashboard, roles: ['instructor'] },
   { pat: /^\/instructor\/schedule$/,          view: renderMySchedule,          roles: ['instructor'] },
-  { pat: /^\/instructor\/lesson\/(?<id>.+)$/, view: renderLessonDetail,        roles: ['instructor'], back: p => '/instructor/dashboard' },
-  { pat: /^\/supervisor\/dashboard$/,         view: renderSupervisorDashboard, roles: ['supervisor'] },
-  { pat: /^\/supervisor\/bookings$/,          view: renderAllBookings,         roles: ['supervisor'] },
-  { pat: /^\/supervisor\/instructors$/,       view: renderInstructorMgmt,      roles: ['supervisor'] },
-  { pat: /^\/supervisor\/assign\/(?<id>.+)$/, view: renderAssign,              roles: ['supervisor'], back: p => '/supervisor/dashboard' },
+  { pat: /^\/instructor\/lesson\/(?<id>.+)$/, view: renderLessonDetail,        roles: ['instructor'], hideNav: true },
+  { pat: /^\/supervisor\/dashboard$/,         view: (c,o) => { navigate('/supervisor/today'); }, roles: ['supervisor'] },
+  { pat: /^\/supervisor\/today$/,             view: renderSupervisorToday,        roles: ['supervisor'] },
+  { pat: /^\/supervisor\/plan$/,              view: renderSupervisorPlan,         roles: ['supervisor'] },
+  { pat: /^\/supervisor\/instructors$/,       view: renderSupervisorInstructors,  roles: ['supervisor'] },
+  { pat: /^\/supervisor\/school$/,            view: renderSupervisorSchool,          roles: ['supervisor'] },
+  { pat: /^\/supervisor\/lesson\/(?<id>.+)$/, view: renderSupervisorLessonDetail,    roles: ['supervisor'], hideNav: true },
 ];
 
 function matchRoute(path) {
@@ -82,30 +85,24 @@ function router() {
   }
 
   const content = document.getElementById('content');
-  content.style.opacity = '0';
+  content.innerHTML = '';
+  window.scrollTo(0, 0);
 
-  // Small delay for the fade transition
-  setTimeout(() => {
-    content.innerHTML = '';
-    window.scrollTo(0, 0);
+  if (session) {
+    renderNav(session, null);
+    setNavHidden(!!route.hideNav);
+    // Yellow accent for Book tab (immersive experience)
+    const nav = document.getElementById('bottom-nav');
+    if (nav) nav.dataset.accent = path === '/guest/book' ? 'yellow' : '';
+  } else {
+    document.getElementById('bottom-nav')?.remove();
+    content.classList.remove('nav-hidden-offset');
+  }
 
-    if (session) {
-      const backHref = route.back ? route.back(params) : null;
-      renderNav(session, backHref);
-      // Yellow accent for Book tab (immersive experience)
-      const nav = document.getElementById('bottom-nav');
-      if (nav) nav.dataset.accent = path === '/guest/book' ? 'yellow' : '';
-    } else {
-      document.getElementById('bottom-nav')?.remove();
-      content.classList.remove('nav-hidden-offset');
-    }
-
-    route.view(content, { params, session });
-    if (session && !route.noAvatar) injectHeadAvatar(session, content);
-    content.style.opacity = '1';
-    content.classList.add('fade-up');
-    setTimeout(() => content.classList.remove('fade-up'), 250);
-  }, 80);
+  route.view(content, { params, session });
+  if (session && !route.noAvatar) injectHeadAvatar(session, content);
+  content.classList.add('fade-up');
+  setTimeout(() => { content.classList.remove('fade-up'); content.style.opacity = ''; }, 250);
 }
 
 window.addEventListener('hashchange', router);
