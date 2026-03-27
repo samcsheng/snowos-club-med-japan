@@ -157,7 +157,7 @@ export function dismissModal(id, cb) {
   setTimeout(() => { overlay.remove(); cb?.(); }, MODAL_CLOSE_MS);
 }
 
-export function openModal(id, title, body) {
+export function openModal(id, title, body, { onClose } = {}) {
   closeModal(id);
   const overlay = document.createElement('div');
   overlay.id        = `modal-${id}`;
@@ -175,8 +175,8 @@ export function openModal(id, title, body) {
       <div id="modal-${id}-body">${body}</div>
     </div>
   `;
-  overlay.querySelector('[data-modal-close]').addEventListener('click', () => dismissModal(id));
-  overlay.addEventListener('click', e => { if (e.target === overlay) dismissModal(id); });
+  overlay.querySelector('[data-modal-close]').addEventListener('click', () => dismissModal(id, onClose));
+  overlay.addEventListener('click', e => { if (e.target === overlay) dismissModal(id, onClose); });
   document.body.appendChild(overlay);
 }
 
