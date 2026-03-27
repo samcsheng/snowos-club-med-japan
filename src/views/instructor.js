@@ -477,7 +477,7 @@ function _torBadge(status) {
 }
 
 // ── My time-off overview modal ────────────────────────────────────────────────
-function _openMyTimeOffModal(session) {
+function _openMyTimeOffModal(session, onRefresh) {
   const ORDER = ['pending', 'approved', 'denied', 'cancelled'];
 
   function _render() {
@@ -510,12 +510,12 @@ function _openMyTimeOffModal(session) {
             </div>
           </div>`).join('')}`;
 
-    openModal('my-time-off', 'Time Off Requests', body);
+    openModal('my-time-off', 'Time Off Requests', body, { onClose: onRefresh });
 
     setTimeout(() => {
       document.getElementById('tor-new')?.addEventListener('click', () =>
         dismissModal('my-time-off', () =>
-          _openTimeOffModal(session.id, todayStr(), () => _openMyTimeOffModal(session))));
+          _openTimeOffModal(session.id, todayStr(), () => _openMyTimeOffModal(session, onRefresh))));
     }, 50);
   }
 
@@ -614,7 +614,7 @@ export function renderMySchedule(container, { session }) {
       'font-size:13px;font-weight:600;color:#1E2643;display:inline-flex;align-items:center;' +
       'gap:5px;-webkit-tap-highlight-color:transparent;';
     _torBtn.innerHTML = `${iFlag()}<span>Time Off</span>`;
-    _torBtn.addEventListener('click', () => _openMyTimeOffModal(session));
+    _torBtn.addEventListener('click', () => _openMyTimeOffModal(session, _renderLessons));
     _headTitleRow.appendChild(_torBtn);
   }
 
