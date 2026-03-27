@@ -98,7 +98,7 @@ export function renderInstructorDashboard(container, { session }) {
       headSub    = fmtDateLong(today);
       stateBanner = `
         <div class="mlp-wave" style="margin:0 -1px;"></div>
-        <div style="padding:12px 12px 20px;">
+        <div style="padding:24px 12px 20px;">
           <div class="glass-strong" style="padding:16px;border-radius:14px;
             background:rgba(30,38,67,0.07);border:1.5px solid rgba(30,38,67,0.15);">
             <div style="display:flex;align-items:center;gap:12px;">
@@ -463,6 +463,65 @@ function _openGuestReportModal(guest, gr) {
   `);
 }
 
+// ── Time-off status badge ─────────────────────────────────────────────────────
+function _torBadge(status) {
+  const map = {
+    pending:   ['#875700', 'rgba(253,190,0,0.15)',  'Pending'],
+    approved:  ['#076b1a', 'rgba(8,138,32,0.10)',   'Approved'],
+    denied:    ['#BF2F17', 'rgba(191,47,23,0.08)',  'Denied'],
+    cancelled: ['#888',    'rgba(0,0,0,0.06)',       'Cancelled'],
+  };
+  const [color, bg, label] = map[status] || ['#888', 'rgba(0,0,0,0.06)', status];
+  return `<span style="font-size:12px;font-weight:600;color:${color};background:${bg};
+    padding:3px 10px;border-radius:999px;white-space:nowrap;">${label}</span>`;
+}
+
+// ── My time-off overview modal ────────────────────────────────────────────────
+function _openMyTimeOffModal(session) {
+  const ORDER = ['pending', 'approved', 'denied', 'cancelled'];
+
+  function _render() {
+    const all = DB.getTimeOffByInstructor(session.id)
+      .sort((a, b) => b.date.localeCompare(a.date));
+
+    const groups = ORDER
+      .map(key => ({ key, items: all.filter(t => t.status === key) }))
+      .filter(g => g.items.length > 0);
+
+    const body = `
+      <div style="margin-bottom:16px;">
+        <button id="tor-new" class="btn btn-navy btn-md btn-full">${iFlag()} Submit New Request</button>
+      </div>
+      ${groups.length === 0
+        ? emptyState('📅', 'No requests yet', 'Submit your first time off request above.')
+        : groups.map(g => `
+          <div style="margin-bottom:16px;">
+            ${secLabel(`${g.key.charAt(0).toUpperCase() + g.key.slice(1)} (${g.items.length})`)}
+            <div class="glass-strong" style="border-radius:14px;overflow:hidden;">
+              ${g.items.map((t, i) => `
+                <div style="display:flex;align-items:center;gap:10px;padding:11px 16px;
+                  ${i > 0 ? 'border-top:1px solid rgba(30,38,67,0.06);' : ''}">
+                  <div style="flex:1;">
+                    <div style="font-weight:600;font-size:14px;color:#000;">${fmtDate(t.date)}</div>
+                    ${t.reason ? `<div style="font-size:12px;color:#888;margin-top:2px;">${t.reason}</div>` : ''}
+                  </div>
+                  ${_torBadge(t.status)}
+                </div>`).join('')}
+            </div>
+          </div>`).join('')}`;
+
+    openModal('my-time-off', 'Time Off Requests', body);
+
+    setTimeout(() => {
+      document.getElementById('tor-new')?.addEventListener('click', () =>
+        dismissModal('my-time-off', () =>
+          _openTimeOffModal(session.id, todayStr(), () => _openMyTimeOffModal(session))));
+    }, 50);
+  }
+
+  _render();
+}
+
 // ── My Schedule ───────────────────────────────────────────────────────────────
 export function renderMySchedule(container, { session }) {
   const today      = todayStr();
@@ -544,6 +603,20 @@ export function renderMySchedule(container, { session }) {
     <div id="sched-lessons" style="padding:0 20px 16px;display:flex;flex-direction:column;gap:8px;"></div>
     <div id="sched-time-off" style="padding:0 20px 32px;"></div>
   `;
+
+  // Inject Time Off button into the page-head title row (avatar will be appended after it)
+  const _headTitleRow = container.querySelector('.page-head > div');
+  if (_headTitleRow) {
+    _headTitleRow.style.alignItems = 'center';
+    const _torBtn = document.createElement('button');
+    _torBtn.style.cssText = 'flex-shrink:0;background:rgba(30,38,67,0.07);border:none;' +
+      'border-radius:999px;padding:6px 12px;cursor:pointer;font-family:\'Inter\',sans-serif;' +
+      'font-size:13px;font-weight:600;color:#1E2643;display:inline-flex;align-items:center;' +
+      'gap:5px;-webkit-tap-highlight-color:transparent;';
+    _torBtn.innerHTML = `${iFlag()}<span>Time Off</span>`;
+    _torBtn.addEventListener('click', () => _openMyTimeOffModal(session));
+    _headTitleRow.appendChild(_torBtn);
+  }
 
   const pickerEl   = container.querySelector('#date-picker');
   const dateRowEl  = container.querySelector('#sched-date-row');
