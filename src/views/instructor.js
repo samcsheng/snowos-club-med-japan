@@ -283,7 +283,7 @@ function _instructorLessonCard(lesson) {
         <div class="div" style="margin:18px 0;"></div>
         ${guestCount > 0 ? `
         <div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;">
-          ${guestList.slice(0, 6).map(b => av((b.guest?.name ?? '?').slice(0, 2))).join('')}
+          ${guestList.slice(0, 6).map(b => av((b.guest?.name ?? '?').slice(0, 2), 'md', 'guest')).join('')}
           ${guestCount > 6 ? `<span style="font-size:13px;color:#888;margin-left:2px;">+${guestCount - 6} more</span>` : ''}
         </div>` : `
         <div style="font-size:14px;color:#aaa;font-style:italic;">No guests confirmed yet</div>`}
@@ -346,7 +346,7 @@ function _openInstructorLessonModal(lesson, session, onReportSuccess = null) {
             return `
               <div style="display:flex;align-items:center;gap:12px;padding:11px 16px;
                 ${i > 0 ? 'border-top:1px solid rgba(30,38,67,0.06);' : ''}">
-                ${av((b.guest?.name ?? '?').slice(0, 2))}
+                ${av((b.guest?.name ?? '?').slice(0, 2), 'md', 'guest')}
                 <div style="flex:1;font-weight:600;font-size:14px;color:#000;">${b.guest?.name ?? 'Guest'}</div>
                 ${gr ? `
                   <button data-guest-report="${b.guestId}"
@@ -822,7 +822,7 @@ export function renderLessonDetail(container, { params, session }) {
         ? emptyState('👤', 'No guests booked', 'This session has no confirmed bookings yet.')
         : guests.map(({ guest }) => `
           <div class="glass" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:12px;">
-            ${av(guest?.avatar, 'md')}
+            ${av(guest?.avatar, 'md', 'guest')}
             <div style="flex:1;">
               <div style="font-weight:600;font-size:15px;color:#000;">${guest?.name ?? 'Guest'}</div>
               <div style="font-size:13px;color:#777;margin-top:2px;">
@@ -931,7 +931,7 @@ function openReportModal(lesson, session, onSuccess = null) {
           return `
             <div class="glass" style="padding:16px;border-radius:12px;">
               <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-                ${av(guest?.avatar, 'md')}
+                ${av(guest?.avatar, 'md', 'guest')}
                 <div>
                   <div style="font-weight:600;color:#000;">${guest?.name ?? 'Guest'}</div>
                 </div>
