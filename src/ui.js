@@ -3,7 +3,7 @@ import { navigate } from './app.js';
 // ── Avatar injected into .page-head after view renders ───────────────────────
 export function injectHeadAvatar(session, content) {
   const head = content.querySelector('.page-head');
-  if (!head) return;
+  if (!head || head.dataset.navStep) return;
   head.querySelector('[data-account-avatar]')?.remove();
 
   const roleLabel = { instructor: 'Ski Instructor', supervisor: 'Supervisor' }[session.role] ?? null;
@@ -186,13 +186,22 @@ export function closeModal(id) {
 
 // ── Shared page header ───────────────────────────────────────────────────────
 export function pageHead(title, subtitle = '', backHref = null) {
+  if (backHref) {
+    return `
+    <div class="page-head page-head-step" data-nav-step="true">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <a href="#${backHref}" style="flex-shrink:0;padding:6px;background:var(--bg-section-soft);border:1px solid var(--line-soft);border-radius:999px;display:inline-flex;color:#1E2643;text-decoration:none;" aria-label="Back">
+          ${iBack()}
+        </a>
+        <h1 class="page-title page-title-step" style="flex:1;">${title}</h1>
+      </div>
+      ${subtitle ? `<p class="page-sub">${subtitle}</p>` : ''}
+    </div>
+    <div style="height:16px;"></div>`;
+  }
   return `
     <div class="page-head">
       <div style="display:flex;align-items:flex-end;gap:10px;">
-        ${backHref ? `
-          <a href="#${backHref}" style="flex-shrink:0;margin-bottom:2px;padding:6px;background:var(--bg-section-soft);border:1px solid var(--line-soft);border-radius:999px;display:inline-flex;color:#1E2643;text-decoration:none;" aria-label="Back">
-            ${iBack()}
-          </a>` : ''}
         <h1 class="page-title" style="flex:1;">${title}</h1>
       </div>
       ${subtitle ? `<p class="page-sub">${subtitle}</p>` : ''}
