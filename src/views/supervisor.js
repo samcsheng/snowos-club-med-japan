@@ -557,36 +557,39 @@ export function renderSupervisorToday(container, { session }) {
   const standbyCount = instructors.filter(i => !assignedIds.has(i.id)).length;
 
   container.innerHTML = `
-    <div class="page-head" style="padding-bottom:0;">
+    <div class="page-head" style="padding-bottom:12px;">
       <div style="display:flex;align-items:center;">
-        <h1 style="font-family:'Newsreader',serif;font-size:22px;font-weight:700;
-          color:var(--text-main);margin:0;flex:1;line-height:1.2;">${fmtDateLong(date)}</h1>
+        <h1 class="page-title" style="flex:1;">${fmtDateLong(date)}</h1>
       </div>
-      <div data-tab-row style="position:relative;display:flex;align-items:flex-end;
-        margin:8px -20px 0;padding:0 20px;border-bottom:1px solid var(--line-soft);">
-        <button data-page-btn="0"
-          style="padding:10px 28px 10px 0;background:none;border:none;cursor:pointer;
-          font-family:'Inter',sans-serif;font-size:15px;
-          -webkit-tap-highlight-color:transparent;user-select:none;">
-          <span style="font-weight:700;color:var(--text-main);">Group</span><span
-            style="font-weight:400;color:var(--text-muted);margin-left:4px;">${groupCount}</span>
-        </button>
-        <button data-page-btn="1"
-          style="padding:10px 0;background:none;border:none;cursor:pointer;
-          font-family:'Inter',sans-serif;font-size:15px;
-          -webkit-tap-highlight-color:transparent;user-select:none;">
-          <span style="font-weight:700;color:var(--text-main);">Standby</span><span
-            style="font-weight:400;color:var(--text-muted);margin-left:4px;">${standbyCount}</span>
-        </button>
-        <div data-tab-indicator style="position:absolute;bottom:-1px;height:2.5px;
-          background:var(--text-main);border-radius:2px 2px 0 0;pointer-events:none;"></div>
-      </div>
+    </div>
+    <div data-tab-row style="position:sticky;top:0;z-index:39;
+      display:flex;align-items:center;padding:8px 20px 12px;
+      background:linear-gradient(180deg,rgba(247,241,232,0.96),rgba(247,241,232,0.88));
+      backdrop-filter:blur(20px) saturate(1.16);
+      -webkit-backdrop-filter:blur(20px) saturate(1.16);">
+      <button data-page-btn="0"
+        style="padding:0 24px 0 0;background:none;border:none;cursor:pointer;
+        font-family:'Inter',sans-serif;font-size:15px;
+        -webkit-tap-highlight-color:transparent;user-select:none;">
+        <span style="font-weight:700;color:var(--text-main);">Group</span><span
+          style="font-weight:400;color:var(--text-muted);margin-left:4px;">${groupCount}</span>
+      </button>
+      <button data-page-btn="1"
+        style="padding:0;background:none;border:none;cursor:pointer;
+        font-family:'Inter',sans-serif;font-size:15px;
+        -webkit-tap-highlight-color:transparent;user-select:none;">
+        <span style="font-weight:700;color:var(--text-main);">Standby</span><span
+          style="font-weight:400;color:var(--text-muted);margin-left:4px;">${standbyCount}</span>
+      </button>
+      <div data-tab-indicator style="position:absolute;bottom:5px;height:3px;
+        background:var(--text-main);border-radius:99px;pointer-events:none;"></div>
     </div>
     <div data-swipe-outer
       style="overflow-x:scroll;overflow-y:hidden;scroll-snap-type:x mandatory;
       -webkit-overflow-scrolling:touch;display:flex;">
       <div data-page-content="0"
         style="min-width:100%;width:100%;overflow-y:auto;scroll-snap-align:start;flex-shrink:0;">
+        <div style="height:16px;"></div>
         ${_filterRow(f.sport, f.audience)}
         <div style="padding:0 20px 32px;display:flex;flex-direction:column;gap:8px;"
           data-lesson-list></div>
@@ -609,28 +612,34 @@ export function renderSupervisorToday(container, { session }) {
     indicator.style.width = (w0 + (w1 - w0) * progress) + 'px';
   }
 
-  // ── Set swipe container height to remaining viewport ─────────────────────
+  // ── Set swipe container height using getBoundingClientRect for accuracy ───
   requestAnimationFrame(() => {
-    const head  = container.querySelector('.page-head');
-    const nav   = document.getElementById('bottom-nav');
-    const outer = container.querySelector('[data-swipe-outer]');
-    if (!outer) return;
-    const headH = head?.offsetHeight ?? 100;
-    const navH  = nav?.offsetHeight  ?? 70;
-    const vH    = window.visualViewport?.height || window.innerHeight;
-    outer.style.height = (vH - headH - navH) + 'px';
+    const head   = container.querySelector('.page-head');
+    const tabRow = container.querySelector('[data-tab-row]');
+    const nav    = document.getElementById('bottom-nav');
+    const outer  = container.querySelector('[data-swipe-outer]');
+    if (!outer || !head) return;
+
+    const headH   = head.offsetHeight;
+    if (tabRow) tabRow.style.top = headH + 'px';
+
+    // Use bounding rects to find exact available content area
+    const tabBottom = tabRow ? tabRow.getBoundingClientRect().bottom : head.getBoundingClientRect().bottom;
+    const navTop    = nav    ? nav.getBoundingClientRect().top       : window.innerHeight;
+    outer.style.height = Math.max(200, navTop - tabBottom) + 'px';
+
     _positionIndicator(0);
   });
 
-  // ── Scroll → live indicator update ───────────────────────────────────────
+  // ── Scroll → live indicator ───────────────────────────────────────────────
   const swipeOuter = container.querySelector('[data-swipe-outer]');
   let _rafId = null;
   swipeOuter?.addEventListener('scroll', () => {
     if (_rafId) return;
     _rafId = requestAnimationFrame(() => {
       _rafId = null;
-      const progress = swipeOuter.scrollLeft / (swipeOuter.offsetWidth || 1);
-      _positionIndicator(Math.max(0, Math.min(1, progress)));
+      const p = swipeOuter.scrollLeft / (swipeOuter.offsetWidth || 1);
+      _positionIndicator(Math.max(0, Math.min(1, p)));
     });
   }, { passive: true });
 
