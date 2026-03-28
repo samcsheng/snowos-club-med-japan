@@ -448,6 +448,12 @@
 	    .page-title { font-family: 'Newsreader', serif; font-size: 30px; font-weight: 700; color: var(--text-main); line-height: 1.15; margin: 0; }
 	    .page-sub { color: var(--text-muted); font-size: 14px; margin: 5px 0 0; }
 
+    /* ── Supervisor today: swipeable pages ───────────── */
+    [data-swipe-outer] { scrollbar-width: none; -ms-overflow-style: none; }
+    [data-swipe-outer]::-webkit-scrollbar { display: none; }
+    [data-page-content] { scrollbar-width: none; -ms-overflow-style: none; }
+    [data-page-content]::-webkit-scrollbar { display: none; }
+
     /* ── Section label ────────────────────────────────── */
 	    .sec-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.2px; color: #85786f; }
 
