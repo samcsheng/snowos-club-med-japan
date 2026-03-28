@@ -3,7 +3,7 @@ import { navigate } from '../app.js';
 import {
   toast, pageHead, statusBadge, sportBadge, audienceBadge, av, secLabel,
   emptyState, openModal, dismissModal, fmtDate, fmtDateLong, todayStr, lessonTimes,
-  iPlus, iCheck, iChevR, iWarn, iEdit, iUserPlus,
+  iPlus, iCheck, iChevR, iWarn, iEdit, iUserPlus, iClipboard, iCalendar,
 } from '../ui.js';
 
 // ── Date offset helper ────────────────────────────────────────────────────────
@@ -714,17 +714,56 @@ function _openInstSchedule(instId, inst) {
 
 // ── Tab 4: School ─────────────────────────────────────────────────────────────
 export function renderSupervisorSchool(container, { session }) {
+  const pendingCount = DB.getTimeOffPending().length;
 
-  // Build skeleton once — two independent update slots
   container.innerHTML = `
     ${pageHead('School')}
-    ${secLabel('Lesson Templates')}
+    <div style="padding:0 20px 32px;display:flex;flex-direction:column;gap:24px;">
+      <div class="glass-strong" style="border-radius:16px;overflow:hidden;">
+        <a href="#/supervisor/school/templates"
+          style="display:flex;align-items:center;gap:14px;padding:16px;text-decoration:none;color:inherit;border-bottom:1px solid rgba(0,0,0,0.06);">
+          <div style="width:36px;height:36px;border-radius:10px;background:rgba(0,100,200,0.12);
+            display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            ${iClipboard()}
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:600;font-size:15px;color:#000;">Lesson Templates</div>
+            <div style="font-size:13px;color:#888;margin-top:1px;">${TEMPLATES.length} templates</div>
+          </div>
+          <div style="color:#bbb;display:flex;">${iChevR()}</div>
+        </a>
+        <a href="#/supervisor/school/timeoff"
+          style="display:flex;align-items:center;gap:14px;padding:16px;text-decoration:none;color:inherit;">
+          <div style="width:36px;height:36px;border-radius:10px;background:rgba(200,80,0,0.1);
+            display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            ${iCalendar()}
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:600;font-size:15px;color:#000;">Time Off Requests</div>
+            <div style="font-size:13px;color:#888;margin-top:1px;">
+              ${pendingCount > 0 ? `${pendingCount} pending` : 'No pending requests'}
+            </div>
+          </div>
+          ${pendingCount > 0 ? `
+            <div style="min-width:20px;height:20px;border-radius:999px;background:#BF2F17;
+              color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;
+              justify-content:center;padding:0 5px;">${pendingCount}</div>
+          ` : ''}
+          <div style="color:#bbb;display:flex;">${iChevR()}</div>
+        </a>
+      </div>
+    </div>
+  `;
+}
+
+export function renderSupervisorSchoolTemplates(container, { session }) {
+  container.innerHTML = `
+    ${pageHead('Lesson Templates', '', '/supervisor/school')}
     <div data-section="templates"
-      style="padding:0 20px 28px;display:flex;flex-direction:column;gap:6px;"></div>
-    <div data-section="timeoff"></div>
+      style="padding:0 20px 32px;display:flex;flex-direction:column;gap:6px;"></div>
   `;
 
-  function _renderTemplates() {
+  function _render() {
     const el = container.querySelector('[data-section="templates"]');
     if (!el) return;
     el.innerHTML = TEMPLATES.map(base => {
@@ -750,10 +789,19 @@ export function renderSupervisorSchool(container, { session }) {
 
     el.querySelectorAll('.edit-tmpl').forEach(btn =>
       btn.addEventListener('click', () =>
-        _openEditTemplate(btn.dataset.tid, () => { _renderTemplates(); _renderTimeOff(); })));
+        _openEditTemplate(btn.dataset.tid, _render)));
   }
 
-  function _renderTimeOff() {
+  _render();
+}
+
+export function renderSupervisorSchoolTimeOff(container, { session }) {
+  container.innerHTML = `
+    ${pageHead('Time Off Requests', '', '/supervisor/school')}
+    <div data-section="timeoff"></div>
+  `;
+
+  function _render() {
     const pending   = DB.getTimeOffPending();
     const history   = DB.getTimeOff()
       .filter(t => t.status !== 'pending')
@@ -764,11 +812,11 @@ export function renderSupervisorSchool(container, { session }) {
     if (!el) return;
 
     el.innerHTML = `
-      ${secLabel(`Time Off Requests${pending.length > 0 ? ` · ${pending.length} pending` : ''}`)}
       ${pending.length === 0 && history.length === 0
         ? `<div style="padding:0 20px 32px;">${emptyState('🏔', 'No requests', 'No time off requests yet.')}</div>`
         : ''}
       ${pending.length > 0 ? `
+        ${secLabel(`Pending · ${pending.length}`)}
         <div style="padding:0 20px 16px;display:flex;flex-direction:column;gap:8px;">
           ${pending.map(tor => {
             const inst = usersById[tor.instructorId];
@@ -817,7 +865,7 @@ export function renderSupervisorSchool(container, { session }) {
         if (!tor) return;
         DB.upsertTimeOff({ ...tor, status: 'approved' });
         toast('Time off approved.', 'success');
-        _renderTimeOff();
+        _render();
       }));
     el.querySelectorAll('[data-tor-deny]').forEach(btn =>
       btn.addEventListener('click', () => {
@@ -825,12 +873,11 @@ export function renderSupervisorSchool(container, { session }) {
         if (!tor) return;
         DB.upsertTimeOff({ ...tor, status: 'denied' });
         toast('Request denied.', 'info');
-        _renderTimeOff();
+        _render();
       }));
   }
 
-  _renderTemplates();
-  _renderTimeOff();
+  _render();
 }
 
 // ── Edit template modal ───────────────────────────────────────────────────────
