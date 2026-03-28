@@ -518,17 +518,131 @@ function _openAddGuest(lesson, confirmedBkgs, usersById, onDone) {
 const _todayFilter = { sport: 'ski', audience: 'adult' };
 const _planFilter  = { sport: 'ski', audience: 'adult', date: null };
 
+// ── Standby page renderer ─────────────────────────────────────────────────────
+function _renderStandby(container, date) {
+  const { instructors, lessons } = _loadDayData(date);
+  const assignedIds = new Set(lessons.map(l => l.instructorId).filter(Boolean));
+  const standby = instructors.filter(i => !assignedIds.has(i.id));
+
+  const listEl = container.querySelector('[data-standby-list]');
+  if (!listEl) return;
+
+  if (standby.length === 0) {
+    listEl.innerHTML = emptyState('✅', 'All hands on deck', 'Every instructor has a lesson today.');
+    return;
+  }
+
+  listEl.innerHTML = `
+    <div style="padding:8px 20px 32px;display:flex;flex-direction:column;">
+      ${standby.map((inst, i) => `
+        <div style="display:flex;align-items:center;gap:12px;padding:14px 0;
+          ${i < standby.length - 1 ? 'border-bottom:1px solid var(--line-soft);' : ''}">
+          ${av(inst.avatar, 'md')}
+          <div style="flex:1;">
+            <div style="font-weight:500;font-size:15px;color:var(--text-main);">${inst.name}</div>
+          </div>
+        </div>`).join('')}
+    </div>`;
+}
+
 // ── Tab 1: Today ──────────────────────────────────────────────────────────────
 export function renderSupervisorToday(container, { session }) {
   const date = todayStr();
   const f = _todayFilter;
 
-  container.innerHTML = `
-    ${pageHead('Today', fmtDateLong(date))}
-    ${_filterRow(f.sport, f.audience)}
-    <div style="padding:0 20px 32px;display:flex;flex-direction:column;gap:8px;"
-      data-lesson-list></div>`;
+  // Compute tab counts
+  const { lessons, instructors } = _loadDayData(date);
+  const assignedIds = new Set(lessons.map(l => l.instructorId).filter(Boolean));
+  const groupCount   = assignedIds.size;
+  const standbyCount = instructors.filter(i => !assignedIds.has(i.id)).length;
 
+  container.innerHTML = `
+    <div class="page-head" style="padding-bottom:0;">
+      <div style="display:flex;align-items:center;">
+        <h1 style="font-family:'Newsreader',serif;font-size:22px;font-weight:700;
+          color:var(--text-main);margin:0;flex:1;line-height:1.2;">${fmtDateLong(date)}</h1>
+      </div>
+      <div data-tab-row style="position:relative;display:flex;align-items:flex-end;
+        margin:8px -20px 0;padding:0 20px;border-bottom:1px solid var(--line-soft);">
+        <button data-page-btn="0"
+          style="padding:10px 28px 10px 0;background:none;border:none;cursor:pointer;
+          font-family:'Inter',sans-serif;font-size:15px;
+          -webkit-tap-highlight-color:transparent;user-select:none;">
+          <span style="font-weight:700;color:var(--text-main);">Group</span><span
+            style="font-weight:400;color:var(--text-muted);margin-left:4px;">${groupCount}</span>
+        </button>
+        <button data-page-btn="1"
+          style="padding:10px 0;background:none;border:none;cursor:pointer;
+          font-family:'Inter',sans-serif;font-size:15px;
+          -webkit-tap-highlight-color:transparent;user-select:none;">
+          <span style="font-weight:700;color:var(--text-main);">Standby</span><span
+            style="font-weight:400;color:var(--text-muted);margin-left:4px;">${standbyCount}</span>
+        </button>
+        <div data-tab-indicator style="position:absolute;bottom:-1px;height:2.5px;
+          background:var(--text-main);border-radius:2px 2px 0 0;pointer-events:none;"></div>
+      </div>
+    </div>
+    <div data-swipe-outer
+      style="overflow-x:scroll;overflow-y:hidden;scroll-snap-type:x mandatory;
+      -webkit-overflow-scrolling:touch;display:flex;">
+      <div data-page-content="0"
+        style="min-width:100%;width:100%;overflow-y:auto;scroll-snap-align:start;flex-shrink:0;">
+        ${_filterRow(f.sport, f.audience)}
+        <div style="padding:0 20px 32px;display:flex;flex-direction:column;gap:8px;"
+          data-lesson-list></div>
+      </div>
+      <div data-page-content="1"
+        style="min-width:100%;width:100%;overflow-y:auto;scroll-snap-align:start;flex-shrink:0;">
+        <div data-standby-list></div>
+      </div>
+    </div>`;
+
+  // ── Indicator positioning ─────────────────────────────────────────────────
+  function _positionIndicator(progress) {
+    const indicator = container.querySelector('[data-tab-indicator]');
+    const btn0 = container.querySelector('[data-page-btn="0"]');
+    const btn1 = container.querySelector('[data-page-btn="1"]');
+    if (!indicator || !btn0 || !btn1) return;
+    const l0 = btn0.offsetLeft, w0 = btn0.offsetWidth;
+    const l1 = btn1.offsetLeft, w1 = btn1.offsetWidth;
+    indicator.style.left  = (l0 + (l1 - l0) * progress) + 'px';
+    indicator.style.width = (w0 + (w1 - w0) * progress) + 'px';
+  }
+
+  // ── Set swipe container height to remaining viewport ─────────────────────
+  requestAnimationFrame(() => {
+    const head  = container.querySelector('.page-head');
+    const nav   = document.getElementById('bottom-nav');
+    const outer = container.querySelector('[data-swipe-outer]');
+    if (!outer) return;
+    const headH = head?.offsetHeight ?? 100;
+    const navH  = nav?.offsetHeight  ?? 70;
+    const vH    = window.visualViewport?.height || window.innerHeight;
+    outer.style.height = (vH - headH - navH) + 'px';
+    _positionIndicator(0);
+  });
+
+  // ── Scroll → live indicator update ───────────────────────────────────────
+  const swipeOuter = container.querySelector('[data-swipe-outer]');
+  let _rafId = null;
+  swipeOuter?.addEventListener('scroll', () => {
+    if (_rafId) return;
+    _rafId = requestAnimationFrame(() => {
+      _rafId = null;
+      const progress = swipeOuter.scrollLeft / (swipeOuter.offsetWidth || 1);
+      _positionIndicator(Math.max(0, Math.min(1, progress)));
+    });
+  }, { passive: true });
+
+  // ── Tab button clicks ─────────────────────────────────────────────────────
+  container.querySelectorAll('[data-page-btn]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const page = +btn.dataset.pageBtn;
+      swipeOuter?.scrollTo({ left: page * (swipeOuter.offsetWidth || 0), behavior: 'smooth' });
+    });
+  });
+
+  // ── Filter listeners (page 0) ─────────────────────────────────────────────
   function _applyFilter() {
     container.querySelectorAll('[data-sport]').forEach(b =>
       b.classList.toggle('active', b.dataset.sport === f.sport));
@@ -542,7 +656,9 @@ export function renderSupervisorToday(container, { session }) {
   container.querySelectorAll('[data-audience]').forEach(btn =>
     btn.addEventListener('click', () => { f.audience = btn.dataset.audience; _applyFilter(); }));
 
+  // ── Initial render ────────────────────────────────────────────────────────
   _renderLessons(container, date, f.sport, f.audience);
+  _renderStandby(container, date);
 }
 
 // ── Tab 2: Plan ───────────────────────────────────────────────────────────────
