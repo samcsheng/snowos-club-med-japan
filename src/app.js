@@ -17,6 +17,8 @@ import {
   renderSupervisorPlan,
   renderSupervisorInstructors,
   renderSupervisorSchool,
+  renderSupervisorSchoolTemplates,
+  renderSupervisorSchoolTimeOff,
   renderSupervisorLessonDetail,
 } from './views/supervisor.js';
 
@@ -44,7 +46,9 @@ const ROUTES = [
   { pat: /^\/supervisor\/today$/,             view: renderSupervisorToday,        roles: ['supervisor'] },
   { pat: /^\/supervisor\/plan$/,              view: renderSupervisorPlan,         roles: ['supervisor'] },
   { pat: /^\/supervisor\/instructors$/,       view: renderSupervisorInstructors,  roles: ['supervisor'] },
-  { pat: /^\/supervisor\/school$/,            view: renderSupervisorSchool,          roles: ['supervisor'] },
+  { pat: /^\/supervisor\/school$/,                  view: renderSupervisorSchool,          roles: ['supervisor'] },
+  { pat: /^\/supervisor\/school\/templates$/,       view: renderSupervisorSchoolTemplates, roles: ['supervisor'], hideNav: true },
+  { pat: /^\/supervisor\/school\/timeoff$/,         view: renderSupervisorSchoolTimeOff,   roles: ['supervisor'], hideNav: true },
   { pat: /^\/supervisor\/lesson\/(?<id>.+)$/, view: renderSupervisorLessonDetail,    roles: ['supervisor'], hideNav: true },
 ];
 
