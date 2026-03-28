@@ -70,7 +70,7 @@ function _renderLessons(container, date, sport, audience) {
               ${unassigned ? 'color:#C75300;font-weight:500;' : 'color:#444;'}">
               ${unassigned
                 ? `<span style="display:inline-flex;align-items:center;gap:4px;">${iWarn()} Unassigned</span>`
-                : `${av(inst?.avatar, 'sm', 'instructor')} ${inst?.name ?? '—'}`}
+                : `${av(inst?.avatar, 'sm')} ${inst?.name ?? '—'}`}
             </div>
           </div>
           <div style="text-align:right;flex-shrink:0;margin-right:4px;">
@@ -161,7 +161,7 @@ export function renderSupervisorLessonDetail(container, { params, session }) {
       <div class="glass-strong" style="border-radius:14px;overflow:hidden;">
         ${inst ? `
           <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;">
-            ${av(inst.avatar, 'md', 'instructor')}
+            ${av(inst.avatar, 'md')}
             <div style="flex:1;font-weight:600;font-size:14px;color:#000;">${inst.name}</div>
             <div data-btn-group style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
               <button data-action="transfer-inst"
@@ -221,7 +221,7 @@ export function renderSupervisorLessonDetail(container, { params, session }) {
           : guestEntries.map((g, i) => `
             <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;
               ${i > 0 ? 'border-top:1px solid rgba(30,38,67,0.06);' : ''}">
-              ${av(g.user?.avatar, 'sm', 'guest')}
+              ${av(g.user?.avatar, 'sm')}
               <div style="flex:1;font-weight:600;font-size:14px;color:#000;
                 white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                 ${g.user?.name ?? 'Guest'}
@@ -310,7 +310,7 @@ function _openAssignInstructor(lesson, date, instructors, usersById, onDone) {
           <div class="glass-strong inst-pick" data-iid="${inst.id}"
             style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:12px;cursor:pointer;
             ${isCurrent ? 'border:1.5px solid rgba(8,138,32,0.3);background:rgba(220,245,226,0.5);' : ''}">
-            ${av(inst.avatar, 'md', 'instructor')}
+            ${av(inst.avatar, 'md')}
             <div style="flex:1;">
               <div style="font-weight:600;font-size:14px;color:#000;">${inst.name}
                 ${isCurrent ? '<span class="badge badge-confirmed" style="margin-left:6px;">Current</span>' : ''}
@@ -471,7 +471,7 @@ function _openAddGuest(lesson, confirmedBkgs, usersById, onDone) {
           <div class="guest-add-pick" data-gid="${g.id}"
             style="display:flex;align-items:center;gap:10px;padding:11px 16px;cursor:pointer;
             ${i > 0 ? 'border-top:1px solid rgba(30,38,67,0.06);' : ''}">
-            ${av(g.avatar, 'sm', 'guest')}
+            ${av(g.avatar, 'sm')}
             <div style="flex:1;">
               <div style="font-weight:600;font-size:14px;color:#000;">${g.name}</div>
               <div style="font-size:12px;color:#888;">${g.level} · ${g.sport}</div>
@@ -612,7 +612,7 @@ export function renderSupervisorInstructors(container, { session }) {
                 <div class="glass-strong" style="border-radius:14px;overflow:hidden;">
                   <div class="inst-card" data-iid="${inst.id}"
                     style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;">
-                    ${av(inst.avatar, 'md', 'instructor')}
+                    ${av(inst.avatar, 'md')}
                     <div style="flex:1;">
                       <div style="font-weight:600;font-size:15px;color:#000;">${inst.name}</div>
                       <div style="font-size:13px;color:#777;margin-top:2px;">
@@ -824,7 +824,7 @@ export function renderSupervisorSchoolTimeOff(container, { session }) {
               <div class="glass-strong" style="border-radius:12px;overflow:hidden;">
                 <div style="padding:12px 16px;">
                   <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-                    ${av(inst?.avatar, 'sm', 'instructor')}
+                    ${av(inst?.avatar, 'sm')}
                     <span style="font-weight:600;font-size:14px;color:#000;">${inst?.name ?? '—'}</span>
                     <span style="margin-left:auto;font-size:13px;color:#888;">${fmtDate(tor.date)}</span>
                   </div>

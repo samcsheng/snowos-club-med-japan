@@ -10,7 +10,7 @@ export function injectHeadAvatar(session, content) {
 
   window.__snowShowAccount = () => openModal('account', 'My Account', `
     <div style="text-align:center;padding:8px 0 24px;">
-      ${av(session.avatar, 'lg', session.role)}
+      ${av(session.avatar, 'lg')}
       <div style="font-weight:600;font-size:18px;color:#000;margin-top:14px;">${session.name}</div>
       <div style="font-size:14px;color:#777;margin-top:4px;">${session.email}</div>
       ${roleLabel ? `<div style="font-size:13px;color:#888;margin-top:4px;">${roleLabel}</div>` : ''}
@@ -35,7 +35,7 @@ export function injectHeadAvatar(session, content) {
   const btn = document.createElement('button');
   btn.dataset.accountAvatar = 'true';
   btn.style.cssText = 'margin-left:auto;flex-shrink:0;background:none;border:none;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent;';
-  btn.innerHTML = av(session.avatar, 'md', session.role);
+  btn.innerHTML = av(session.avatar, 'md');
   btn.addEventListener('click', () => window.__snowShowAccount());
   titleRow.appendChild(btn);
 }
@@ -236,9 +236,8 @@ export function audienceBadge(audience) {
 }
 
 // ── Avatar ────────────────────────────────────────────────────────────────────
-export function av(initials, size = 'md', role = null) {
-  const roleClass = role ? ` av-${role}` : '';
-  return `<div class="av av-${size}${roleClass}">${(initials||'?').slice(0,2).toUpperCase()}</div>`;
+export function av(initials, size = 'md') {
+  return `<div class="av av-${size}">${(initials||'?').slice(0,2).toUpperCase()}</div>`;
 }
 
 // ── Section label ─────────────────────────────────────────────────────────────
