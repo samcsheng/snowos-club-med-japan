@@ -559,23 +559,23 @@ export function renderSupervisorToday(container, { session }) {
   container.innerHTML = `
     <div class="page-head" style="padding-bottom:12px;">
       <div style="display:flex;align-items:center;">
-        <h1 class="page-title" style="flex:1;">${fmtDateLong(date)}</h1>
+        <h1 class="page-title" style="flex:1;">${fmtDate(date)}</h1>
       </div>
     </div>
     <div data-tab-row style="position:sticky;top:0;z-index:39;
-      display:flex;align-items:center;padding:8px 20px 12px;
+      display:flex;align-items:center;gap:24px;padding:8px 20px 12px;
       background:linear-gradient(180deg,rgba(247,241,232,0.96),rgba(247,241,232,0.88));
       backdrop-filter:blur(20px) saturate(1.16);
       -webkit-backdrop-filter:blur(20px) saturate(1.16);">
       <button data-page-btn="0"
-        style="padding:0 24px 0 0;background:none;border:none;cursor:pointer;
+        style="padding:4px 0;background:none;border:none;cursor:pointer;
         font-family:'Inter',sans-serif;font-size:15px;
         -webkit-tap-highlight-color:transparent;user-select:none;">
         <span style="font-weight:700;color:var(--text-main);">Group</span><span
           style="font-weight:400;color:var(--text-muted);margin-left:4px;">${groupCount}</span>
       </button>
       <button data-page-btn="1"
-        style="padding:0;background:none;border:none;cursor:pointer;
+        style="padding:4px 0;background:none;border:none;cursor:pointer;
         font-family:'Inter',sans-serif;font-size:15px;
         -webkit-tap-highlight-color:transparent;user-select:none;">
         <span style="font-weight:700;color:var(--text-main);">Standby</span><span
@@ -591,12 +591,14 @@ export function renderSupervisorToday(container, { session }) {
         style="min-width:100%;width:100%;overflow-y:auto;scroll-snap-align:start;flex-shrink:0;">
         <div style="height:16px;"></div>
         ${_filterRow(f.sport, f.audience)}
-        <div style="padding:0 20px 32px;display:flex;flex-direction:column;gap:8px;"
+        <div style="padding:0 20px;display:flex;flex-direction:column;gap:8px;"
           data-lesson-list></div>
+        <div style="height:calc(96px + env(safe-area-inset-bottom, 0px));flex-shrink:0;"></div>
       </div>
       <div data-page-content="1"
         style="min-width:100%;width:100%;overflow-y:auto;scroll-snap-align:start;flex-shrink:0;">
         <div data-standby-list></div>
+        <div style="height:calc(96px + env(safe-area-inset-bottom, 0px));flex-shrink:0;"></div>
       </div>
     </div>`;
 
@@ -623,10 +625,10 @@ export function renderSupervisorToday(container, { session }) {
     const headH   = head.offsetHeight;
     if (tabRow) tabRow.style.top = headH + 'px';
 
-    // Use bounding rects to find exact available content area
+    // Swipe area fills from below tab row to bottom of screen.
+    // Nav floats over it; pages have bottom padding so last items clear the nav.
     const tabBottom = tabRow ? tabRow.getBoundingClientRect().bottom : head.getBoundingClientRect().bottom;
-    const navTop    = nav    ? nav.getBoundingClientRect().top       : window.innerHeight;
-    outer.style.height = Math.max(200, navTop - tabBottom) + 'px';
+    outer.style.height = Math.max(200, window.innerHeight - tabBottom) + 'px';
 
     _positionIndicator(0);
   });
