@@ -646,6 +646,7 @@ export function renderSupervisorToday(container, { session }) {
   }, { passive: true });
 
   // ── Tab button clicks — custom snappy scroll (220ms ease-out) ───────────
+  // scroll-snap must be disabled during animation or the browser snaps every frame
   let _scrollRaf = null;
   function _scrollToPage(page) {
     if (!swipeOuter) return;
@@ -656,11 +657,17 @@ export function renderSupervisorToday(container, { session }) {
     const duration = 220;
     const startT   = performance.now();
     cancelAnimationFrame(_scrollRaf);
+    swipeOuter.style.scrollSnapType = 'none';
     function step(now) {
       const t = Math.min(1, (now - startT) / duration);
       const ease = 1 - Math.pow(1 - t, 3); // ease-out cubic
       swipeOuter.scrollLeft = startX + delta * ease;
-      if (t < 1) _scrollRaf = requestAnimationFrame(step);
+      if (t < 1) {
+        _scrollRaf = requestAnimationFrame(step);
+      } else {
+        swipeOuter.scrollLeft = targetX;
+        swipeOuter.style.scrollSnapType = '';
+      }
     }
     _scrollRaf = requestAnimationFrame(step);
   }
