@@ -645,12 +645,28 @@ export function renderSupervisorToday(container, { session }) {
     });
   }, { passive: true });
 
-  // ── Tab button clicks ─────────────────────────────────────────────────────
+  // ── Tab button clicks — custom snappy scroll (220ms ease-out) ───────────
+  let _scrollRaf = null;
+  function _scrollToPage(page) {
+    if (!swipeOuter) return;
+    const targetX  = page * swipeOuter.offsetWidth;
+    const startX   = swipeOuter.scrollLeft;
+    const delta    = targetX - startX;
+    if (!delta) return;
+    const duration = 220;
+    const startT   = performance.now();
+    cancelAnimationFrame(_scrollRaf);
+    function step(now) {
+      const t = Math.min(1, (now - startT) / duration);
+      const ease = 1 - Math.pow(1 - t, 3); // ease-out cubic
+      swipeOuter.scrollLeft = startX + delta * ease;
+      if (t < 1) _scrollRaf = requestAnimationFrame(step);
+    }
+    _scrollRaf = requestAnimationFrame(step);
+  }
+
   container.querySelectorAll('[data-page-btn]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const page = +btn.dataset.pageBtn;
-      swipeOuter?.scrollTo({ left: page * (swipeOuter.offsetWidth || 0), behavior: 'smooth' });
-    });
+    btn.addEventListener('click', () => _scrollToPage(+btn.dataset.pageBtn));
   });
 
   // ── Filter listeners (page 0) ─────────────────────────────────────────────
