@@ -666,7 +666,7 @@ export function renderSupervisorToday(container, { session }) {
         _scrollRaf = requestAnimationFrame(step);
       } else {
         swipeOuter.scrollLeft = targetX;
-        swipeOuter.style.scrollSnapType = '';
+        swipeOuter.style.scrollSnapType = 'x mandatory'; // restore — '' would delete it
       }
     }
     _scrollRaf = requestAnimationFrame(step);
