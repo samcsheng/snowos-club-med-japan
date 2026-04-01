@@ -831,14 +831,44 @@ export function renderSupervisorInstructors(container, { session }) {
         `<button data-az="${l}" style="background:none;border:none;cursor:pointer;
           padding:2px 8px;font-size:10px;font-weight:700;color:#85786f;
           font-family:'Inter',sans-serif;-webkit-tap-highlight-color:transparent;
-          user-select:none;line-height:1.7;letter-spacing:0.3px;">${l}</button>`
+          user-select:none;line-height:1.7;letter-spacing:0.3px;transition:color 0.15s,transform 0.15s;">${l}</button>`
       ).join('');
       container.appendChild(azEl);
+
+      function getHeadHeight() {
+        return container.querySelector('.page-head')?.offsetHeight ?? 72;
+      }
+
       azEl.querySelectorAll('[data-az]').forEach(btn =>
         btn.addEventListener('click', () => {
           const target = document.getElementById(`inst-group-${btn.dataset.az}`);
-          if (target) window.scrollTo({ top: target.offsetTop - 64, behavior: 'smooth' });
+          if (!target) return;
+          const top = target.getBoundingClientRect().top + window.scrollY - getHeadHeight() - 8;
+          window.scrollTo({ top, behavior: 'smooth' });
         }));
+
+      // Active-letter indicator: highlight whichever section is at the top
+      function updateActive() {
+        if (!container.isConnected) return;
+        const threshold = window.scrollY + getHeadHeight() + 2;
+        let active = letters[0];
+        for (const l of letters) {
+          const el = document.getElementById(`inst-group-${l}`);
+          if (el && el.getBoundingClientRect().top + window.scrollY <= threshold) active = l;
+        }
+        azEl.querySelectorAll('[data-az]').forEach(btn => {
+          const on = btn.dataset.az === active;
+          btn.style.color     = on ? '#1E2643' : '#85786f';
+          btn.style.transform = on ? 'scale(1.25)' : 'scale(1)';
+        });
+      }
+
+      updateActive();
+      function onScroll() {
+        if (!azEl.isConnected) { window.removeEventListener('scroll', onScroll); return; }
+        updateActive();
+      }
+      window.addEventListener('scroll', onScroll, { passive: true });
     }
 
     // Search input
