@@ -795,63 +795,100 @@ export function renderSupervisorInstructors(container, { session }) {
   render();
 }
 
-// ── Instructor schedule modal (date-navigable) ────────────────────────────────
+// ── Instructor schedule modal (week view) ────────────────────────────────────
 function _openInstSchedule(instId, inst) {
-  let selectedDate = todayStr();
+  const today = todayStr();
+
+  function weekStartOf(dateStr) {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const dt = new Date(y, m - 1, d);
+    const day = dt.getDay();
+    dt.setDate(dt.getDate() - (day === 0 ? 6 : day - 1));
+    return isoDate(dt);
+  }
+
+  function fmtShort(dateStr) {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  let weekStart = weekStartOf(today);
 
   function bodyHTML() {
-    const lessons   = DB.getLessonsByInstructor(instId).filter(l => l.date === selectedDate);
-    const timeOffs  = DB.getTimeOffByInstructor(instId).filter(t => t.date === selectedDate);
-    const prev = dateOffset(selectedDate, -1);
-    const next = dateOffset(selectedDate,  1);
+    const allLessons  = DB.getLessonsByInstructor(instId);
+    const allTimeOffs = DB.getTimeOffByInstructor(instId);
+    const weekEnd     = dateOffset(weekStart, 6);
+    const prevWeek    = dateOffset(weekStart, -7);
+    const nextWeek    = dateOffset(weekStart,  7);
+    const weekDays    = Array.from({ length: 7 }, (_, i) => dateOffset(weekStart, i));
+
+    const lessonsByDate = {};
+    const timeOffByDate = {};
+    weekDays.forEach(d => { lessonsByDate[d] = []; timeOffByDate[d] = null; });
+    allLessons .filter(l => l.date >= weekStart && l.date <= weekEnd).forEach(l => lessonsByDate[l.date]?.push(l));
+    allTimeOffs.filter(t => t.date >= weekStart && t.date <= weekEnd).forEach(t => { timeOffByDate[t.date] = t; });
+
+    const WDAY = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
     return `
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-        <button data-nav="${prev}"
-          style="background:none;border:none;cursor:pointer;padding:8px 10px;
-          color:#1E2643;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;">
-          ← ${fmtDate(prev).split(',')[0]}
-        </button>
-        <span style="font-weight:700;font-size:14px;color:#000;">${fmtDate(selectedDate)}</span>
-        <button data-nav="${next}"
-          style="background:none;border:none;cursor:pointer;padding:8px 10px;
-          color:#1E2643;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;">
-          ${fmtDate(next).split(',')[0]} →
-        </button>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+        <button data-nav-week="${prevWeek}"
+          style="background:none;border:none;cursor:pointer;padding:6px 8px;
+          color:#1E2643;font-family:'Inter',sans-serif;font-size:18px;line-height:1;">←</button>
+        <span style="font-weight:700;font-size:14px;color:#000;">
+          ${fmtShort(weekStart)} – ${fmtShort(weekEnd)}
+        </span>
+        <button data-nav-week="${nextWeek}"
+          style="background:none;border:none;cursor:pointer;padding:6px 8px;
+          color:#1E2643;font-family:'Inter',sans-serif;font-size:18px;line-height:1;">→</button>
       </div>
-      ${timeOffs.length > 0 ? `
-        <div style="padding:10px 14px;border-radius:10px;margin-bottom:10px;
-          background:rgba(199,83,0,0.06);border:1px solid rgba(199,83,0,0.15);">
-          <span style="font-size:13px;color:#875700;font-weight:500;">
-            Time off · ${timeOffs[0].status}
-            ${timeOffs[0].reason ? ` — ${timeOffs[0].reason}` : ''}
-          </span>
-        </div>` : ''}
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        ${lessons.length === 0 && timeOffs.length === 0
-          ? `<div style="text-align:center;padding:24px;color:#888;font-size:14px;">
-              No lessons scheduled</div>`
-          : lessons.map(l => {
-              const t = getTemplate(l.templateId);
-              return `
-                <div class="glass-strong" style="display:flex;align-items:center;gap:12px;
-                  padding:12px 16px;border-radius:12px;">
-                  <div style="flex:1;">
-                    <div style="font-weight:600;font-size:14px;color:#000;">${t?.name ?? l.templateId}</div>
-                    <div style="font-size:12px;color:#888;margin-top:2px;">
-                      ${t ? lessonTimes(t) : ''}
-                    </div>
-                  </div>
-                  ${statusBadge(l.status)}
-                </div>`;
-            }).join('')}
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        ${weekDays.map((date, i) => {
+          const lessons = lessonsByDate[date];
+          const timeOff = timeOffByDate[date];
+          const isToday = date === today;
+          return `
+            <div>
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+                <span style="font-size:11px;font-weight:700;
+                  color:${isToday ? '#1E2643' : '#85786f'};
+                  text-transform:uppercase;letter-spacing:0.9px;">${WDAY[i]}</span>
+                <span style="font-size:11px;color:${isToday ? '#1E2643' : '#aaa'};
+                  font-weight:${isToday ? '700' : '400'};">${fmtShort(date)}</span>
+                ${isToday ? `<span style="font-size:10px;font-weight:700;color:#fff;
+                  background:#1E2643;border-radius:999px;padding:1px 7px;">Today</span>` : ''}
+              </div>
+              ${timeOff ? `
+                <div style="padding:7px 12px;border-radius:9px;margin-bottom:5px;
+                  background:rgba(199,83,0,0.06);border:1px solid rgba(199,83,0,0.15);">
+                  <span style="font-size:12px;color:#875700;font-weight:500;">
+                    Time off · ${timeOff.status}${timeOff.reason ? ` — ${timeOff.reason}` : ''}
+                  </span>
+                </div>` : ''}
+              ${lessons.length === 0 && !timeOff
+                ? `<div style="font-size:12px;color:#ccc;padding:2px 0;">Free</div>`
+                : lessons.map(l => {
+                    const t = getTemplate(l.templateId);
+                    return `
+                      <div class="glass-strong" style="display:flex;align-items:center;gap:10px;
+                        padding:9px 13px;border-radius:10px;margin-bottom:4px;">
+                        <div style="flex:1;">
+                          <div style="font-weight:600;font-size:13px;color:#000;">${t?.name ?? l.templateId}</div>
+                          ${t ? `<div style="font-size:11px;color:#888;margin-top:1px;">${lessonTimes(t)}</div>` : ''}
+                        </div>
+                        ${statusBadge(l.status)}
+                      </div>`;
+                  }).join('')}
+            </div>`;
+        }).join('')}
       </div>`;
   }
 
   function attachNav() {
     setTimeout(() => {
-      document.querySelectorAll('[data-nav]').forEach(btn =>
+      document.querySelectorAll('[data-nav-week]').forEach(btn =>
         btn.addEventListener('click', () => {
-          selectedDate = btn.dataset.nav;
+          weekStart = btn.dataset.navWeek;
           const bodyEl = document.getElementById('modal-inst-schedule-body');
           if (bodyEl) { bodyEl.innerHTML = bodyHTML(); attachNav(); }
         }));
