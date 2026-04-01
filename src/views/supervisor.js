@@ -829,9 +829,10 @@ export function renderSupervisorInstructors(container, { session }) {
         'display:flex;flex-direction:column;align-items:center;padding:6px 0;';
       azEl.innerHTML = letters.map(l =>
         `<button data-az="${l}" style="background:none;border:none;cursor:pointer;
-          padding:2px 8px;font-size:10px;font-weight:700;color:#85786f;
+          width:20px;height:20px;padding:0;font-size:10px;font-weight:700;color:#85786f;
           font-family:'Inter',sans-serif;-webkit-tap-highlight-color:transparent;
-          user-select:none;line-height:1.7;letter-spacing:0.3px;transition:color 0.15s,transform 0.15s;">${l}</button>`
+          user-select:none;line-height:1;letter-spacing:0.3px;transition:color 0.15s;
+          display:flex;align-items:center;justify-content:center;border-radius:999px;">${l}</button>`
       ).join('');
       container.appendChild(azEl);
 
