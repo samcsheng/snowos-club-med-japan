@@ -1038,9 +1038,8 @@ export function renderSupervisorInstructorDetail(container, { session, params })
           <div class="stat-num">${taughtCount}</div>
           <div class="stat-lbl">Lessons Taught</div>
         </div>
-        <button data-tor-btn class="glass-strong" style="border-radius:14px;padding:16px;
-          text-align:left;width:100%;background:none;border:none;cursor:pointer;
-          -webkit-tap-highlight-color:transparent;font-family:inherit;">
+        <div class="glass-strong" style="border-radius:14px;padding:16px;cursor:pointer;-webkit-tap-highlight-color:transparent;"
+          data-tor-btn>
           <div style="display:flex;align-items:flex-start;justify-content:space-between;">
             <div>
               <div class="stat-num">${daysOffCount}</div>
@@ -1048,7 +1047,7 @@ export function renderSupervisorInstructorDetail(container, { session, params })
             </div>
             <div style="color:#CCC;margin-top:4px;">${iChevR()}</div>
           </div>
-        </button>
+        </div>
       </div>
 
       ${secLabel('Schedule')}
