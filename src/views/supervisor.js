@@ -815,8 +815,10 @@ export function renderSupervisorInstructors(container, { session }) {
       headTitleRow.style.alignItems = 'center';
       const addBtn = document.createElement('button');
       addBtn.id = 'add-inst';
-      addBtn.style.cssText = 'margin-left:auto;flex-shrink:0;background:none;border:none;cursor:pointer;' +
-        'padding:6px;display:inline-flex;color:#1E2643;-webkit-tap-highlight-color:transparent;';
+      addBtn.style.cssText = 'margin-left:auto;flex-shrink:0;cursor:pointer;display:inline-flex;' +
+        'align-items:center;justify-content:center;width:36px;height:36px;border-radius:999px;' +
+        'background:var(--bg-section-soft);border:1px solid var(--line-soft);' +
+        'color:#1E2643;-webkit-tap-highlight-color:transparent;';
       addBtn.title = 'Add Instructor';
       addBtn.innerHTML = iUserPlus();
       headTitleRow.appendChild(addBtn);
