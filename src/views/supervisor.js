@@ -3,7 +3,7 @@ import { navigate } from '../app.js';
 import {
   toast, pageHead, statusBadge, sportBadge, audienceBadge, av, secLabel,
   emptyState, openModal, dismissModal, fmtDate, fmtDateLong, todayStr, lessonTimes,
-  iPlus, iCheck, iChevR, iWarn, iEdit, iUserPlus, iClipboard, iCalendar,
+  iPlus, iCheck, iChevR, iWarn, iEdit, iUserPlus, iClipboard, iCalendar, iX, iFlag,
 } from '../ui.js';
 
 // ── Date offset helper ────────────────────────────────────────────────────────
@@ -734,8 +734,10 @@ export function renderSupervisorPlan(container, { session }) {
 
 // ── Tab 3: Instructors ────────────────────────────────────────────────────────
 export function renderSupervisorInstructors(container, { session }) {
+  let searchQuery = '';
+
   function render() {
-    const today = todayStr();
+    const today      = todayStr();
     const allUsers    = DB.getUsers();
     const instructors = allUsers.filter(u => u.role === 'instructor');
     const dayLessons  = DB.getLessonsByDate(today);
@@ -745,121 +747,330 @@ export function renderSupervisorInstructors(container, { session }) {
       if (l.instructorId) loadByInst[l.instructorId] = (loadByInst[l.instructorId] || 0) + 1;
     });
 
+    const q = searchQuery.trim().toLowerCase();
+    const filtered = q
+      ? instructors.filter(i => i.name.toLowerCase().includes(q))
+      : instructors;
+
+    // Group by first letter of first name, A-Z
+    const groups = {};
+    [...filtered].sort((a, b) => {
+      const fa = a.name.split(' ')[0].toLowerCase();
+      const fb = b.name.split(' ')[0].toLowerCase();
+      return fa.localeCompare(fb);
+    }).forEach(inst => {
+      const letter = inst.name.split(' ')[0][0].toUpperCase();
+      if (!groups[letter]) groups[letter] = [];
+      groups[letter].push(inst);
+    });
+    const letters = Object.keys(groups).sort();
+
     container.innerHTML = `
       ${pageHead('Instructors')}
-      <div style="padding:0 20px 16px;">
-        <button id="add-inst" class="btn btn-navy btn-md btn-full">
-          ${iUserPlus()} Add Instructor
-        </button>
+      <div style="padding:0 20px 12px;">
+        <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;
+          background:var(--bg-section-soft);border:1px solid var(--line-soft);border-radius:12px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+            fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+            style="flex-shrink:0;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="inst-search" value="${searchQuery.replace(/"/g, '&quot;')}"
+            placeholder="Search instructors…"
+            style="background:none;border:none;outline:none;flex:1;
+            font-family:'Inter',sans-serif;font-size:14px;color:#1E2643;">
+        </div>
       </div>
-      ${secLabel(`Team (${instructors.length})`)}
-      <div style="padding:0 20px 32px;display:flex;flex-direction:column;gap:8px;">
-        ${instructors.length === 0
-          ? emptyState('👤', 'No instructors yet', 'Add your first instructor above.')
-          : instructors.map(inst => {
-              const load = loadByInst[inst.id] || 0;
-              return `
-                <div class="glass-strong" style="border-radius:14px;overflow:hidden;">
-                  <div class="inst-card" data-iid="${inst.id}"
-                    style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;">
-                    ${av(inst.avatar, 'md')}
-                    <div style="flex:1;">
-                      <div style="font-weight:600;font-size:15px;color:#000;">${inst.name}</div>
-                      <div style="font-size:13px;color:#777;margin-top:2px;">
-                        ${load} session${load !== 1 ? 's' : ''} today
-                        ${load === 0 ? '<span style="color:#088A20;font-weight:500;"> · Free</span>' : ''}
-                      </div>
-                    </div>
-                    <div style="display:flex;gap:8px;align-items:center;">
-                      <button class="btn btn-ghost btn-xs edit-inst" data-id="${inst.id}"
-                        title="Edit">${iEdit()}</button>
-                      <div style="color:#CCC;">${iChevR()}</div>
-                    </div>
-                  </div>
-                </div>`;
-            }).join('')}
+      <div style="padding:0 28px 32px 20px;">
+        ${filtered.length === 0
+          ? emptyState('👤', q ? 'No results' : 'No instructors yet',
+              q ? `No instructor matches "${searchQuery}".` : 'Tap + to add your first instructor.')
+          : letters.map(letter => `
+              <div id="inst-group-${letter}" style="scroll-margin-top:72px;">
+                ${secLabel(letter)}
+                <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;">
+                  ${groups[letter].map(inst => {
+                    const load = loadByInst[inst.id] || 0;
+                    return `
+                      <div class="glass-strong" style="border-radius:14px;overflow:hidden;">
+                        <div class="inst-card" data-iid="${inst.id}"
+                          style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;">
+                          ${av(inst.avatar, 'md')}
+                          <div style="flex:1;">
+                            <div style="font-weight:600;font-size:15px;color:#000;">${inst.name}</div>
+                            <div style="font-size:13px;color:#777;margin-top:2px;">
+                              ${load} session${load !== 1 ? 's' : ''} today
+                              ${load === 0 ? '<span style="color:#088A20;font-weight:500;"> · Free</span>' : ''}
+                            </div>
+                          </div>
+                          <div style="color:#CCC;">${iChevR()}</div>
+                        </div>
+                      </div>`;
+                  }).join('')}
+                </div>
+              </div>`).join('')}
       </div>`;
 
+    // Add instructor button in header (left of avatar)
+    const headTitleRow = container.querySelector('.page-head > div');
+    if (headTitleRow) {
+      headTitleRow.style.alignItems = 'center';
+      const addBtn = document.createElement('button');
+      addBtn.id = 'add-inst';
+      addBtn.style.cssText = 'flex-shrink:0;background:none;border:none;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent;';
+      addBtn.title = 'Add Instructor';
+      addBtn.innerHTML = `<div style="width:40px;height:40px;border-radius:50%;background:#1E2643;
+        display:inline-flex;align-items:center;justify-content:center;color:#fff;">${iUserPlus()}</div>`;
+      headTitleRow.appendChild(addBtn);
+    }
+
+    // A-Z index strip (fixed, inside #content so it auto-clears on navigation)
+    if (letters.length > 1) {
+      const azEl = document.createElement('div');
+      azEl.style.cssText = 'position:fixed;right:2px;top:50%;transform:translateY(-50%);z-index:38;' +
+        'display:flex;flex-direction:column;align-items:center;padding:6px 0;';
+      azEl.innerHTML = letters.map(l =>
+        `<button data-az="${l}" style="background:none;border:none;cursor:pointer;
+          width:20px;height:20px;padding:0;font-size:10px;font-weight:700;color:#85786f;
+          font-family:'Inter',sans-serif;-webkit-tap-highlight-color:transparent;
+          user-select:none;line-height:1;letter-spacing:0.3px;transition:color 0.15s;
+          display:flex;align-items:center;justify-content:center;border-radius:999px;">${l}</button>`
+      ).join('');
+      container.appendChild(azEl);
+
+      function getHeadHeight() {
+        return container.querySelector('.page-head')?.offsetHeight ?? 72;
+      }
+
+      azEl.querySelectorAll('[data-az]').forEach(btn =>
+        btn.addEventListener('click', () => {
+          const target = document.getElementById(`inst-group-${btn.dataset.az}`);
+          if (!target) return;
+          const top = target.getBoundingClientRect().top + window.scrollY - getHeadHeight() - 8;
+          window.scrollTo({ top, behavior: 'smooth' });
+        }));
+
+      // Active-letter indicator: highlight whichever section is at the top
+      function updateActive() {
+        if (!container.isConnected) return;
+        const threshold = window.scrollY + getHeadHeight() + 2;
+        let active = letters[0];
+        for (const l of letters) {
+          const el = document.getElementById(`inst-group-${l}`);
+          if (el && el.getBoundingClientRect().top + window.scrollY <= threshold) active = l;
+        }
+        azEl.querySelectorAll('[data-az]').forEach(btn => {
+          const on = btn.dataset.az === active;
+          btn.style.color        = on ? '#fff' : '#85786f';
+          btn.style.background   = on ? '#1E2643' : 'none';
+          btn.style.borderRadius = '999px';
+          btn.style.transform    = 'scale(1)';
+        });
+      }
+
+      updateActive();
+      function onScroll() {
+        if (!azEl.isConnected) { window.removeEventListener('scroll', onScroll); return; }
+        updateActive();
+      }
+      window.addEventListener('scroll', onScroll, { passive: true });
+    }
+
+    // Search input
+    const searchEl = container.querySelector('#inst-search');
+    searchEl?.addEventListener('input', e => {
+      searchQuery = e.target.value;
+      render();
+      const input = container.querySelector('#inst-search');
+      if (input) { input.focus(); input.setSelectionRange(input.value.length, input.value.length); }
+    });
+
     container.querySelector('#add-inst')?.addEventListener('click', () => _addInstModal(render));
-    container.querySelectorAll('.edit-inst').forEach(btn =>
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        const inst = DB.getUserById(btn.dataset.id);
-        if (inst) _editInstModal(inst, render);
-      }));
     container.querySelectorAll('.inst-card').forEach(el =>
-      el.addEventListener('click', () =>
-        _openInstSchedule(el.dataset.iid, DB.getUserById(el.dataset.iid))));
+      el.addEventListener('click', () => navigate(`/supervisor/instructors/${el.dataset.iid}`)));
   }
 
   render();
 }
 
-// ── Instructor schedule modal (date-navigable) ────────────────────────────────
-function _openInstSchedule(instId, inst) {
-  let selectedDate = todayStr();
+// ── Instructor detail page ────────────────────────────────────────────────────
+export function renderSupervisorInstructorDetail(container, { session, params }) {
+  const instId = params.id;
 
-  function bodyHTML() {
-    const lessons   = DB.getLessonsByInstructor(instId).filter(l => l.date === selectedDate);
-    const timeOffs  = DB.getTimeOffByInstructor(instId).filter(t => t.date === selectedDate);
-    const prev = dateOffset(selectedDate, -1);
-    const next = dateOffset(selectedDate,  1);
+  if (!DB.getUserById(instId)) {
+    container.innerHTML = pageHead('Not Found', '', '/supervisor/instructors') +
+      emptyState('❓', 'Instructor not found', '');
+    return;
+  }
+
+  const today = todayStr();
+
+  function weekStartOf(dateStr) {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const dt = new Date(y, m - 1, d);
+    const day = dt.getDay();
+    dt.setDate(dt.getDate() - (day === 0 ? 6 : day - 1));
+    return isoDate(dt);
+  }
+
+  function fmtShort(dateStr) {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  let weekStart = weekStartOf(today);
+
+  function weekNavHTML() {
+    const weekEnd  = dateOffset(weekStart, 6);
+    const prevWeek = dateOffset(weekStart, -7);
+    const nextWeek = dateOffset(weekStart,  7);
     return `
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-        <button data-nav="${prev}"
-          style="background:none;border:none;cursor:pointer;padding:8px 10px;
-          color:#1E2643;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;">
-          ← ${fmtDate(prev).split(',')[0]}
-        </button>
-        <span style="font-weight:700;font-size:14px;color:#000;">${fmtDate(selectedDate)}</span>
-        <button data-nav="${next}"
-          style="background:none;border:none;cursor:pointer;padding:8px 10px;
-          color:#1E2643;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;">
-          ${fmtDate(next).split(',')[0]} →
-        </button>
-      </div>
-      ${timeOffs.length > 0 ? `
-        <div style="padding:10px 14px;border-radius:10px;margin-bottom:10px;
-          background:rgba(199,83,0,0.06);border:1px solid rgba(199,83,0,0.15);">
-          <span style="font-size:13px;color:#875700;font-weight:500;">
-            Time off · ${timeOffs[0].status}
-            ${timeOffs[0].reason ? ` — ${timeOffs[0].reason}` : ''}
-          </span>
-        </div>` : ''}
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        ${lessons.length === 0 && timeOffs.length === 0
-          ? `<div style="text-align:center;padding:24px;color:#888;font-size:14px;">
-              No lessons scheduled</div>`
-          : lessons.map(l => {
-              const t = getTemplate(l.templateId);
-              return `
-                <div class="glass-strong" style="display:flex;align-items:center;gap:12px;
-                  padding:12px 16px;border-radius:12px;">
-                  <div style="flex:1;">
-                    <div style="font-weight:600;font-size:14px;color:#000;">${t?.name ?? l.templateId}</div>
-                    <div style="font-size:12px;color:#888;margin-top:2px;">
-                      ${t ? lessonTimes(t) : ''}
-                    </div>
-                  </div>
-                  ${statusBadge(l.status)}
-                </div>`;
-            }).join('')}
+      <div style="display:flex;align-items:center;justify-content:space-between;
+        padding:10px 20px 14px;">
+        <button data-nav-week="${prevWeek}" style="background:none;border:none;cursor:pointer;
+          padding:6px 4px;color:#1E2643;font-size:18px;line-height:1;
+          -webkit-tap-highlight-color:transparent;">←</button>
+        <span style="font-weight:700;font-size:14px;color:#000;">
+          ${fmtShort(weekStart)} – ${fmtShort(weekEnd)}
+        </span>
+        <button data-nav-week="${nextWeek}" style="background:none;border:none;cursor:pointer;
+          padding:6px 4px;color:#1E2643;font-size:18px;line-height:1;
+          -webkit-tap-highlight-color:transparent;">→</button>
       </div>`;
   }
 
-  function attachNav() {
-    setTimeout(() => {
-      document.querySelectorAll('[data-nav]').forEach(btn =>
-        btn.addEventListener('click', () => {
-          selectedDate = btn.dataset.nav;
-          const bodyEl = document.getElementById('modal-inst-schedule-body');
-          if (bodyEl) { bodyEl.innerHTML = bodyHTML(); attachNav(); }
-        }));
-    }, 50);
+  function weekListHTML() {
+    const allLessons  = DB.getLessonsByInstructor(instId);
+    const allTimeOffs = DB.getTimeOffByInstructor(instId);
+    const weekEnd     = dateOffset(weekStart, 6);
+    const weekDays    = Array.from({ length: 7 }, (_, i) => dateOffset(weekStart, i));
+
+    const lessonsByDate = {};
+    const timeOffByDate = {};
+    weekDays.forEach(d => { lessonsByDate[d] = []; timeOffByDate[d] = null; });
+    allLessons .filter(l => l.date >= weekStart && l.date <= weekEnd).forEach(l => lessonsByDate[l.date]?.push(l));
+    allTimeOffs.filter(t => t.date >= weekStart && t.date <= weekEnd).forEach(t => { timeOffByDate[t.date] = t; });
+
+    const WDAY = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    return weekDays.map((date, i) => {
+      const lessons = lessonsByDate[date];
+      const timeOff = timeOffByDate[date];
+      const isToday = date === today;
+      return `
+        <div style="padding-bottom:14px;">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+            <span style="font-size:11px;font-weight:700;
+              color:${isToday ? '#1E2643' : '#85786f'};
+              text-transform:uppercase;letter-spacing:0.9px;">${WDAY[i]}</span>
+            <span style="font-size:11px;color:${isToday ? '#1E2643' : '#aaa'};
+              font-weight:${isToday ? '700' : '400'};">${fmtShort(date)}</span>
+            ${isToday ? `<span style="font-size:10px;font-weight:700;color:#fff;
+              background:#1E2643;border-radius:999px;padding:1px 7px;">Today</span>` : ''}
+          </div>
+          ${timeOff ? `
+            <div style="padding:7px 12px;border-radius:9px;margin-bottom:5px;
+              background:rgba(199,83,0,0.06);border:1px solid rgba(199,83,0,0.15);">
+              <span style="font-size:12px;color:#875700;font-weight:500;">
+                Time off · ${timeOff.status}${timeOff.reason ? ` — ${timeOff.reason}` : ''}
+              </span>
+            </div>` : ''}
+          ${lessons.length === 0 && !timeOff
+            ? `<div style="font-size:12px;color:#ccc;padding:2px 0;">Free</div>`
+            : lessons.map(l => {
+                const t = getTemplate(l.templateId);
+                return `
+                  <div class="glass-strong" style="display:flex;align-items:center;gap:10px;
+                    padding:9px 13px;border-radius:10px;margin-bottom:4px;">
+                    <div style="flex:1;">
+                      <div style="font-weight:600;font-size:13px;color:#000;">${t?.name ?? l.templateId}</div>
+                      ${t ? `<div style="font-size:11px;color:#888;margin-top:1px;">${lessonTimes(t)}</div>` : ''}
+                    </div>
+                    ${statusBadge(l.status)}
+                  </div>`;
+              }).join('')}
+        </div>`;
+    }).join('');
   }
 
-  openModal('inst-schedule', inst?.name ?? 'Schedule', bodyHTML());
-  attachNav();
+  function renderWeek() {
+    const navWrap  = container.querySelector('[data-week-nav]');
+    const listWrap = container.querySelector('[data-week-list]');
+    if (!navWrap || !listWrap) return;
+    navWrap.innerHTML  = weekNavHTML();
+    listWrap.innerHTML = weekListHTML();
+    const headH = container.querySelector('.page-head')?.offsetHeight ?? 56;
+    navWrap.style.cssText = `position:sticky;top:${headH}px;z-index:39;` +
+      `background:rgba(247,241,232,0.96);` +
+      `backdrop-filter:blur(20px) saturate(1.16);` +
+      `-webkit-backdrop-filter:blur(20px) saturate(1.16);` +
+      `border-bottom:1px solid rgba(0,0,0,0.06);`;
+    container.querySelectorAll('[data-nav-week]').forEach(btn =>
+      btn.addEventListener('click', () => { weekStart = btn.dataset.navWeek; renderWeek(); }));
+  }
+
+  function render() {
+    const inst  = DB.getUserById(instId);
+    const allLessons  = DB.getLessonsByInstructor(instId);
+    const allTimeOffs = DB.getTimeOffByInstructor(instId);
+    const taughtCount  = allLessons.filter(l => l.status === 'reported').length;
+    const daysOffCount = allTimeOffs.filter(t => t.status === 'approved').length;
+
+    container.innerHTML = `
+      ${pageHead(inst.name, '', '/supervisor/instructors')}
+
+      <div style="display:flex;align-items:center;padding:0 20px;margin-bottom:10px;">
+        <span class="sec-label" style="padding:0;">Info</span>
+        <button data-edit-btn style="margin-left:auto;background:none;border:none;cursor:pointer;
+          font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:#1E2643;
+          padding:4px 0;-webkit-tap-highlight-color:transparent;">Edit</button>
+      </div>
+      <div style="padding:0 20px 24px;">
+        <div class="glass-strong" style="border-radius:14px;overflow:hidden;">
+          <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;
+            border-bottom:1px solid rgba(0,0,0,0.06);">
+            <span style="font-size:13px;color:#888;width:76px;flex-shrink:0;">Email</span>
+            <span style="font-size:14px;color:#000;font-weight:500;">${inst.email}</span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;">
+            <span style="font-size:13px;color:#888;width:76px;flex-shrink:0;padding-top:1px;">Certs</span>
+            <span style="font-size:14px;color:#000;font-weight:500;line-height:1.5;">
+              APSI Alpine Level 3<br>CASI Snowboard Level 3
+            </span>
+          </div>
+        </div>
+      </div>
+
+      ${secLabel('Stats')}
+      <div style="padding:0 20px 24px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div class="glass-strong" style="border-radius:14px;padding:16px;">
+          <div class="stat-num">${taughtCount}</div>
+          <div class="stat-lbl">Lessons Taught</div>
+        </div>
+        <div class="glass-strong" style="border-radius:14px;padding:16px;cursor:pointer;-webkit-tap-highlight-color:transparent;"
+          data-tor-btn>
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+            <div>
+              <div class="stat-num">${daysOffCount}</div>
+              <div class="stat-lbl">Days Off</div>
+            </div>
+            <div style="color:#CCC;margin-top:4px;">${iChevR()}</div>
+          </div>
+        </div>
+      </div>
+
+      ${secLabel('Schedule')}
+      <div data-week-nav></div>
+      <div data-week-list style="padding:0 20px 40px;"></div>
+    `;
+
+    renderWeek();
+
+    container.querySelector('[data-edit-btn]').addEventListener('click', () => {
+      const fresh = DB.getUserById(instId);
+      if (fresh) _editInstModal(fresh, render);
+    });
+    container.querySelector('[data-tor-btn]').addEventListener('click', () => _openInstTimeOffModal(instId, render));
+  }
+
+  render();
 }
 
 // ── Tab 4: School ─────────────────────────────────────────────────────────────
@@ -1154,6 +1365,86 @@ function _editInstModal(inst, onDone) {
         avatar: name.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase(),
       });
       dismissModal('edit-inst', () => { toast('Instructor updated.', 'success'); onDone(); });
+    });
+  }, 50);
+}
+
+function _openInstTimeOffModal(instId, onRefresh) {
+  const ORDER = ['pending', 'approved', 'denied', 'cancelled'];
+  const STATUS_COLOR = { pending: '#875700', approved: '#088A20', denied: '#BF2F17', cancelled: '#999' };
+
+  function _render() {
+    const all    = DB.getTimeOffByInstructor(instId).sort((a, b) => b.date.localeCompare(a.date));
+    const groups = ORDER
+      .map(key => ({ key, items: all.filter(t => t.status === key) }))
+      .filter(g => g.items.length > 0);
+
+    const body = `
+      <div style="margin-bottom:16px;">
+        <button id="tor-new" class="btn btn-navy btn-md btn-full">
+          ${iFlag()} Add &amp; Approve new request
+        </button>
+      </div>
+      ${groups.length === 0
+        ? emptyState('📅', 'No requests yet', 'Add a time off request above.')
+        : groups.map(g => `
+            <div style="margin-bottom:16px;">
+              ${secLabel(`${g.key.charAt(0).toUpperCase() + g.key.slice(1)} (${g.items.length})`)}
+              <div class="glass-strong" style="border-radius:14px;overflow:hidden;">
+                ${g.items.map((t, i) => `
+                  <div style="display:flex;align-items:center;gap:10px;padding:11px 16px;
+                    ${i > 0 ? 'border-top:1px solid rgba(30,38,67,0.06);' : ''}">
+                    <div style="flex:1;">
+                      <div style="font-weight:600;font-size:14px;color:#000;">${fmtDate(t.date)}</div>
+                      ${t.reason ? `<div style="font-size:12px;color:#888;margin-top:2px;">${t.reason}</div>` : ''}
+                    </div>
+                    <span style="font-size:12px;font-weight:600;color:${STATUS_COLOR[t.status] ?? '#888'};">
+                      ${t.status.charAt(0).toUpperCase() + t.status.slice(1)}
+                    </span>
+                  </div>`).join('')}
+              </div>
+            </div>`).join('')}`;
+
+    openModal('inst-time-off', 'Time Off Requests', body, { onClose: onRefresh });
+
+    setTimeout(() => {
+      document.getElementById('tor-new')?.addEventListener('click', () =>
+        dismissModal('inst-time-off', () =>
+          _torInstModal(instId, () => _openInstTimeOffModal(instId, onRefresh))));
+    }, 50);
+  }
+
+  _render();
+}
+
+function _torInstModal(instId, onDone) {
+  openModal('tor-inst', 'Add Time Off', `
+    <div style="margin-bottom:14px;">
+      <label class="field-label">Date</label>
+      <input type="date" class="field-input" id="tor-date">
+    </div>
+    <div style="margin-bottom:24px;">
+      <label class="field-label">Reason <span style="color:#aaa;font-weight:400;">(optional)</span></label>
+      <input type="text" class="field-input" id="tor-reason" placeholder="Illness, personal…">
+    </div>
+    <button id="tor-save" class="btn btn-primary btn-lg btn-full">Add &amp; Approve</button>`);
+
+  setTimeout(() => {
+    const dateEl = document.getElementById('tor-date');
+    if (dateEl) dateEl.value = todayStr();
+    document.getElementById('tor-save')?.addEventListener('click', () => {
+      const date   = document.getElementById('tor-date')?.value ?? '';
+      const reason = (document.getElementById('tor-reason')?.value ?? '').trim();
+      if (!date) return;
+      DB.upsertTimeOff({
+        id:           'tor-' + Date.now().toString(36),
+        instructorId: instId,
+        date,
+        status:       'approved',
+        reason,
+        createdAt:    new Date().toISOString(),
+      });
+      dismissModal('tor-inst', () => { toast('Time off approved.', 'success'); onDone?.(); });
     });
   }, 50);
 }
