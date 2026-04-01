@@ -858,8 +858,10 @@ export function renderSupervisorInstructors(container, { session }) {
         }
         azEl.querySelectorAll('[data-az]').forEach(btn => {
           const on = btn.dataset.az === active;
-          btn.style.color     = on ? '#1E2643' : '#85786f';
-          btn.style.transform = on ? 'scale(1.25)' : 'scale(1)';
+          btn.style.color        = on ? '#fff' : '#85786f';
+          btn.style.background   = on ? '#1E2643' : 'none';
+          btn.style.borderRadius = '999px';
+          btn.style.transform    = 'scale(1)';
         });
       }
 
