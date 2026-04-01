@@ -3,7 +3,7 @@ import { navigate } from '../app.js';
 import {
   toast, pageHead, statusBadge, sportBadge, audienceBadge, av, secLabel,
   emptyState, openModal, dismissModal, fmtDate, fmtDateLong, todayStr, lessonTimes,
-  iPlus, iCheck, iChevR, iWarn, iEdit, iUserPlus, iClipboard, iCalendar, iX,
+  iPlus, iCheck, iChevR, iWarn, iEdit, iUserPlus, iClipboard, iCalendar, iX, iFlag,
 } from '../ui.js';
 
 // ── Date offset helper ────────────────────────────────────────────────────────
@@ -1068,7 +1068,7 @@ export function renderSupervisorInstructorDetail(container, { session, params })
       const fresh = DB.getUserById(instId);
       if (fresh) _editInstModal(fresh, render);
     });
-    container.querySelector('[data-tor-btn]').addEventListener('click', () => _torInstModal(instId, render));
+    container.querySelector('[data-tor-btn]').addEventListener('click', () => _openInstTimeOffModal(instId, render));
   }
 
   render();
@@ -1368,6 +1368,54 @@ function _editInstModal(inst, onDone) {
       dismissModal('edit-inst', () => { toast('Instructor updated.', 'success'); onDone(); });
     });
   }, 50);
+}
+
+function _openInstTimeOffModal(instId, onRefresh) {
+  const ORDER = ['pending', 'approved', 'denied', 'cancelled'];
+  const STATUS_COLOR = { pending: '#875700', approved: '#088A20', denied: '#BF2F17', cancelled: '#999' };
+
+  function _render() {
+    const all    = DB.getTimeOffByInstructor(instId).sort((a, b) => b.date.localeCompare(a.date));
+    const groups = ORDER
+      .map(key => ({ key, items: all.filter(t => t.status === key) }))
+      .filter(g => g.items.length > 0);
+
+    const body = `
+      <div style="margin-bottom:16px;">
+        <button id="tor-new" class="btn btn-navy btn-md btn-full">
+          ${iFlag()} Add &amp; Approve new request
+        </button>
+      </div>
+      ${groups.length === 0
+        ? emptyState('📅', 'No requests yet', 'Add a time off request above.')
+        : groups.map(g => `
+            <div style="margin-bottom:16px;">
+              ${secLabel(`${g.key.charAt(0).toUpperCase() + g.key.slice(1)} (${g.items.length})`)}
+              <div class="glass-strong" style="border-radius:14px;overflow:hidden;">
+                ${g.items.map((t, i) => `
+                  <div style="display:flex;align-items:center;gap:10px;padding:11px 16px;
+                    ${i > 0 ? 'border-top:1px solid rgba(30,38,67,0.06);' : ''}">
+                    <div style="flex:1;">
+                      <div style="font-weight:600;font-size:14px;color:#000;">${fmtDate(t.date)}</div>
+                      ${t.reason ? `<div style="font-size:12px;color:#888;margin-top:2px;">${t.reason}</div>` : ''}
+                    </div>
+                    <span style="font-size:12px;font-weight:600;color:${STATUS_COLOR[t.status] ?? '#888'};">
+                      ${t.status.charAt(0).toUpperCase() + t.status.slice(1)}
+                    </span>
+                  </div>`).join('')}
+              </div>
+            </div>`).join('')}`;
+
+    openModal('inst-time-off', 'Time Off Requests', body, { onClose: onRefresh });
+
+    setTimeout(() => {
+      document.getElementById('tor-new')?.addEventListener('click', () =>
+        dismissModal('inst-time-off', () =>
+          _torInstModal(instId, () => _openInstTimeOffModal(instId, onRefresh))));
+    }, 50);
+  }
+
+  _render();
 }
 
 function _torInstModal(instId, onDone) {
