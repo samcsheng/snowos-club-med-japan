@@ -840,8 +840,11 @@ export function renderSupervisorInstructors(container, { session }) {
         return container.querySelector('.page-head')?.offsetHeight ?? 72;
       }
 
+      const haptic = () => navigator.vibrate?.(8);
+
       azEl.querySelectorAll('[data-az]').forEach(btn =>
         btn.addEventListener('click', () => {
+          haptic();
           const target = document.getElementById(`inst-group-${btn.dataset.az}`);
           if (!target) return;
           const top = target.getBoundingClientRect().top + window.scrollY - getHeadHeight() - 8;
@@ -849,6 +852,7 @@ export function renderSupervisorInstructors(container, { session }) {
         }));
 
       // Active-letter indicator: highlight whichever section is at the top
+      let currentActive = null;
       function updateActive() {
         if (!container.isConnected) return;
         const threshold = window.scrollY + getHeadHeight() + 2;
@@ -857,13 +861,17 @@ export function renderSupervisorInstructors(container, { session }) {
           const el = document.getElementById(`inst-group-${l}`);
           if (el && el.getBoundingClientRect().top + window.scrollY <= threshold) active = l;
         }
-        azEl.querySelectorAll('[data-az]').forEach(btn => {
-          const on = btn.dataset.az === active;
-          btn.style.color        = on ? '#fff' : '#85786f';
-          btn.style.background   = on ? '#1E2643' : 'none';
-          btn.style.borderRadius = '999px';
-          btn.style.transform    = 'scale(1)';
-        });
+        if (active !== currentActive) {
+          currentActive = active;
+          haptic();
+          azEl.querySelectorAll('[data-az]').forEach(btn => {
+            const on = btn.dataset.az === active;
+            btn.style.color        = on ? '#fff' : '#85786f';
+            btn.style.background   = on ? '#1E2643' : 'none';
+            btn.style.borderRadius = '999px';
+            btn.style.transform    = 'scale(1)';
+          });
+        }
       }
 
       updateActive();
