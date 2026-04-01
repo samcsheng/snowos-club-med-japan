@@ -1052,8 +1052,14 @@ export function renderSupervisorInstructorDetail(container, { session, params })
       </div>
 
       ${secLabel('Schedule')}
-      <div data-week-nav></div>
-      <div data-week-list style="padding:0 20px 40px;"></div>
+      <div style="padding:0 20px 40px;">
+        <div class="glass-strong" style="border-radius:14px;overflow:hidden;">
+          <div data-week-nav></div>
+          <div style="height:1px;background:rgba(0,0,0,0.06);"></div>
+          <div data-week-list style="height:380px;overflow-y:auto;padding:14px 16px 16px;
+            -webkit-overflow-scrolling:touch;overscroll-behavior:contain;"></div>
+        </div>
+      </div>
     `;
 
     renderWeek();
