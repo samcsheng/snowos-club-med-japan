@@ -825,7 +825,7 @@ export function renderSupervisorInstructors(container, { session }) {
     // A-Z index strip (fixed, inside #content so it auto-clears on navigation)
     if (letters.length > 1) {
       const azEl = document.createElement('div');
-      azEl.style.cssText = 'position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:38;' +
+      azEl.style.cssText = 'position:fixed;right:2px;top:50%;transform:translateY(-50%);z-index:38;' +
         'display:flex;flex-direction:column;align-items:center;padding:6px 0;';
       azEl.innerHTML = letters.map(l =>
         `<button data-az="${l}" style="background:none;border:none;cursor:pointer;
