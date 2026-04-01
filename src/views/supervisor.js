@@ -843,15 +843,8 @@ export function renderSupervisorInstructors(container, { session }) {
         btn.addEventListener('click', () => {
           const target = document.getElementById(`inst-group-${btn.dataset.az}`);
           if (!target) return;
-          const to = target.getBoundingClientRect().top + window.scrollY - getHeadHeight() - 8;
-          const from = window.scrollY, delta = to - from;
-          if (!delta) return;
-          const dur = 150, t0 = performance.now();
-          (function step(now) {
-            const p = Math.min(1, (now - t0) / dur);
-            window.scrollTo(0, from + delta * (1 - Math.pow(1 - p, 3)));
-            if (p < 1) requestAnimationFrame(step);
-          })(t0);
+          const top = target.getBoundingClientRect().top + window.scrollY - getHeadHeight() - 8;
+          window.scrollTo({ top, behavior: 'smooth' });
         }));
 
       // Active-letter indicator: highlight whichever section is at the top
