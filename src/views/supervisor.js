@@ -1010,7 +1010,12 @@ export function renderSupervisorInstructorDetail(container, { session, params })
     container.innerHTML = `
       ${pageHead(inst.name, '', '/supervisor/instructors')}
 
-      ${secLabel('Info')}
+      <div style="display:flex;align-items:center;padding:0 20px;margin-bottom:10px;">
+        <span class="sec-label" style="padding:0;">Info</span>
+        <button data-edit-btn style="margin-left:auto;background:none;border:none;cursor:pointer;
+          font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:#1E2643;
+          padding:4px 0;-webkit-tap-highlight-color:transparent;">Edit</button>
+      </div>
       <div style="padding:0 20px 24px;">
         <div class="glass-strong" style="border-radius:14px;overflow:hidden;">
           <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;
@@ -1033,41 +1038,31 @@ export function renderSupervisorInstructorDetail(container, { session, params })
           <div class="stat-num">${taughtCount}</div>
           <div class="stat-lbl">Lessons Taught</div>
         </div>
-        <div class="glass-strong" style="border-radius:14px;padding:16px;">
-          <div class="stat-num">${daysOffCount}</div>
-          <div class="stat-lbl">Days Off</div>
-        </div>
+        <button data-tor-btn class="glass-strong" style="border-radius:14px;padding:16px;
+          text-align:left;width:100%;background:none;border:none;cursor:pointer;
+          -webkit-tap-highlight-color:transparent;font-family:inherit;">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+            <div>
+              <div class="stat-num">${daysOffCount}</div>
+              <div class="stat-lbl">Days Off</div>
+            </div>
+            <div style="color:#CCC;margin-top:4px;">${iChevR()}</div>
+          </div>
+        </button>
       </div>
 
       ${secLabel('Schedule')}
       <div data-week-nav></div>
-      <div data-week-list style="padding:0 20px 140px;"></div>
+      <div data-week-list style="padding:0 20px 40px;"></div>
     `;
 
     renderWeek();
 
-    // Floating action buttons (inside #content, auto-cleared on navigation)
-    const fab = document.createElement('div');
-    fab.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:45;' +
-      'padding:16px 20px calc(20px + env(safe-area-inset-bottom,0px));display:flex;gap:10px;' +
-      'background:linear-gradient(0deg,rgba(247,241,232,1) 55%,rgba(247,241,232,0));' +
-      'pointer-events:none;';
-    fab.innerHTML = `
-      <button data-fab="edit" style="flex:1;padding:13px;border-radius:999px;pointer-events:all;
-        background:var(--bg-section-soft);border:1px solid var(--line-soft);
-        font-family:'Inter',sans-serif;font-size:15px;font-weight:600;color:#1E2643;
-        cursor:pointer;-webkit-tap-highlight-color:transparent;">Edit</button>
-      <button data-fab="tor" style="flex:1;padding:13px;border-radius:999px;pointer-events:all;
-        background:#1E2643;border:none;
-        font-family:'Inter',sans-serif;font-size:15px;font-weight:600;color:#fff;
-        cursor:pointer;-webkit-tap-highlight-color:transparent;">TOR</button>`;
-    container.appendChild(fab);
-
-    fab.querySelector('[data-fab="edit"]').addEventListener('click', () => {
+    container.querySelector('[data-edit-btn]').addEventListener('click', () => {
       const fresh = DB.getUserById(instId);
       if (fresh) _editInstModal(fresh, render);
     });
-    fab.querySelector('[data-fab="tor"]').addEventListener('click', () => _torInstModal(instId, render));
+    container.querySelector('[data-tor-btn]').addEventListener('click', () => _torInstModal(instId, render));
   }
 
   render();
