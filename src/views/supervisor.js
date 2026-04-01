@@ -3,7 +3,7 @@ import { navigate } from '../app.js';
 import {
   toast, pageHead, statusBadge, sportBadge, audienceBadge, av, secLabel,
   emptyState, openModal, dismissModal, fmtDate, fmtDateLong, todayStr, lessonTimes,
-  iPlus, iCheck, iChevR, iWarn, iEdit, iUserPlus, iClipboard, iCalendar,
+  iPlus, iCheck, iChevR, iWarn, iEdit, iUserPlus, iClipboard, iCalendar, iX,
 } from '../ui.js';
 
 // ── Date offset helper ────────────────────────────────────────────────────────
@@ -795,8 +795,9 @@ export function renderSupervisorInstructors(container, { session }) {
   render();
 }
 
-// ── Instructor schedule modal (week view) ────────────────────────────────────
+// ── Instructor schedule modal (week view, sticky header) ─────────────────────
 function _openInstSchedule(instId, inst) {
+  const MODAL_ID = 'inst-schedule';
   const today = todayStr();
 
   function weekStartOf(dateStr) {
@@ -814,12 +815,28 @@ function _openInstSchedule(instId, inst) {
 
   let weekStart = weekStartOf(today);
 
-  function bodyHTML() {
+  function navHTML() {
+    const weekEnd  = dateOffset(weekStart, 6);
+    const prevWeek = dateOffset(weekStart, -7);
+    const nextWeek = dateOffset(weekStart,  7);
+    return `
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <button data-nav-week="${prevWeek}" style="background:none;border:none;cursor:pointer;
+          padding:6px 8px;color:#1E2643;font-family:'Inter',sans-serif;
+          font-size:18px;line-height:1;-webkit-tap-highlight-color:transparent;">←</button>
+        <span style="font-weight:700;font-size:14px;color:#000;">
+          ${fmtShort(weekStart)} – ${fmtShort(weekEnd)}
+        </span>
+        <button data-nav-week="${nextWeek}" style="background:none;border:none;cursor:pointer;
+          padding:6px 8px;color:#1E2643;font-family:'Inter',sans-serif;
+          font-size:18px;line-height:1;-webkit-tap-highlight-color:transparent;">→</button>
+      </div>`;
+  }
+
+  function listHTML() {
     const allLessons  = DB.getLessonsByInstructor(instId);
     const allTimeOffs = DB.getTimeOffByInstructor(instId);
     const weekEnd     = dateOffset(weekStart, 6);
-    const prevWeek    = dateOffset(weekStart, -7);
-    const nextWeek    = dateOffset(weekStart,  7);
     const weekDays    = Array.from({ length: 7 }, (_, i) => dateOffset(weekStart, i));
 
     const lessonsByDate = {};
@@ -829,73 +846,92 @@ function _openInstSchedule(instId, inst) {
     allTimeOffs.filter(t => t.date >= weekStart && t.date <= weekEnd).forEach(t => { timeOffByDate[t.date] = t; });
 
     const WDAY = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    return weekDays.map((date, i) => {
+      const lessons = lessonsByDate[date];
+      const timeOff = timeOffByDate[date];
+      const isToday = date === today;
+      return `
+        <div style="padding-bottom:14px;">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+            <span style="font-size:11px;font-weight:700;
+              color:${isToday ? '#1E2643' : '#85786f'};
+              text-transform:uppercase;letter-spacing:0.9px;">${WDAY[i]}</span>
+            <span style="font-size:11px;color:${isToday ? '#1E2643' : '#aaa'};
+              font-weight:${isToday ? '700' : '400'};">${fmtShort(date)}</span>
+            ${isToday ? `<span style="font-size:10px;font-weight:700;color:#fff;
+              background:#1E2643;border-radius:999px;padding:1px 7px;">Today</span>` : ''}
+          </div>
+          ${timeOff ? `
+            <div style="padding:7px 12px;border-radius:9px;margin-bottom:5px;
+              background:rgba(199,83,0,0.06);border:1px solid rgba(199,83,0,0.15);">
+              <span style="font-size:12px;color:#875700;font-weight:500;">
+                Time off · ${timeOff.status}${timeOff.reason ? ` — ${timeOff.reason}` : ''}
+              </span>
+            </div>` : ''}
+          ${lessons.length === 0 && !timeOff
+            ? `<div style="font-size:12px;color:#ccc;padding:2px 0;">Free</div>`
+            : lessons.map(l => {
+                const t = getTemplate(l.templateId);
+                return `
+                  <div class="glass-strong" style="display:flex;align-items:center;gap:10px;
+                    padding:9px 13px;border-radius:10px;margin-bottom:4px;">
+                    <div style="flex:1;">
+                      <div style="font-weight:600;font-size:13px;color:#000;">${t?.name ?? l.templateId}</div>
+                      ${t ? `<div style="font-size:11px;color:#888;margin-top:1px;">${lessonTimes(t)}</div>` : ''}
+                    </div>
+                    ${statusBadge(l.status)}
+                  </div>`;
+              }).join('')}
+        </div>`;
+    }).join('');
+  }
 
-    return `
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
-        <button data-nav-week="${prevWeek}"
-          style="background:none;border:none;cursor:pointer;padding:6px 8px;
-          color:#1E2643;font-family:'Inter',sans-serif;font-size:18px;line-height:1;">←</button>
-        <span style="font-weight:700;font-size:14px;color:#000;">
-          ${fmtShort(weekStart)} – ${fmtShort(weekEnd)}
-        </span>
-        <button data-nav-week="${nextWeek}"
-          style="background:none;border:none;cursor:pointer;padding:6px 8px;
-          color:#1E2643;font-family:'Inter',sans-serif;font-size:18px;line-height:1;">→</button>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:14px;">
-        ${weekDays.map((date, i) => {
-          const lessons = lessonsByDate[date];
-          const timeOff = timeOffByDate[date];
-          const isToday = date === today;
-          return `
-            <div>
-              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
-                <span style="font-size:11px;font-weight:700;
-                  color:${isToday ? '#1E2643' : '#85786f'};
-                  text-transform:uppercase;letter-spacing:0.9px;">${WDAY[i]}</span>
-                <span style="font-size:11px;color:${isToday ? '#1E2643' : '#aaa'};
-                  font-weight:${isToday ? '700' : '400'};">${fmtShort(date)}</span>
-                ${isToday ? `<span style="font-size:10px;font-weight:700;color:#fff;
-                  background:#1E2643;border-radius:999px;padding:1px 7px;">Today</span>` : ''}
-              </div>
-              ${timeOff ? `
-                <div style="padding:7px 12px;border-radius:9px;margin-bottom:5px;
-                  background:rgba(199,83,0,0.06);border:1px solid rgba(199,83,0,0.15);">
-                  <span style="font-size:12px;color:#875700;font-weight:500;">
-                    Time off · ${timeOff.status}${timeOff.reason ? ` — ${timeOff.reason}` : ''}
-                  </span>
-                </div>` : ''}
-              ${lessons.length === 0 && !timeOff
-                ? `<div style="font-size:12px;color:#ccc;padding:2px 0;">Free</div>`
-                : lessons.map(l => {
-                    const t = getTemplate(l.templateId);
-                    return `
-                      <div class="glass-strong" style="display:flex;align-items:center;gap:10px;
-                        padding:9px 13px;border-radius:10px;margin-bottom:4px;">
-                        <div style="flex:1;">
-                          <div style="font-weight:600;font-size:13px;color:#000;">${t?.name ?? l.templateId}</div>
-                          ${t ? `<div style="font-size:11px;color:#888;margin-top:1px;">${lessonTimes(t)}</div>` : ''}
-                        </div>
-                        ${statusBadge(l.status)}
-                      </div>`;
-                  }).join('')}
-            </div>`;
-        }).join('')}
-      </div>`;
+  function refresh() {
+    const modal = document.getElementById(`modal-${MODAL_ID}`);
+    if (!modal) return;
+    modal.querySelector('[data-week-nav]').innerHTML = navHTML();
+    modal.querySelector('[data-week-list]').innerHTML = listHTML();
+    attachNav();
   }
 
   function attachNav() {
     setTimeout(() => {
       document.querySelectorAll('[data-nav-week]').forEach(btn =>
-        btn.addEventListener('click', () => {
-          weekStart = btn.dataset.navWeek;
-          const bodyEl = document.getElementById('modal-inst-schedule-body');
-          if (bodyEl) { bodyEl.innerHTML = bodyHTML(); attachNav(); }
-        }));
+        btn.addEventListener('click', () => { weekStart = btn.dataset.navWeek; refresh(); }));
     }, 50);
   }
 
-  openModal('inst-schedule', inst?.name ?? 'Schedule', bodyHTML());
+  // Build custom modal with split fixed-header / scrollable-list layout
+  document.getElementById(`modal-${MODAL_ID}`)?.remove();
+  const overlay = document.createElement('div');
+  overlay.id        = `modal-${MODAL_ID}`;
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal-sheet" style="display:flex;flex-direction:column;overflow:hidden;padding:0;">
+      <div style="flex-shrink:0;padding:0 20px;">
+        <div class="modal-handle-wrap"><div class="modal-handle"></div></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;
+          margin-bottom:16px;padding:0 2px;">
+          <h3 style="font-family:'Newsreader',serif;font-size:22px;font-weight:700;
+            color:#000;margin:0;">${inst?.name ?? 'Schedule'}</h3>
+          <button data-modal-close style="background:none;border:none;padding:6px;
+            cursor:pointer;color:#888;border-radius:50%;display:flex;
+            -webkit-tap-highlight-color:transparent;">${iX()}</button>
+        </div>
+        <div data-week-nav style="padding-bottom:14px;
+          border-bottom:1px solid rgba(0,0,0,0.07);"></div>
+      </div>
+      <div data-week-list style="overflow-y:auto;flex:1;
+        -webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+        padding:14px 20px calc(24px + env(safe-area-inset-bottom,0px));"></div>
+    </div>`;
+
+  overlay.querySelector('[data-modal-close]').addEventListener('click', () => dismissModal(MODAL_ID));
+  overlay.addEventListener('click', e => { if (e.target === overlay) dismissModal(MODAL_ID); });
+  document.body.appendChild(overlay);
+
+  overlay.querySelector('[data-week-nav]').innerHTML = navHTML();
+  overlay.querySelector('[data-week-list]').innerHTML = listHTML();
   attachNav();
 }
 
