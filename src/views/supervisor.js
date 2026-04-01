@@ -734,8 +734,10 @@ export function renderSupervisorPlan(container, { session }) {
 
 // ── Tab 3: Instructors ────────────────────────────────────────────────────────
 export function renderSupervisorInstructors(container, { session }) {
+  let searchQuery = '';
+
   function render() {
-    const today = todayStr();
+    const today      = todayStr();
     const allUsers    = DB.getUsers();
     const instructors = allUsers.filter(u => u.role === 'instructor');
     const dayLessons  = DB.getLessonsByDate(today);
@@ -745,59 +747,127 @@ export function renderSupervisorInstructors(container, { session }) {
       if (l.instructorId) loadByInst[l.instructorId] = (loadByInst[l.instructorId] || 0) + 1;
     });
 
+    const q = searchQuery.trim().toLowerCase();
+    const filtered = q
+      ? instructors.filter(i => i.name.toLowerCase().includes(q))
+      : instructors;
+
+    // Group by first letter of first name, A-Z
+    const groups = {};
+    [...filtered].sort((a, b) => {
+      const fa = a.name.split(' ')[0].toLowerCase();
+      const fb = b.name.split(' ')[0].toLowerCase();
+      return fa.localeCompare(fb);
+    }).forEach(inst => {
+      const letter = inst.name.split(' ')[0][0].toUpperCase();
+      if (!groups[letter]) groups[letter] = [];
+      groups[letter].push(inst);
+    });
+    const letters = Object.keys(groups).sort();
+
     container.innerHTML = `
       ${pageHead('Instructors')}
-      <div style="padding:0 20px 16px;">
-        <button id="add-inst" class="btn btn-navy btn-md btn-full">
-          ${iUserPlus()} Add Instructor
-        </button>
+      <div style="padding:0 20px 12px;">
+        <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;
+          background:var(--bg-section-soft);border:1px solid var(--line-soft);border-radius:12px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+            fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+            style="flex-shrink:0;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="inst-search" value="${searchQuery.replace(/"/g, '&quot;')}"
+            placeholder="Search instructors…"
+            style="background:none;border:none;outline:none;flex:1;
+            font-family:'Inter',sans-serif;font-size:14px;color:#1E2643;">
+        </div>
       </div>
-      ${secLabel(`Team (${instructors.length})`)}
-      <div style="padding:0 20px 32px;display:flex;flex-direction:column;gap:8px;">
-        ${instructors.length === 0
-          ? emptyState('👤', 'No instructors yet', 'Add your first instructor above.')
-          : instructors.map(inst => {
-              const load = loadByInst[inst.id] || 0;
-              return `
-                <div class="glass-strong" style="border-radius:14px;overflow:hidden;">
-                  <div class="inst-card" data-iid="${inst.id}"
-                    style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;">
-                    ${av(inst.avatar, 'md')}
-                    <div style="flex:1;">
-                      <div style="font-weight:600;font-size:15px;color:#000;">${inst.name}</div>
-                      <div style="font-size:13px;color:#777;margin-top:2px;">
-                        ${load} session${load !== 1 ? 's' : ''} today
-                        ${load === 0 ? '<span style="color:#088A20;font-weight:500;"> · Free</span>' : ''}
-                      </div>
-                    </div>
-                    <div style="display:flex;gap:8px;align-items:center;">
-                      <button class="btn btn-ghost btn-xs edit-inst" data-id="${inst.id}"
-                        title="Edit">${iEdit()}</button>
-                      <div style="color:#CCC;">${iChevR()}</div>
-                    </div>
-                  </div>
-                </div>`;
-            }).join('')}
+      <div style="padding:0 28px 32px 20px;">
+        ${filtered.length === 0
+          ? emptyState('👤', q ? 'No results' : 'No instructors yet',
+              q ? `No instructor matches "${searchQuery}".` : 'Tap + to add your first instructor.')
+          : letters.map(letter => `
+              <div id="inst-group-${letter}" style="scroll-margin-top:72px;">
+                ${secLabel(letter)}
+                <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;">
+                  ${groups[letter].map(inst => {
+                    const load = loadByInst[inst.id] || 0;
+                    return `
+                      <div class="glass-strong" style="border-radius:14px;overflow:hidden;">
+                        <div class="inst-card" data-iid="${inst.id}"
+                          style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;">
+                          ${av(inst.avatar, 'md')}
+                          <div style="flex:1;">
+                            <div style="font-weight:600;font-size:15px;color:#000;">${inst.name}</div>
+                            <div style="font-size:13px;color:#777;margin-top:2px;">
+                              ${load} session${load !== 1 ? 's' : ''} today
+                              ${load === 0 ? '<span style="color:#088A20;font-weight:500;"> · Free</span>' : ''}
+                            </div>
+                          </div>
+                          <div style="color:#CCC;">${iChevR()}</div>
+                        </div>
+                      </div>`;
+                  }).join('')}
+                </div>
+              </div>`).join('')}
       </div>`;
 
+    // Add instructor button in header (left of avatar)
+    const headTitleRow = container.querySelector('.page-head > div');
+    if (headTitleRow) {
+      headTitleRow.style.alignItems = 'center';
+      const addBtn = document.createElement('button');
+      addBtn.id = 'add-inst';
+      addBtn.style.cssText = 'margin-left:auto;flex-shrink:0;background:none;border:none;cursor:pointer;' +
+        'padding:6px;display:inline-flex;color:#1E2643;-webkit-tap-highlight-color:transparent;';
+      addBtn.title = 'Add Instructor';
+      addBtn.innerHTML = iUserPlus();
+      headTitleRow.appendChild(addBtn);
+    }
+
+    // A-Z index strip (fixed, inside #content so it auto-clears on navigation)
+    if (letters.length > 1) {
+      const azEl = document.createElement('div');
+      azEl.style.cssText = 'position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:38;' +
+        'display:flex;flex-direction:column;align-items:center;padding:6px 0;';
+      azEl.innerHTML = letters.map(l =>
+        `<button data-az="${l}" style="background:none;border:none;cursor:pointer;
+          padding:2px 8px;font-size:10px;font-weight:700;color:#85786f;
+          font-family:'Inter',sans-serif;-webkit-tap-highlight-color:transparent;
+          user-select:none;line-height:1.7;letter-spacing:0.3px;">${l}</button>`
+      ).join('');
+      container.appendChild(azEl);
+      azEl.querySelectorAll('[data-az]').forEach(btn =>
+        btn.addEventListener('click', () => {
+          const target = document.getElementById(`inst-group-${btn.dataset.az}`);
+          if (target) window.scrollTo({ top: target.offsetTop - 64, behavior: 'smooth' });
+        }));
+    }
+
+    // Search input
+    const searchEl = container.querySelector('#inst-search');
+    searchEl?.addEventListener('input', e => {
+      searchQuery = e.target.value;
+      render();
+      const input = container.querySelector('#inst-search');
+      if (input) { input.focus(); input.setSelectionRange(input.value.length, input.value.length); }
+    });
+
     container.querySelector('#add-inst')?.addEventListener('click', () => _addInstModal(render));
-    container.querySelectorAll('.edit-inst').forEach(btn =>
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        const inst = DB.getUserById(btn.dataset.id);
-        if (inst) _editInstModal(inst, render);
-      }));
     container.querySelectorAll('.inst-card').forEach(el =>
-      el.addEventListener('click', () =>
-        _openInstSchedule(el.dataset.iid, DB.getUserById(el.dataset.iid))));
+      el.addEventListener('click', () => navigate(`/supervisor/instructors/${el.dataset.iid}`)));
   }
 
   render();
 }
 
-// ── Instructor schedule modal (week view, sticky header) ─────────────────────
-function _openInstSchedule(instId, inst) {
-  const MODAL_ID = 'inst-schedule';
+// ── Instructor detail page ────────────────────────────────────────────────────
+export function renderSupervisorInstructorDetail(container, { session, params }) {
+  const instId = params.id;
+
+  if (!DB.getUserById(instId)) {
+    container.innerHTML = pageHead('Not Found', '', '/supervisor/instructors') +
+      emptyState('❓', 'Instructor not found', '');
+    return;
+  }
+
   const today = todayStr();
 
   function weekStartOf(dateStr) {
@@ -815,25 +885,26 @@ function _openInstSchedule(instId, inst) {
 
   let weekStart = weekStartOf(today);
 
-  function navHTML() {
+  function weekNavHTML() {
     const weekEnd  = dateOffset(weekStart, 6);
     const prevWeek = dateOffset(weekStart, -7);
     const nextWeek = dateOffset(weekStart,  7);
     return `
-      <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;justify-content:space-between;
+        padding:10px 20px 14px;">
         <button data-nav-week="${prevWeek}" style="background:none;border:none;cursor:pointer;
-          padding:6px 8px;color:#1E2643;font-family:'Inter',sans-serif;
-          font-size:18px;line-height:1;-webkit-tap-highlight-color:transparent;">←</button>
+          padding:6px 4px;color:#1E2643;font-size:18px;line-height:1;
+          -webkit-tap-highlight-color:transparent;">←</button>
         <span style="font-weight:700;font-size:14px;color:#000;">
           ${fmtShort(weekStart)} – ${fmtShort(weekEnd)}
         </span>
         <button data-nav-week="${nextWeek}" style="background:none;border:none;cursor:pointer;
-          padding:6px 8px;color:#1E2643;font-family:'Inter',sans-serif;
-          font-size:18px;line-height:1;-webkit-tap-highlight-color:transparent;">→</button>
+          padding:6px 4px;color:#1E2643;font-size:18px;line-height:1;
+          -webkit-tap-highlight-color:transparent;">→</button>
       </div>`;
   }
 
-  function listHTML() {
+  function weekListHTML() {
     const allLessons  = DB.getLessonsByInstructor(instId);
     const allTimeOffs = DB.getTimeOffByInstructor(instId);
     const weekEnd     = dateOffset(weekStart, 6);
@@ -886,53 +957,87 @@ function _openInstSchedule(instId, inst) {
     }).join('');
   }
 
-  function refresh() {
-    const modal = document.getElementById(`modal-${MODAL_ID}`);
-    if (!modal) return;
-    modal.querySelector('[data-week-nav]').innerHTML = navHTML();
-    modal.querySelector('[data-week-list]').innerHTML = listHTML();
-    attachNav();
+  function renderWeek() {
+    const navWrap  = container.querySelector('[data-week-nav]');
+    const listWrap = container.querySelector('[data-week-list]');
+    if (!navWrap || !listWrap) return;
+    navWrap.innerHTML  = weekNavHTML();
+    listWrap.innerHTML = weekListHTML();
+    container.querySelectorAll('[data-nav-week]').forEach(btn =>
+      btn.addEventListener('click', () => { weekStart = btn.dataset.navWeek; renderWeek(); }));
   }
 
-  function attachNav() {
-    setTimeout(() => {
-      document.querySelectorAll('[data-nav-week]').forEach(btn =>
-        btn.addEventListener('click', () => { weekStart = btn.dataset.navWeek; refresh(); }));
-    }, 50);
-  }
+  function render() {
+    const inst  = DB.getUserById(instId);
+    const allLessons  = DB.getLessonsByInstructor(instId);
+    const allTimeOffs = DB.getTimeOffByInstructor(instId);
+    const taughtCount  = allLessons.filter(l => l.status === 'reported').length;
+    const daysOffCount = allTimeOffs.filter(t => t.status === 'approved').length;
 
-  // Build custom modal with split fixed-header / scrollable-list layout
-  document.getElementById(`modal-${MODAL_ID}`)?.remove();
-  const overlay = document.createElement('div');
-  overlay.id        = `modal-${MODAL_ID}`;
-  overlay.className = 'modal-overlay';
-  overlay.innerHTML = `
-    <div class="modal-sheet" style="display:flex;flex-direction:column;overflow:hidden;padding:0;">
-      <div style="flex-shrink:0;padding:0 20px;">
-        <div class="modal-handle-wrap"><div class="modal-handle"></div></div>
-        <div style="display:flex;align-items:center;justify-content:space-between;
-          margin-bottom:16px;padding:0 2px;">
-          <h3 style="font-family:'Newsreader',serif;font-size:22px;font-weight:700;
-            color:#000;margin:0;">${inst?.name ?? 'Schedule'}</h3>
-          <button data-modal-close style="background:none;border:none;padding:6px;
-            cursor:pointer;color:#888;border-radius:50%;display:flex;
-            -webkit-tap-highlight-color:transparent;">${iX()}</button>
+    container.innerHTML = `
+      ${pageHead(inst.name, '', '/supervisor/instructors')}
+
+      ${secLabel('Info')}
+      <div style="padding:0 20px 24px;">
+        <div class="glass-strong" style="border-radius:14px;overflow:hidden;">
+          <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;
+            border-bottom:1px solid rgba(0,0,0,0.06);">
+            <span style="font-size:13px;color:#888;width:76px;flex-shrink:0;">Email</span>
+            <span style="font-size:14px;color:#000;font-weight:500;">${inst.email}</span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;">
+            <span style="font-size:13px;color:#888;width:76px;flex-shrink:0;padding-top:1px;">Certs</span>
+            <span style="font-size:14px;color:#000;font-weight:500;line-height:1.5;">
+              APSI Alpine Level 3<br>CASI Snowboard Level 3
+            </span>
+          </div>
         </div>
-        <div data-week-nav style="padding-bottom:14px;
-          border-bottom:1px solid rgba(0,0,0,0.07);"></div>
       </div>
-      <div data-week-list style="overflow-y:auto;flex:1;
-        -webkit-overflow-scrolling:touch;overscroll-behavior:contain;
-        padding:14px 20px calc(24px + env(safe-area-inset-bottom,0px));"></div>
-    </div>`;
 
-  overlay.querySelector('[data-modal-close]').addEventListener('click', () => dismissModal(MODAL_ID));
-  overlay.addEventListener('click', e => { if (e.target === overlay) dismissModal(MODAL_ID); });
-  document.body.appendChild(overlay);
+      ${secLabel('Stats')}
+      <div style="padding:0 20px 24px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div class="glass-strong" style="border-radius:14px;padding:16px;">
+          <div class="stat-num">${taughtCount}</div>
+          <div class="stat-lbl">Lessons Taught</div>
+        </div>
+        <div class="glass-strong" style="border-radius:14px;padding:16px;">
+          <div class="stat-num">${daysOffCount}</div>
+          <div class="stat-lbl">Days Off</div>
+        </div>
+      </div>
 
-  overlay.querySelector('[data-week-nav]').innerHTML = navHTML();
-  overlay.querySelector('[data-week-list]').innerHTML = listHTML();
-  attachNav();
+      ${secLabel('Schedule')}
+      <div data-week-nav></div>
+      <div data-week-list style="padding:0 20px 140px;"></div>
+    `;
+
+    renderWeek();
+
+    // Floating action buttons (inside #content, auto-cleared on navigation)
+    const fab = document.createElement('div');
+    fab.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:45;' +
+      'padding:16px 20px calc(20px + env(safe-area-inset-bottom,0px));display:flex;gap:10px;' +
+      'background:linear-gradient(0deg,rgba(247,241,232,1) 55%,rgba(247,241,232,0));' +
+      'pointer-events:none;';
+    fab.innerHTML = `
+      <button data-fab="edit" style="flex:1;padding:13px;border-radius:999px;pointer-events:all;
+        background:var(--bg-section-soft);border:1px solid var(--line-soft);
+        font-family:'Inter',sans-serif;font-size:15px;font-weight:600;color:#1E2643;
+        cursor:pointer;-webkit-tap-highlight-color:transparent;">Edit</button>
+      <button data-fab="tor" style="flex:1;padding:13px;border-radius:999px;pointer-events:all;
+        background:#1E2643;border:none;
+        font-family:'Inter',sans-serif;font-size:15px;font-weight:600;color:#fff;
+        cursor:pointer;-webkit-tap-highlight-color:transparent;">TOR</button>`;
+    container.appendChild(fab);
+
+    fab.querySelector('[data-fab="edit"]').addEventListener('click', () => {
+      const fresh = DB.getUserById(instId);
+      if (fresh) _editInstModal(fresh, render);
+    });
+    fab.querySelector('[data-fab="tor"]').addEventListener('click', () => _torInstModal(instId, render));
+  }
+
+  render();
 }
 
 // ── Tab 4: School ─────────────────────────────────────────────────────────────
@@ -1227,6 +1332,38 @@ function _editInstModal(inst, onDone) {
         avatar: name.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase(),
       });
       dismissModal('edit-inst', () => { toast('Instructor updated.', 'success'); onDone(); });
+    });
+  }, 50);
+}
+
+function _torInstModal(instId, onDone) {
+  openModal('tor-inst', 'Add Time Off', `
+    <div style="margin-bottom:14px;">
+      <label class="field-label">Date</label>
+      <input type="date" class="field-input" id="tor-date">
+    </div>
+    <div style="margin-bottom:24px;">
+      <label class="field-label">Reason <span style="color:#aaa;font-weight:400;">(optional)</span></label>
+      <input type="text" class="field-input" id="tor-reason" placeholder="Illness, personal…">
+    </div>
+    <button id="tor-save" class="btn btn-primary btn-lg btn-full">Add &amp; Approve</button>`);
+
+  setTimeout(() => {
+    const dateEl = document.getElementById('tor-date');
+    if (dateEl) dateEl.value = todayStr();
+    document.getElementById('tor-save')?.addEventListener('click', () => {
+      const date   = document.getElementById('tor-date')?.value ?? '';
+      const reason = (document.getElementById('tor-reason')?.value ?? '').trim();
+      if (!date) return;
+      DB.upsertTimeOff({
+        id:           'tor-' + Date.now().toString(36),
+        instructorId: instId,
+        date,
+        status:       'approved',
+        reason,
+        createdAt:    new Date().toISOString(),
+      });
+      dismissModal('tor-inst', () => { toast('Time off approved.', 'success'); onDone?.(); });
     });
   }, 50);
 }
