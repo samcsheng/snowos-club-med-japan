@@ -584,7 +584,7 @@ function _openAssignStandbyModal(inst, date, onDone) {
       return `
         <div style="margin-bottom:4px;">
           <div style="position:sticky;top:0;z-index:2;
-            display:flex;justify-content:center;padding:8px 0 10px;">
+            display:flex;justify-content:center;padding:16px 0 16px;">
             <span style="display:inline-flex;align-items:center;
               font-size:13px;font-weight:700;color:#1E2643;
               background:rgba(30,38,67,0.09);border-radius:999px;
@@ -1290,7 +1290,7 @@ export function renderSupervisorSchoolTemplates(container, { session }) {
       return `
         <div>
           <div style="position:sticky;top:64px;z-index:30;
-            display:flex;justify-content:center;padding:8px 0 10px;">
+            display:flex;justify-content:center;padding:16px 0 16px;">
             <span style="display:inline-flex;align-items:center;
               font-size:13px;font-weight:700;color:#1E2643;
               background:rgba(30,38,67,0.09);border-radius:999px;
@@ -1299,7 +1299,7 @@ export function renderSupervisorSchoolTemplates(container, { session }) {
               ${cat.label}
             </span>
           </div>
-          <div style="padding:0 20px 24px;display:flex;flex-direction:column;gap:6px;">
+          <div style="padding:0 20px 16px;display:flex;flex-direction:column;gap:6px;">
             ${items.map(base => {
               const eff = getTemplate(base.id);
               return `
