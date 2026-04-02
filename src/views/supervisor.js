@@ -583,12 +583,14 @@ function _openAssignStandbyModal(inst, date, onDone) {
 
       return `
         <div style="margin-bottom:4px;">
-          <div style="position:sticky;top:0;z-index:2;
-            display:flex;align-items:center;gap:10px;
-            padding:14px 0 8px;
-            background:linear-gradient(180deg,rgba(250,245,238,1) 80%,rgba(250,245,238,0));">
-            <span style="font-size:13px;font-weight:700;color:#1E2643;">${cat.label}</span>
-            <div style="flex:1;height:1px;background:var(--line-soft);"></div>
+          <div style="position:sticky;top:0;z-index:2;padding:10px 0 6px;
+            background:rgba(250,245,238,1);">
+            <span style="display:inline-flex;align-items:center;
+              font-size:12px;font-weight:700;color:#1E2643;
+              background:rgba(30,38,67,0.09);border-radius:999px;
+              padding:4px 12px;letter-spacing:0.01em;">
+              ${cat.label}
+            </span>
           </div>
           ${rows}
         </div>`;
