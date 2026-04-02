@@ -1264,7 +1264,9 @@ export function renderSupervisorSchoolTemplates(container, { session }) {
       <div style="display:flex;align-items:center;gap:10px;">
         <a href="#/supervisor/school" style="flex-shrink:0;padding:6px;background:var(--bg-section-soft);border:1px solid var(--line-soft);border-radius:999px;display:inline-flex;color:#1E2643;text-decoration:none;" aria-label="Back">${iBack()}</a>
         <h1 class="page-title page-title-step" style="flex:1;">Lesson Templates</h1>
-        <button id="btn-edit-max" class="btn btn-ghost btn-xs" style="flex-shrink:0;font-size:11px;font-weight:700;letter-spacing:.5px;padding:6px 12px;">MAX</button>
+        <button id="btn-edit-max" style="flex-shrink:0;background:none;border:none;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent;" title="Edit Max Guests">
+          <div style="width:40px;height:40px;border-radius:50%;background:#1E2643;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:800;letter-spacing:.5px;">MAX</div>
+        </button>
       </div>
     </div>
     <div style="height:16px;"></div>
@@ -1286,10 +1288,12 @@ export function renderSupervisorSchoolTemplates(container, { session }) {
       if (!items.length) return '';
       return `
         <div style="position:sticky;top:64px;z-index:30;
-          background:linear-gradient(180deg,rgba(247,241,232,0.97),rgba(247,241,232,0.90));
+          background:rgba(247,241,232,0.82);
           backdrop-filter:blur(20px) saturate(1.16);
           -webkit-backdrop-filter:blur(20px) saturate(1.16);
-          padding:8px 20px 6px;">
+          padding:8px 20px 20px;
+          mask-image:linear-gradient(to bottom,black 50%,transparent 100%);
+          -webkit-mask-image:linear-gradient(to bottom,black 50%,transparent 100%);">
           <span class="sec-label">${cat.label}</span>
         </div>
         <div style="padding:0 20px 16px;display:flex;flex-direction:column;gap:6px;">
@@ -1437,11 +1441,23 @@ function _openMaxModal(onDone) {
 
   openModal('edit-max', 'Max Guests', `
     <div style="display:flex;flex-direction:column;gap:0;">
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(30,38,67,0.06);border-radius:10px;margin-bottom:12px;">
+        <span style="flex:1;font-size:13px;font-weight:600;color:#000;">Apply to all</span>
+        <input type="number" id="em-all" class="field-input" min="1" max="20" placeholder="—"
+          style="width:64px;text-align:center;padding:6px 8px;">
+        <button id="em-apply-all" style="flex-shrink:0;background:#1E2643;color:#fff;border:none;border-radius:999px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent;">Apply</button>
+      </div>
       ${rows}
       <button id="em-save" class="btn btn-primary btn-lg btn-full" style="margin-top:18px;">Save All</button>
     </div>`);
 
   setTimeout(() => {
+    document.getElementById('em-apply-all')?.addEventListener('click', () => {
+      const v = parseInt(document.getElementById('em-all')?.value ?? '', 10);
+      if (!isNaN(v) && v >= 1) {
+        document.querySelectorAll('.max-input').forEach(inp => { inp.value = String(v); });
+      }
+    });
     document.getElementById('em-save')?.addEventListener('click', () => {
       document.querySelectorAll('.max-input').forEach(inp => {
         const tid  = inp.dataset.tid;
