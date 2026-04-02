@@ -1290,7 +1290,7 @@ export function renderSupervisorSchoolTemplates(container, { session }) {
       return `
         <div>
           <div style="position:sticky;top:64px;z-index:30;
-            display:flex;justify-content:center;padding:16px 0 10px;">
+            display:flex;justify-content:center;padding:16px 0 0;">
             <span style="display:inline-flex;align-items:center;
               font-size:13px;font-weight:700;color:#1E2643;
               background:rgba(30,38,67,0.09);border-radius:999px;
