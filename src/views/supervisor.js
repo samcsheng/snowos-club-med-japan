@@ -583,12 +583,13 @@ function _openAssignStandbyModal(inst, date, onDone) {
 
       return `
         <div style="margin-bottom:4px;">
-          <div style="position:sticky;top:0;z-index:2;padding:10px 0 6px;
-            background:rgba(250,245,238,1);display:flex;justify-content:center;">
+          <div style="position:sticky;top:0;z-index:2;
+            display:flex;justify-content:center;padding:16px 0 10px;">
             <span style="display:inline-flex;align-items:center;
-              font-size:12px;font-weight:700;color:#1E2643;
+              font-size:13px;font-weight:700;color:#1E2643;
               background:rgba(30,38,67,0.09);border-radius:999px;
-              padding:4px 12px;letter-spacing:0.01em;">
+              padding:6px 16px;letter-spacing:0.01em;
+              backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);">
               ${cat.label}
             </span>
           </div>
@@ -1287,36 +1288,38 @@ export function renderSupervisorSchoolTemplates(container, { session }) {
       const items = TEMPLATES.filter(t => t.sport === cat.sport && t.audience === cat.audience);
       if (!items.length) return '';
       return `
-        <div style="position:sticky;top:64px;z-index:30;
-          display:flex;justify-content:center;padding:10px 0 8px;">
-          <span style="display:inline-flex;align-items:center;
-            font-size:12px;font-weight:700;color:#1E2643;
-            background:rgba(30,38,67,0.09);border-radius:999px;
-            padding:4px 12px;letter-spacing:0.01em;
-            backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);">
-            ${cat.label}
-          </span>
-        </div>
-        <div style="padding:0 20px 16px;display:flex;flex-direction:column;gap:6px;">
-          ${items.map(base => {
-            const eff = getTemplate(base.id);
-            return `
-              <div class="glass-strong" style="border-radius:12px;overflow:hidden;">
-                <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;">
-                  <div style="flex:1;min-width:0;">
-                    <div style="font-weight:600;font-size:14px;color:#000;">${base.name}</div>
-                    <div style="font-size:12px;color:#888;margin-top:2px;">
-                      ${base.level} · max ${eff.maxGuests}
+        <div>
+          <div style="position:sticky;top:64px;z-index:30;
+            display:flex;justify-content:center;padding:16px 0 10px;">
+            <span style="display:inline-flex;align-items:center;
+              font-size:13px;font-weight:700;color:#1E2643;
+              background:rgba(30,38,67,0.09);border-radius:999px;
+              padding:6px 16px;letter-spacing:0.01em;
+              backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);">
+              ${cat.label}
+            </span>
+          </div>
+          <div style="padding:0 20px 24px;display:flex;flex-direction:column;gap:6px;">
+            ${items.map(base => {
+              const eff = getTemplate(base.id);
+              return `
+                <div class="glass-strong" style="border-radius:12px;overflow:hidden;">
+                  <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;">
+                    <div style="flex:1;min-width:0;">
+                      <div style="font-weight:600;font-size:14px;color:#000;">${base.name}</div>
+                      <div style="font-size:12px;color:#888;margin-top:2px;">
+                        ${base.level} · max ${eff.maxGuests}
+                      </div>
+                      <div style="font-size:12px;color:#6b625d;margin-top:1px;">
+                        AM ${eff.amStart}–${eff.amEnd} · PM ${eff.pmStart}–${eff.pmEnd}
+                      </div>
                     </div>
-                    <div style="font-size:12px;color:#6b625d;margin-top:1px;">
-                      AM ${eff.amStart}–${eff.amEnd} · PM ${eff.pmStart}–${eff.pmEnd}
-                    </div>
+                    <button class="btn btn-ghost btn-xs edit-tmpl" data-tid="${base.id}"
+                      title="Edit times & capacity">${iEdit()}</button>
                   </div>
-                  <button class="btn btn-ghost btn-xs edit-tmpl" data-tid="${base.id}"
-                    title="Edit times & capacity">${iEdit()}</button>
-                </div>
-              </div>`;
-          }).join('')}
+                </div>`;
+            }).join('')}
+          </div>
         </div>`;
     }).join('');
 
