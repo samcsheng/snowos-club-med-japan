@@ -584,7 +584,7 @@ function _openAssignStandbyModal(inst, date, onDone) {
       return `
         <div style="margin-bottom:4px;">
           <div style="position:sticky;top:0;z-index:2;padding:10px 0 6px;
-            background:rgba(250,245,238,1);">
+            background:rgba(250,245,238,1);display:flex;justify-content:center;">
             <span style="display:inline-flex;align-items:center;
               font-size:12px;font-weight:700;color:#1E2643;
               background:rgba(30,38,67,0.09);border-radius:999px;
