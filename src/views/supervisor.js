@@ -1452,17 +1452,48 @@ function _openMaxModal(onDone) {
       </div>`;
   }).join('');
 
-  openModal('edit-max', 'Max Guests', `
-    <div style="display:flex;flex-direction:column;gap:0;">
-      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(30,38,67,0.06);border-radius:10px;margin-bottom:12px;">
+  const existing = document.getElementById('modal-edit-max');
+  if (existing) existing.remove();
+  const overlay = document.createElement('div');
+  overlay.id        = 'modal-edit-max';
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal-sheet" style="display:flex;flex-direction:column;overflow:hidden;padding:0;max-height:82vh;">
+      <div class="modal-handle-wrap" style="flex-shrink:0;"><div class="modal-handle"></div></div>
+      <div style="flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 20px 14px;">
+        <h3 style="font-family:'Newsreader',serif;font-size:22px;font-weight:700;color:#000;margin:0;">Max Guests</h3>
+        <button data-modal-close
+          style="background:none;border:none;padding:6px;cursor:pointer;color:#888;border-radius:50%;display:flex;">
+          ${iX()}
+        </button>
+      </div>
+      <div style="flex-shrink:0;display:flex;align-items:center;gap:10px;
+        padding:10px 20px 14px;border-bottom:1px solid var(--line-soft);">
         <span style="flex:1;font-size:13px;font-weight:600;color:#000;">Apply to all</span>
         <input type="number" id="em-all" class="field-input" min="1" max="20" placeholder="—"
           style="width:64px;text-align:center;padding:6px 8px;">
-        <button id="em-apply-all" style="flex-shrink:0;background:#1E2643;color:#fff;border:none;border-radius:999px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent;">Apply</button>
+        <button id="em-apply-all" style="flex-shrink:0;background:#1E2643;color:#fff;border:none;
+          border-radius:999px;padding:6px 14px;font-size:12px;font-weight:600;
+          cursor:pointer;-webkit-tap-highlight-color:transparent;">Apply</button>
       </div>
-      ${rows}
-      <button id="em-save" class="btn btn-primary btn-lg btn-full" style="margin-top:18px;">Save All</button>
-    </div>`);
+      <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+        overscroll-behavior:contain;padding:0 20px;">
+        ${rows}
+      </div>
+      <div style="flex-shrink:0;padding:14px 20px calc(14px + env(safe-area-inset-bottom,0px));
+        border-top:1px solid var(--line-soft);">
+        <button id="em-save" class="btn btn-primary btn-lg btn-full">Save All</button>
+      </div>
+    </div>`;
+
+  overlay.querySelector('[data-modal-close]').addEventListener('click', () => {
+    overlay.classList.add('closing');
+    setTimeout(() => { overlay.remove(); }, 240);
+  });
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) { overlay.classList.add('closing'); setTimeout(() => overlay.remove(), 240); }
+  });
+  document.body.appendChild(overlay);
 
   setTimeout(() => {
     document.getElementById('em-apply-all')?.addEventListener('click', () => {
@@ -1478,7 +1509,8 @@ function _openMaxModal(onDone) {
         if (tid && !isNaN(maxG) && maxG >= 1) saveTemplateOverride(tid, { maxGuests: maxG });
       });
       toast('Max guests updated for all templates.', 'success');
-      dismissModal('edit-max', onDone);
+      overlay.classList.add('closing');
+      setTimeout(() => { overlay.remove(); onDone?.(); }, 240);
     });
   }, 50);
 }
