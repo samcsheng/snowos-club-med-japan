@@ -1288,13 +1288,14 @@ export function renderSupervisorSchoolTemplates(container, { session }) {
       if (!items.length) return '';
       return `
         <div style="position:sticky;top:64px;z-index:30;
-          background:rgba(247,241,232,0.82);
-          backdrop-filter:blur(20px) saturate(1.16);
-          -webkit-backdrop-filter:blur(20px) saturate(1.16);
-          padding:8px 20px 20px;
-          mask-image:linear-gradient(to bottom,black 50%,transparent 100%);
-          -webkit-mask-image:linear-gradient(to bottom,black 50%,transparent 100%);">
-          <span class="sec-label">${cat.label}</span>
+          display:flex;justify-content:center;padding:10px 0 8px;">
+          <span style="display:inline-flex;align-items:center;
+            font-size:12px;font-weight:700;color:#1E2643;
+            background:rgba(30,38,67,0.09);border-radius:999px;
+            padding:4px 12px;letter-spacing:0.01em;
+            backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);">
+            ${cat.label}
+          </span>
         </div>
         <div style="padding:0 20px 16px;display:flex;flex-direction:column;gap:6px;">
           ${items.map(base => {
