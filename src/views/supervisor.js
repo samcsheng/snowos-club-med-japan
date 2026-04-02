@@ -1430,17 +1430,26 @@ function _openMaxModal(onDone) {
     const items = TEMPLATES.filter(t => t.sport === cat.sport && t.audience === cat.audience);
     if (!items.length) return '';
     return `
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#85786f;margin:14px 0 6px;">${cat.label}</div>
-      ${items.map(base => {
-        const eff = getTemplate(base.id);
-        return `
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-            <span style="flex:1;font-size:13px;font-weight:600;color:#000;">${base.name}</span>
-            <input type="number" class="field-input max-input" data-tid="${base.id}"
-              value="${eff.maxGuests}" min="1" max="20"
-              style="width:64px;text-align:center;padding:6px 8px;">
-          </div>`;
-      }).join('')}`;
+      <div>
+        <div style="display:flex;justify-content:center;padding:16px 0 16px;">
+          <span style="display:inline-flex;align-items:center;
+            font-size:13px;font-weight:700;color:#1E2643;
+            background:rgba(30,38,67,0.09);border-radius:999px;
+            padding:6px 16px;letter-spacing:0.01em;">
+            ${cat.label}
+          </span>
+        </div>
+        ${items.map(base => {
+          const eff = getTemplate(base.id);
+          return `
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+              <span style="flex:1;font-size:13px;font-weight:600;color:#000;">${base.name}</span>
+              <input type="number" class="field-input max-input" data-tid="${base.id}"
+                value="${eff.maxGuests}" min="1" max="20"
+                style="width:64px;text-align:center;padding:6px 8px;">
+            </div>`;
+        }).join('')}
+      </div>`;
   }).join('');
 
   openModal('edit-max', 'Max Guests', `
