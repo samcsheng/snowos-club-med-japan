@@ -518,6 +518,134 @@ function _openAddGuest(lesson, confirmedBkgs, usersById, onDone) {
 const _todayFilter = { sport: 'ski', audience: 'adult' };
 const _planFilter  = { sport: 'ski', audience: 'adult', date: null };
 
+// ── Assign instructor from standby modal ─────────────────────────────────────
+function _openAssignStandbyModal(inst, date, onDone) {
+  const { lessons, usersById, confirmedByLesson } = _loadDayData(date);
+
+  const CATEGORIES = [
+    { sport: 'ski',       audience: 'adult', label: '⛷ Ski · Adult' },
+    { sport: 'ski',       audience: 'kids',  label: '⛷ Ski · Kids' },
+    { sport: 'snowboard', audience: 'adult', label: '🏂 Snowboard · Adult' },
+    { sport: 'snowboard', audience: 'kids',  label: '🏂 Snowboard · Kids' },
+  ];
+
+  const modalId = 'assign-standby';
+  const existingOverlay = document.getElementById(`modal-${modalId}`);
+  if (existingOverlay) existingOverlay.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id        = `modal-${modalId}`;
+  overlay.className = 'modal-overlay';
+
+  function buildBody() {
+    return CATEGORIES.map(cat => {
+      const catLessons = lessons.filter(l => {
+        const t = getTemplate(l.templateId);
+        return t && t.sport === cat.sport && t.audience === cat.audience;
+      });
+      if (catLessons.length === 0) return '';
+
+      const rows = catLessons.map((lesson, i) => {
+        const tmpl       = getTemplate(lesson.templateId);
+        const curInst    = lesson.instructorId ? usersById[lesson.instructorId] : null;
+        const guestCount = (confirmedByLesson[lesson.id] || []).length;
+        const maxG       = tmpl?.maxGuests ?? '?';
+        const isAssigned = !!lesson.instructorId;
+        return `
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 0;
+            ${i < catLessons.length - 1 ? 'border-bottom:1px solid var(--line-soft);' : ''}">
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:600;font-size:14px;color:#000;margin-bottom:2px;">
+                ${tmpl?.name ?? lesson.templateId}
+              </div>
+              <div style="font-size:11px;color:#888;margin-bottom:4px;">
+                ${tmpl ? lessonTimes(tmpl) : ''}
+              </div>
+              <div style="font-size:12px;display:flex;align-items:center;gap:5px;
+                ${isAssigned ? 'color:#555;' : 'color:#C75300;font-weight:500;'}">
+                ${isAssigned
+                  ? `${av(curInst?.avatar, 'xs')} ${curInst?.name ?? '—'}`
+                  : `<span style="display:inline-flex;align-items:center;gap:3px;">${iWarn()} Unassigned</span>`}
+              </div>
+            </div>
+            <div style="font-size:12px;color:#888;flex-shrink:0;text-align:right;margin-right:8px;">
+              ${guestCount}/${maxG}
+            </div>
+            <button data-assign-lid="${lesson.id}"
+              style="flex-shrink:0;font-size:12px;font-weight:600;
+              color:#fff;background:#1E2643;border:none;
+              border-radius:999px;padding:6px 14px;cursor:pointer;
+              font-family:'Inter',sans-serif;">
+              Assign
+            </button>
+          </div>`;
+      }).join('');
+
+      return `
+        <div style="margin-bottom:4px;">
+          <div style="position:sticky;top:0;z-index:2;padding:10px 0 6px;
+            background:rgba(250,245,238,1);display:flex;justify-content:center;">
+            <span style="display:inline-flex;align-items:center;
+              font-size:12px;font-weight:700;color:#1E2643;
+              background:rgba(30,38,67,0.09);border-radius:999px;
+              padding:4px 12px;letter-spacing:0.01em;">
+              ${cat.label}
+            </span>
+          </div>
+          ${rows}
+        </div>`;
+    }).join('');
+  }
+
+  overlay.innerHTML = `
+    <div class="modal-sheet" style="display:flex;flex-direction:column;overflow:hidden;padding:0;max-height:82vh;">
+      <div class="modal-handle-wrap" style="flex-shrink:0;"><div class="modal-handle"></div></div>
+      <div style="flex-shrink:0;display:flex;align-items:flex-start;justify-content:space-between;
+        padding:0 20px 14px;border-bottom:1px solid var(--line-soft);">
+        <div>
+          <h3 style="font-family:'Newsreader',serif;font-size:22px;font-weight:700;color:#000;margin:0 0 2px;">
+            ${inst.name}
+          </h3>
+          <div style="font-size:13px;color:#888;">${fmtDateLong(date)}</div>
+        </div>
+        <button data-modal-close
+          style="background:none;border:none;padding:6px;cursor:pointer;color:#888;
+          border-radius:50%;display:flex;flex-shrink:0;margin-top:2px;">
+          ${iX()}
+        </button>
+      </div>
+      <div id="modal-${modalId}-body"
+        style="overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+        padding:0 20px calc(24px + env(safe-area-inset-bottom, 0px));">
+        ${buildBody()}
+      </div>
+    </div>`;
+
+  function dismiss(cb) {
+    overlay.classList.add('closing');
+    setTimeout(() => { overlay.remove(); cb?.(); }, 240);
+  }
+
+  overlay.querySelector('[data-modal-close]').addEventListener('click', () => dismiss());
+  overlay.addEventListener('click', e => { if (e.target === overlay) dismiss(); });
+
+  function attachAssign() {
+    overlay.querySelectorAll('[data-assign-lid]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const lid = btn.dataset.assignLid;
+        const lesson = lessons.find(l => l.id === lid);
+        if (!lesson) return;
+        DB.upsertLesson({ ...lesson, instructorId: inst.id });
+        toast(`${inst.name} assigned.`, 'success');
+        dismiss(onDone);
+      });
+    });
+  }
+
+  document.body.appendChild(overlay);
+  setTimeout(attachAssign, 50);
+}
+
 // ── Standby page renderer ─────────────────────────────────────────────────────
 function _renderStandby(container, date) {
   const { instructors, lessons } = _loadDayData(date);
@@ -541,8 +669,21 @@ function _renderStandby(container, date) {
           <div style="flex:1;">
             <div style="font-weight:500;font-size:15px;color:var(--text-main);">${inst.name}</div>
           </div>
+          <button data-assign-inst="${inst.id}"
+            style="font-size:12px;font-weight:600;color:#fff;background:#1E2643;border:none;
+            border-radius:999px;padding:6px 14px;cursor:pointer;font-family:'Inter',sans-serif;">
+            Assign
+          </button>
         </div>`).join('')}
     </div>`;
+
+  listEl.querySelectorAll('[data-assign-inst]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const inst = standby.find(i => i.id === btn.dataset.assignInst);
+      if (!inst) return;
+      _openAssignStandbyModal(inst, date, () => _renderStandby(container, date));
+    });
+  });
 }
 
 // ── Tab 1: Today ──────────────────────────────────────────────────────────────
