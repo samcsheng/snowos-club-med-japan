@@ -3,7 +3,7 @@ import { navigate } from '../app.js';
 import {
   toast, pageHead, statusBadge, sportBadge, audienceBadge, av, secLabel,
   emptyState, openModal, dismissModal, fmtDate, fmtDateLong, todayStr, lessonTimes,
-  iPlus, iCheck, iChevR, iWarn, iEdit, iUserPlus, iClipboard, iCalendar, iX, iFlag,
+  iPlus, iCheck, iChevR, iWarn, iEdit, iUserPlus, iClipboard, iCalendar, iX, iFlag, iBack,
 } from '../ui.js';
 
 // ── Date offset helper ────────────────────────────────────────────────────────
@@ -1260,32 +1260,58 @@ export function renderSupervisorSchool(container, { session }) {
 
 export function renderSupervisorSchoolTemplates(container, { session }) {
   container.innerHTML = `
-    ${pageHead('Lesson Templates', '', '/supervisor/school')}
-    <div data-section="templates"
-      style="padding:0 20px 32px;display:flex;flex-direction:column;gap:6px;"></div>
+    <div class="page-head page-head-step" data-nav-step="true">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <a href="#/supervisor/school" style="flex-shrink:0;padding:6px;background:var(--bg-section-soft);border:1px solid var(--line-soft);border-radius:999px;display:inline-flex;color:#1E2643;text-decoration:none;" aria-label="Back">${iBack()}</a>
+        <h1 class="page-title page-title-step" style="flex:1;">Lesson Templates</h1>
+        <button id="btn-edit-max" class="btn btn-ghost btn-xs" style="flex-shrink:0;font-size:11px;font-weight:700;letter-spacing:.5px;padding:6px 12px;">MAX</button>
+      </div>
+    </div>
+    <div style="height:16px;"></div>
+    <div data-section="templates" style="padding:0 0 32px;"></div>
   `;
+
+  const CATEGORIES = [
+    { label: '⛷ Ski Adult',        sport: 'ski',       audience: 'adult' },
+    { label: '🏂 Snowboard Adult',  sport: 'snowboard', audience: 'adult' },
+    { label: '⛷ Ski Kids',         sport: 'ski',       audience: 'kids'  },
+    { label: '🏂 Snowboard Kids',   sport: 'snowboard', audience: 'kids'  },
+  ];
 
   function _render() {
     const el = container.querySelector('[data-section="templates"]');
     if (!el) return;
-    el.innerHTML = TEMPLATES.map(base => {
-      const eff = getTemplate(base.id);
+    el.innerHTML = CATEGORIES.map(cat => {
+      const items = TEMPLATES.filter(t => t.sport === cat.sport && t.audience === cat.audience);
+      if (!items.length) return '';
       return `
-        <div class="glass-strong" style="border-radius:12px;overflow:hidden;">
-          <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;">
-            <div style="flex:1;min-width:0;">
-              <div style="font-weight:600;font-size:14px;color:#000;">${base.name}</div>
-              <div style="font-size:12px;color:#888;margin-top:2px;">
-                ${base.sport === 'ski' ? '⛷' : '🏂'} ${base.audience} · ${base.level}
-                · max ${eff.maxGuests}
-              </div>
-              <div style="font-size:12px;color:#6b625d;margin-top:1px;">
-                AM ${eff.amStart}–${eff.amEnd} · PM ${eff.pmStart}–${eff.pmEnd}
-              </div>
-            </div>
-            <button class="btn btn-ghost btn-xs edit-tmpl" data-tid="${base.id}"
-              title="Edit times & capacity">${iEdit()}</button>
-          </div>
+        <div style="position:sticky;top:64px;z-index:30;
+          background:linear-gradient(180deg,rgba(247,241,232,0.97),rgba(247,241,232,0.90));
+          backdrop-filter:blur(20px) saturate(1.16);
+          -webkit-backdrop-filter:blur(20px) saturate(1.16);
+          padding:8px 20px 6px;">
+          <span class="sec-label">${cat.label}</span>
+        </div>
+        <div style="padding:0 20px 16px;display:flex;flex-direction:column;gap:6px;">
+          ${items.map(base => {
+            const eff = getTemplate(base.id);
+            return `
+              <div class="glass-strong" style="border-radius:12px;overflow:hidden;">
+                <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;">
+                  <div style="flex:1;min-width:0;">
+                    <div style="font-weight:600;font-size:14px;color:#000;">${base.name}</div>
+                    <div style="font-size:12px;color:#888;margin-top:2px;">
+                      ${base.level} · max ${eff.maxGuests}
+                    </div>
+                    <div style="font-size:12px;color:#6b625d;margin-top:1px;">
+                      AM ${eff.amStart}–${eff.amEnd} · PM ${eff.pmStart}–${eff.pmEnd}
+                    </div>
+                  </div>
+                  <button class="btn btn-ghost btn-xs edit-tmpl" data-tid="${base.id}"
+                    title="Edit times & capacity">${iEdit()}</button>
+                </div>
+              </div>`;
+          }).join('')}
         </div>`;
     }).join('');
 
@@ -1295,6 +1321,7 @@ export function renderSupervisorSchoolTemplates(container, { session }) {
   }
 
   _render();
+  container.querySelector('#btn-edit-max')?.addEventListener('click', () => _openMaxModal(_render));
 }
 
 export function renderSupervisorSchoolTimeOff(container, { session }) {
@@ -1380,6 +1407,51 @@ export function renderSupervisorSchoolTimeOff(container, { session }) {
   }
 
   _render();
+}
+
+// ── Edit all max guests modal ─────────────────────────────────────────────────
+function _openMaxModal(onDone) {
+  const CATS = [
+    { label: '⛷ Ski Adult',       sport: 'ski',       audience: 'adult' },
+    { label: '🏂 Snowboard Adult', sport: 'snowboard', audience: 'adult' },
+    { label: '⛷ Ski Kids',        sport: 'ski',       audience: 'kids'  },
+    { label: '🏂 Snowboard Kids',  sport: 'snowboard', audience: 'kids'  },
+  ];
+
+  const rows = CATS.map(cat => {
+    const items = TEMPLATES.filter(t => t.sport === cat.sport && t.audience === cat.audience);
+    if (!items.length) return '';
+    return `
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#85786f;margin:14px 0 6px;">${cat.label}</div>
+      ${items.map(base => {
+        const eff = getTemplate(base.id);
+        return `
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+            <span style="flex:1;font-size:13px;font-weight:600;color:#000;">${base.name}</span>
+            <input type="number" class="field-input max-input" data-tid="${base.id}"
+              value="${eff.maxGuests}" min="1" max="20"
+              style="width:64px;text-align:center;padding:6px 8px;">
+          </div>`;
+      }).join('')}`;
+  }).join('');
+
+  openModal('edit-max', 'Max Guests', `
+    <div style="display:flex;flex-direction:column;gap:0;">
+      ${rows}
+      <button id="em-save" class="btn btn-primary btn-lg btn-full" style="margin-top:18px;">Save All</button>
+    </div>`);
+
+  setTimeout(() => {
+    document.getElementById('em-save')?.addEventListener('click', () => {
+      document.querySelectorAll('.max-input').forEach(inp => {
+        const tid  = inp.dataset.tid;
+        const maxG = parseInt(inp.value, 10);
+        if (tid && !isNaN(maxG) && maxG >= 1) saveTemplateOverride(tid, { maxGuests: maxG });
+      });
+      toast('Max guests updated for all templates.', 'success');
+      dismissModal('edit-max', onDone);
+    });
+  }, 50);
 }
 
 // ── Edit template modal ───────────────────────────────────────────────────────
