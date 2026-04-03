@@ -510,7 +510,14 @@ function _step3Confirm(body, container, ctx) {
 
 export function renderPrivateBook(container, { session }) {
   setNavHidden(true);
+  const nav = document.getElementById('bottom-nav');
+  if (nav) nav.style.display = 'none';
+  document.getElementById('content')?.classList.add('nav-hidden-offset');
   window.addEventListener('hashchange', () => setNavHidden(false), { once: true });
+  window.addEventListener('hashchange', () => {
+    const currentNav = document.getElementById('bottom-nav');
+    if (currentNav) currentNav.style.display = '';
+  }, { once: true });
   const today = todayStr();
   const sessionTimes = DB.getPrivateSessionTimes().filter(s => s.active !== false);
   const state = {
@@ -547,12 +554,12 @@ export function renderPrivateBook(container, { session }) {
 
     container.innerHTML = `
       ${pageHead('Private Lesson', 'Premium one-on-one booking', '/guest/book')}
-      <div style="margin:0 -20px -32px;padding:0 20px calc(40px + env(safe-area-inset-bottom,0px));min-height:calc(100vh - 120px);
+      <div style="margin:-16px -20px -32px;padding:16px 20px calc(40px + env(safe-area-inset-bottom,0px));min-height:calc(100vh - 120px);
         background:
           radial-gradient(circle at 14% 0%,rgba(247,229,183,0.30),transparent 30%),
           radial-gradient(circle at 88% 10%,rgba(158,174,244,0.20),transparent 26%),
           linear-gradient(180deg,#1E2643 0%,#232D4C 42%,#2D3859 100%);">
-        <div style="padding:8px 0 18px;">
+        <div class="glass" style="padding:20px 18px 18px;border-radius:20px;margin-bottom:18px;background:linear-gradient(145deg,rgba(34,40,63,0.97),rgba(56,65,98,0.97));border:1px solid rgba(247,229,183,0.20);box-shadow:0 18px 40px rgba(8,15,31,0.20);">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
             <div>
               <div style="font-family:'Newsreader',serif;font-size:34px;font-weight:700;color:#F7E5B7;line-height:1.05;">Private mountain session</div>
@@ -584,7 +591,6 @@ export function renderPrivateBook(container, { session }) {
                 <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#7A685B;">Booking Details</div>
                 <div style="font-family:'Newsreader',serif;font-size:26px;color:#1E2643;line-height:1.05;margin-top:4px;">Build your private lesson</div>
               </div>
-              <div style="font-size:12px;color:#7A685B;text-align:right;">Clean app spacing, bright card surface, full-page private theme</div>
             </div>
             <div style="margin-bottom:12px;">
             <label class="field-label">Date</label>
@@ -653,6 +659,7 @@ export function renderPrivateBook(container, { session }) {
         back.style.color = '#F7E5B7';
       }
     }
+    head?.nextElementSibling?.remove();
 
     container.querySelector('#pb-date')?.addEventListener('change', e => state.date = e.target.value);
     container.querySelector('#pb-time')?.addEventListener('change', e => { state.sessionTimeId = e.target.value; render(); });
