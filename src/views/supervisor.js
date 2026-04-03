@@ -3,7 +3,7 @@ import { navigate } from '../app.js';
 import {
   toast, pageHead, statusBadge, sportBadge, audienceBadge, av, secLabel,
   emptyState, openModal, dismissModal, fmtDate, fmtDateLong, todayStr, lessonTimes,
-  iPlus, iCheck, iChevR, iWarn, iEdit, iUserPlus, iClipboard, iCalendar, iX, iFlag,
+  iPlus, iCheck, iChevR, iWarn, iEdit, iUserPlus, iClipboard, iCalendar, iX, iFlag, iBack,
 } from '../ui.js';
 
 // ── Date offset helper ────────────────────────────────────────────────────────
@@ -352,25 +352,50 @@ function _openTransferInstructor(lesson, date, otherLessons, usersById, onDone) 
     return;
   }
 
-  openModal('transfer-inst', 'Swap Instructor With', `
-    <p style="font-size:13px;color:#888;margin:0 0 12px;">
-      Select a lesson to swap instructors with:
-    </p>
-    <div style="display:flex;flex-direction:column;gap:8px;">
-      ${swappable.map(l => {
-        const t = getTemplate(l.templateId);
-        const inst = usersById[l.instructorId];
-        return `
-          <div class="glass-strong lesson-swap" data-lid="${l.id}"
-            style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:12px;cursor:pointer;">
-            <div style="flex:1;">
-              <div style="font-weight:600;font-size:14px;color:#000;">${t?.name ?? l.templateId}</div>
-              <div style="font-size:12px;color:#888;margin-top:2px;">${inst?.name ?? '—'}</div>
-            </div>
-            <div style="color:#CCC;">${iChevR()}</div>
-          </div>`;
-      }).join('')}
-    </div>`);
+  const CATS = [
+    { label: '⛷ Ski Adult',       sport: 'ski',       audience: 'adult' },
+    { label: '🏂 Snowboard Adult', sport: 'snowboard', audience: 'adult' },
+    { label: '⛷ Ski Kids',        sport: 'ski',       audience: 'kids'  },
+    { label: '🏂 Snowboard Kids',  sport: 'snowboard', audience: 'kids'  },
+  ];
+
+  const sections = CATS.map(cat => {
+    const items = swappable.filter(l => {
+      const t = getTemplate(l.templateId);
+      return t?.sport === cat.sport && t?.audience === cat.audience;
+    });
+    if (!items.length) return '';
+    return `
+      <div>
+        <div style="position:sticky;top:0;z-index:2;display:flex;justify-content:center;padding:16px 0 16px;">
+          <span style="display:inline-flex;align-items:center;
+            font-size:13px;font-weight:700;color:#1E2643;
+            background:rgba(30,38,67,0.09);border-radius:999px;
+            padding:6px 16px;letter-spacing:0.01em;
+            transform:translateZ(0);
+            backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);">
+            ${cat.label}
+          </span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;padding-bottom:8px;">
+          ${items.map(l => {
+            const t    = getTemplate(l.templateId);
+            const inst = usersById[l.instructorId];
+            return `
+              <div class="glass-strong lesson-swap" data-lid="${l.id}"
+                style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:12px;cursor:pointer;">
+                <div style="flex:1;">
+                  <div style="font-weight:600;font-size:14px;color:#000;">${t?.name ?? l.templateId}</div>
+                  <div style="font-size:12px;color:#888;margin-top:2px;">${inst?.name ?? '—'}</div>
+                </div>
+                <div style="color:#CCC;">${iChevR()}</div>
+              </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+  }).join('');
+
+  openModal('transfer-inst', 'Swap Instructor With', sections);
 
   setTimeout(() => {
     document.querySelectorAll('.lesson-swap').forEach(el => {
@@ -583,12 +608,14 @@ function _openAssignStandbyModal(inst, date, onDone) {
 
       return `
         <div style="margin-bottom:4px;">
-          <div style="position:sticky;top:0;z-index:2;padding:10px 0 6px;
-            background:rgba(250,245,238,1);display:flex;justify-content:center;">
+          <div style="position:sticky;top:0;z-index:2;
+            display:flex;justify-content:center;padding:16px 0 16px;">
             <span style="display:inline-flex;align-items:center;
-              font-size:12px;font-weight:700;color:#1E2643;
+              font-size:13px;font-weight:700;color:#1E2643;
               background:rgba(30,38,67,0.09);border-radius:999px;
-              padding:4px 12px;letter-spacing:0.01em;">
+              padding:6px 16px;letter-spacing:0.01em;
+              transform:translateZ(0);
+              backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);">
               ${cat.label}
             </span>
           </div>
@@ -1260,31 +1287,64 @@ export function renderSupervisorSchool(container, { session }) {
 
 export function renderSupervisorSchoolTemplates(container, { session }) {
   container.innerHTML = `
-    ${pageHead('Lesson Templates', '', '/supervisor/school')}
-    <div data-section="templates"
-      style="padding:0 20px 32px;display:flex;flex-direction:column;gap:6px;"></div>
+    <div class="page-head page-head-step" data-nav-step="true">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <a href="#/supervisor/school" style="flex-shrink:0;padding:6px;background:var(--bg-section-soft);border:1px solid var(--line-soft);border-radius:999px;display:inline-flex;color:#1E2643;text-decoration:none;" aria-label="Back">${iBack()}</a>
+        <h1 class="page-title page-title-step" style="flex:1;">Lesson Templates</h1>
+        <button id="btn-edit-max" style="flex-shrink:0;background:none;border:none;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent;" title="Edit Max Guests">
+          <div style="width:40px;height:40px;border-radius:50%;background:#1E2643;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:800;letter-spacing:.5px;">MAX</div>
+        </button>
+      </div>
+    </div>
+    <div style="height:16px;"></div>
+    <div data-section="templates" style="padding:0 0 32px;"></div>
   `;
+
+  const CATEGORIES = [
+    { label: '⛷ Ski Adult',        sport: 'ski',       audience: 'adult' },
+    { label: '🏂 Snowboard Adult',  sport: 'snowboard', audience: 'adult' },
+    { label: '⛷ Ski Kids',         sport: 'ski',       audience: 'kids'  },
+    { label: '🏂 Snowboard Kids',   sport: 'snowboard', audience: 'kids'  },
+  ];
 
   function _render() {
     const el = container.querySelector('[data-section="templates"]');
     if (!el) return;
-    el.innerHTML = TEMPLATES.map(base => {
-      const eff = getTemplate(base.id);
+    el.innerHTML = CATEGORIES.map(cat => {
+      const items = TEMPLATES.filter(t => t.sport === cat.sport && t.audience === cat.audience);
+      if (!items.length) return '';
       return `
-        <div class="glass-strong" style="border-radius:12px;overflow:hidden;">
-          <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;">
-            <div style="flex:1;min-width:0;">
-              <div style="font-weight:600;font-size:14px;color:#000;">${base.name}</div>
-              <div style="font-size:12px;color:#888;margin-top:2px;">
-                ${base.sport === 'ski' ? '⛷' : '🏂'} ${base.audience} · ${base.level}
-                · max ${eff.maxGuests}
-              </div>
-              <div style="font-size:12px;color:#6b625d;margin-top:1px;">
-                AM ${eff.amStart}–${eff.amEnd} · PM ${eff.pmStart}–${eff.pmEnd}
-              </div>
-            </div>
-            <button class="btn btn-ghost btn-xs edit-tmpl" data-tid="${base.id}"
-              title="Edit times & capacity">${iEdit()}</button>
+        <div>
+          <div style="position:sticky;top:64px;z-index:30;
+            display:flex;justify-content:center;padding:16px 0 16px;">
+            <span style="display:inline-flex;align-items:center;
+              font-size:13px;font-weight:700;color:#1E2643;
+              background:rgba(30,38,67,0.09);border-radius:999px;
+              padding:6px 16px;letter-spacing:0.01em;
+              backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);">
+              ${cat.label}
+            </span>
+          </div>
+          <div style="padding:0 20px 16px;display:flex;flex-direction:column;gap:6px;">
+            ${items.map(base => {
+              const eff = getTemplate(base.id);
+              return `
+                <div class="glass-strong" style="border-radius:12px;overflow:hidden;">
+                  <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;">
+                    <div style="flex:1;min-width:0;">
+                      <div style="font-weight:600;font-size:14px;color:#000;">${base.name}</div>
+                      <div style="font-size:12px;color:#888;margin-top:2px;">
+                        ${base.level} · max ${eff.maxGuests}
+                      </div>
+                      <div style="font-size:12px;color:#6b625d;margin-top:1px;">
+                        AM ${eff.amStart}–${eff.amEnd} · PM ${eff.pmStart}–${eff.pmEnd}
+                      </div>
+                    </div>
+                    <button class="btn btn-ghost btn-xs edit-tmpl" data-tid="${base.id}"
+                      title="Edit times & capacity">${iEdit()}</button>
+                  </div>
+                </div>`;
+            }).join('')}
           </div>
         </div>`;
     }).join('');
@@ -1295,6 +1355,7 @@ export function renderSupervisorSchoolTemplates(container, { session }) {
   }
 
   _render();
+  container.querySelector('#btn-edit-max')?.addEventListener('click', () => _openMaxModal(_render));
 }
 
 export function renderSupervisorSchoolTimeOff(container, { session }) {
@@ -1380,6 +1441,106 @@ export function renderSupervisorSchoolTimeOff(container, { session }) {
   }
 
   _render();
+}
+
+// ── Edit all max guests modal ─────────────────────────────────────────────────
+function _openMaxModal(onDone) {
+  const CATS = [
+    { label: '⛷ Ski Adult',       sport: 'ski',       audience: 'adult' },
+    { label: '🏂 Snowboard Adult', sport: 'snowboard', audience: 'adult' },
+    { label: '⛷ Ski Kids',        sport: 'ski',       audience: 'kids'  },
+    { label: '🏂 Snowboard Kids',  sport: 'snowboard', audience: 'kids'  },
+  ];
+
+  const rows = CATS.map(cat => {
+    const items = TEMPLATES.filter(t => t.sport === cat.sport && t.audience === cat.audience);
+    if (!items.length) return '';
+    return `
+      <div>
+        <div style="display:flex;justify-content:center;padding:16px 0 16px;">
+          <span style="display:inline-flex;align-items:center;
+            font-size:13px;font-weight:700;color:#1E2643;
+            background:rgba(30,38,67,0.09);border-radius:999px;
+            padding:6px 16px;letter-spacing:0.01em;
+            transform:translateZ(0);
+            backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);">
+            ${cat.label}
+          </span>
+        </div>
+        ${items.map(base => {
+          const eff = getTemplate(base.id);
+          return `
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+              <span style="flex:1;font-size:13px;font-weight:600;color:#000;">${base.name}</span>
+              <input type="number" class="field-input max-input" data-tid="${base.id}"
+                value="${eff.maxGuests}" min="1" max="20"
+                style="width:64px;text-align:center;padding:6px 8px;">
+            </div>`;
+        }).join('')}
+      </div>`;
+  }).join('');
+
+  const existing = document.getElementById('modal-edit-max');
+  if (existing) existing.remove();
+  const overlay = document.createElement('div');
+  overlay.id        = 'modal-edit-max';
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal-sheet" style="display:flex;flex-direction:column;overflow:hidden;padding:0;max-height:82vh;">
+      <div class="modal-handle-wrap" style="flex-shrink:0;"><div class="modal-handle"></div></div>
+      <div style="flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 20px 14px;">
+        <h3 style="font-family:'Newsreader',serif;font-size:22px;font-weight:700;color:#000;margin:0;">Max Guests</h3>
+        <button data-modal-close
+          style="background:none;border:none;padding:6px;cursor:pointer;color:#888;border-radius:50%;display:flex;">
+          ${iX()}
+        </button>
+      </div>
+      <div style="flex-shrink:0;display:flex;align-items:center;gap:10px;
+        padding:10px 20px 14px;border-bottom:1px solid var(--line-soft);">
+        <span style="flex:1;font-size:13px;font-weight:600;color:#000;">Apply to all</span>
+        <input type="number" id="em-all" class="field-input" min="1" max="20" placeholder="—"
+          style="width:64px;text-align:center;padding:6px 8px;">
+        <button id="em-apply-all" style="flex-shrink:0;background:#1E2643;color:#fff;border:none;
+          border-radius:999px;padding:6px 14px;font-size:12px;font-weight:600;
+          cursor:pointer;-webkit-tap-highlight-color:transparent;">Apply</button>
+      </div>
+      <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+        overscroll-behavior:contain;padding:0 20px;">
+        ${rows}
+      </div>
+      <div style="flex-shrink:0;padding:14px 20px calc(14px + env(safe-area-inset-bottom,0px));
+        border-top:1px solid var(--line-soft);">
+        <button id="em-save" class="btn btn-primary btn-lg btn-full">Save All</button>
+      </div>
+    </div>`;
+
+  overlay.querySelector('[data-modal-close]').addEventListener('click', () => {
+    overlay.classList.add('closing');
+    setTimeout(() => { overlay.remove(); }, 240);
+  });
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) { overlay.classList.add('closing'); setTimeout(() => overlay.remove(), 240); }
+  });
+  document.body.appendChild(overlay);
+
+  setTimeout(() => {
+    document.getElementById('em-apply-all')?.addEventListener('click', () => {
+      const v = parseInt(document.getElementById('em-all')?.value ?? '', 10);
+      if (!isNaN(v) && v >= 1) {
+        document.querySelectorAll('.max-input').forEach(inp => { inp.value = String(v); });
+      }
+    });
+    document.getElementById('em-save')?.addEventListener('click', () => {
+      document.querySelectorAll('.max-input').forEach(inp => {
+        const tid  = inp.dataset.tid;
+        const maxG = parseInt(inp.value, 10);
+        if (tid && !isNaN(maxG) && maxG >= 1) saveTemplateOverride(tid, { maxGuests: maxG });
+      });
+      toast('Max guests updated for all templates.', 'success');
+      overlay.classList.add('closing');
+      setTimeout(() => { overlay.remove(); onDone?.(); }, 240);
+    });
+  }, 50);
 }
 
 // ── Edit template modal ───────────────────────────────────────────────────────

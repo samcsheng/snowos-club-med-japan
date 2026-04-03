@@ -162,19 +162,47 @@ export function openModal(id, title, body, { onClose } = {}) {
   const overlay = document.createElement('div');
   overlay.id        = `modal-${id}`;
   overlay.className = 'modal-overlay';
-  overlay.innerHTML = `
-    <div class="modal-sheet">
+
+  const sheet = document.createElement('div');
+  sheet.className = 'modal-sheet';
+  sheet.innerHTML = `
+    <div style="flex-shrink:0;">
       <div class="modal-handle-wrap"><div class="modal-handle"></div></div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding:0 2px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:0 20px 16px;">
         <h3 style="font-family:'Newsreader',serif;font-size:22px;font-weight:700;color:#000;margin:0;">${title}</h3>
         <button data-modal-close
           style="background:none;border:none;padding:6px;cursor:pointer;color:#888;border-radius:50%;display:flex;">
           ${iX()}
         </button>
       </div>
-      <div id="modal-${id}-body">${body}</div>
     </div>
+    <div id="modal-${id}-body"
+      style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:0 20px;"></div>
   `;
+
+  // Populate body and auto-detect a trailing btn-full to pin as footer
+  const bodyEl = sheet.querySelector(`#modal-${id}-body`);
+  bodyEl.innerHTML = body;
+
+  const last = bodyEl.lastElementChild;
+  let footerBtn = null;
+  if (last?.classList.contains('btn-full')) {
+    footerBtn = last;
+  } else if (last?.lastElementChild?.classList.contains('btn-full')) {
+    footerBtn = last.lastElementChild;
+  }
+  if (footerBtn) {
+    footerBtn.style.marginTop = '0';
+    const footer = document.createElement('div');
+    footer.style.cssText = 'flex-shrink:0;padding:14px 20px calc(14px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line-soft);';
+    footer.appendChild(footerBtn);
+    sheet.appendChild(footer);
+  } else {
+    // No pinned footer — add bottom padding to body scroll area
+    bodyEl.style.paddingBottom = 'calc(24px + env(safe-area-inset-bottom,0px))';
+  }
+
+  overlay.appendChild(sheet);
   overlay.querySelector('[data-modal-close]').addEventListener('click', () => dismissModal(id, onClose));
   overlay.addEventListener('click', e => { if (e.target === overlay) dismissModal(id, onClose); });
   document.body.appendChild(overlay);
