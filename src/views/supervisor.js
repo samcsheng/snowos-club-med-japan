@@ -4,6 +4,7 @@ import {
   toast, pageHead, statusBadge, sportBadge, audienceBadge, av, secLabel,
   emptyState, openModal, dismissModal, fmtDate, fmtDateLong, todayStr, lessonTimes,
   iPlus, iCheck, iChevR, iWarn, iEdit, iUserPlus, iClipboard, iCalendar, iX, iFlag, iBack,
+  iList, iDownload,
 } from '../ui.js';
 
 // ── Date offset helper ────────────────────────────────────────────────────────
@@ -1262,7 +1263,7 @@ export function renderSupervisorSchool(container, { session }) {
           <div style="color:#bbb;display:flex;">${iChevR()}</div>
         </a>
         <a href="#/supervisor/school/timeoff"
-          style="display:flex;align-items:center;gap:14px;padding:16px;text-decoration:none;color:inherit;">
+          style="display:flex;align-items:center;gap:14px;padding:16px;text-decoration:none;color:inherit;border-bottom:1px solid rgba(0,0,0,0.06);">
           <div style="width:36px;height:36px;border-radius:10px;background:rgba(200,80,0,0.1);
             display:flex;align-items:center;justify-content:center;flex-shrink:0;">
             ${iCalendar()}
@@ -1278,6 +1279,18 @@ export function renderSupervisorSchool(container, { session }) {
               color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;
               justify-content:center;padding:0 5px;">${pendingCount}</div>
           ` : ''}
+          <div style="color:#bbb;display:flex;">${iChevR()}</div>
+        </a>
+        <a href="#/supervisor/school/timesheet"
+          style="display:flex;align-items:center;gap:14px;padding:16px;text-decoration:none;color:inherit;">
+          <div style="width:36px;height:36px;border-radius:10px;background:rgba(0,140,60,0.1);
+            display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            ${iList()}
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:600;font-size:15px;color:#000;">Instructor Timesheet</div>
+            <div style="font-size:13px;color:#888;margin-top:1px;">Monthly export for HR</div>
+          </div>
           <div style="color:#bbb;display:flex;">${iChevR()}</div>
         </a>
       </div>
@@ -1719,6 +1732,13 @@ function _openInstTimeOffModal(instId, onRefresh) {
   _render();
 }
 
+// ── Time diff helper (hours between two HH:MM strings) ───────────────────────
+function _timeDiff(start, end) {
+  const [sh, sm] = start.split(':').map(Number);
+  const [eh, em] = end.split(':').map(Number);
+  return Math.round(((eh * 60 + em) - (sh * 60 + sm)) / 6) / 10;
+}
+
 function _torInstModal(instId, onDone) {
   openModal('tor-inst', 'Add Time Off', `
     <div style="margin-bottom:14px;">
@@ -1749,4 +1769,199 @@ function _torInstModal(instId, onDone) {
       dismissModal('tor-inst', () => { toast('Time off approved.', 'success'); onDone?.(); });
     });
   }, 50);
+}
+
+// ── Instructor Timesheet ──────────────────────────────────────────────────────
+export function renderSupervisorSchoolTimesheet(container) {
+  const SEASON_MONTHS = [
+    { year: 2025, month: 12, label: 'Dec 2025', short: 'dec' },
+    { year: 2026, month:  1, label: 'Jan 2026', short: 'jan' },
+    { year: 2026, month:  2, label: 'Feb 2026', short: 'feb' },
+    { year: 2026, month:  3, label: 'Mar 2026', short: 'mar' },
+    { year: 2026, month:  4, label: 'Apr 2026', short: 'apr' },
+  ];
+
+  const now = new Date();
+  let selected = SEASON_MONTHS.find(
+    m => m.year === now.getFullYear() && m.month === now.getMonth() + 1
+  ) ?? SEASON_MONTHS[SEASON_MONTHS.length - 1];
+
+  container.innerHTML = `
+    ${pageHead('Instructor Timesheet', '', '/supervisor/school')}
+    <div data-section="ts-body"></div>
+  `;
+
+  function _render() {
+    const el = container.querySelector('[data-section="ts-body"]');
+    if (!el) return;
+
+    const pad     = n => String(n).padStart(2, '0');
+    const fromStr = `${selected.year}-${pad(selected.month)}-01`;
+    const lastDay = new Date(selected.year, selected.month, 0).getDate();
+    const toStr   = `${selected.year}-${pad(selected.month)}-${pad(lastDay)}`;
+
+    const instructors  = DB.getInstructors().sort((a, b) => a.name.localeCompare(b.name));
+    const monthLessons = DB.getLessonsByDateRange(fromStr, toStr)
+      .filter(l => l.instructorId);
+    const approvedOffs = DB.getTimeOff().filter(
+      t => t.status === 'approved' && t.date >= fromStr && t.date <= toStr
+    );
+
+    const rows = instructors.map(inst => {
+      const lessons    = monthLessons.filter(l => l.instructorId === inst.id);
+      const workedDays = new Set(lessons.map(l => l.date)).size;
+      const hours      = lessons.reduce((sum, l) => {
+        const tmpl = getTemplate(l.templateId);
+        if (!tmpl) return sum + 5;
+        return sum + _timeDiff(tmpl.amStart, tmpl.amEnd) + _timeDiff(tmpl.pmStart, tmpl.pmEnd);
+      }, 0);
+      const dayOffs = approvedOffs.filter(t => t.instructorId === inst.id).length;
+      return { inst, workedDays, hours: Math.round(hours * 10) / 10, dayOffs };
+    });
+
+    el.innerHTML = `
+      <div style="padding:0 20px 16px;overflow-x:auto;-webkit-overflow-scrolling:touch;">
+        <div style="display:flex;gap:8px;padding-bottom:2px;width:max-content;">
+          ${SEASON_MONTHS.map(m => {
+            const active = m.year === selected.year && m.month === selected.month;
+            return `<button class="ts-month-pill"
+              data-year="${m.year}" data-month="${m.month}" data-short="${m.short}" data-label="${m.label}"
+              style="padding:7px 16px;border-radius:999px;border:1.5px solid;cursor:pointer;
+                font-size:13px;font-weight:600;white-space:nowrap;transition:all 0.15s;
+                ${active
+                  ? 'background:#1E2643;color:#fff;border-color:#1E2643;'
+                  : 'background:rgba(255,255,255,0.7);color:#555;border-color:rgba(0,0,0,0.15);'}">
+              ${m.label}
+            </button>`;
+          }).join('')}
+        </div>
+      </div>
+
+      <div style="padding:0 20px 16px;">
+        <div class="glass-strong" style="border-radius:14px;overflow:hidden;">
+          <table style="width:100%;border-collapse:collapse;">
+            <thead>
+              <tr style="border-bottom:1.5px solid rgba(30,38,67,0.1);">
+                <th style="text-align:left;padding:10px 16px;font-size:11px;font-weight:700;
+                  color:#888;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap;">
+                  Instructor
+                </th>
+                <th style="text-align:center;padding:10px 10px;font-size:11px;font-weight:700;
+                  color:#888;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap;">
+                  Days
+                </th>
+                <th style="text-align:center;padding:10px 10px;font-size:11px;font-weight:700;
+                  color:#888;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap;">
+                  Hours
+                </th>
+                <th style="text-align:center;padding:10px 12px 10px 6px;font-size:11px;font-weight:700;
+                  color:#888;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap;">
+                  Day Offs
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map((r, i) => `
+                <tr style="${i > 0 ? 'border-top:1px solid rgba(30,38,67,0.06);' : ''}">
+                  <td style="padding:10px 16px;">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                      ${av(r.inst.avatar, 'xs')}
+                      <span style="font-size:13px;font-weight:600;color:#000;
+                        white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;">
+                        ${r.inst.name}
+                      </span>
+                    </div>
+                  </td>
+                  <td style="text-align:center;padding:10px;">
+                    <span style="font-size:15px;font-weight:700;
+                      color:${r.workedDays > 0 ? '#000' : '#ddd'};">
+                      ${r.workedDays}
+                    </span>
+                  </td>
+                  <td style="text-align:center;padding:10px;">
+                    <span style="font-size:15px;font-weight:700;
+                      color:${r.hours > 0 ? '#000' : '#ddd'};">
+                      ${r.hours}h
+                    </span>
+                  </td>
+                  <td style="text-align:center;padding:10px 12px 10px 6px;">
+                    <span style="font-size:15px;font-weight:700;
+                      color:${r.dayOffs > 0 ? '#BF2F17' : '#ddd'};">
+                      ${r.dayOffs}
+                    </span>
+                  </td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div style="height:80px;"></div>
+    `;
+
+    // Floating export bar (rendered outside scroll area so it stays fixed)
+    const existingBar = container.querySelector('[data-ts-export-bar]');
+    const isFirstRender = !existingBar;
+    if (existingBar) existingBar.remove();
+    const bar = document.createElement('div');
+    bar.setAttribute('data-ts-export-bar', '');
+    bar.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:50;' +
+      'padding:12px 20px 28px;background:linear-gradient(to bottom,transparent,rgba(244,240,235,0.97) 30%);' +
+      'will-change:transform,opacity;';
+    bar.innerHTML = `
+      <button id="ts-export" class="btn btn-primary btn-lg btn-full"
+        style="display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 20px rgba(30,38,67,0.22);">
+        ${iDownload()}
+        Export ${selected.label} CSV
+      </button>`;
+    container.appendChild(bar);
+    if (isFirstRender) {
+      bar.style.transform = 'translateY(110%)';
+      bar.style.opacity   = '0';
+      setTimeout(() => {
+        bar.style.transition = 'transform 0.42s cubic-bezier(0.22,1,0.36,1), opacity 0.42s cubic-bezier(0.22,1,0.36,1)';
+        bar.style.transform  = 'translateY(0)';
+        bar.style.opacity    = '1';
+      }, 500);
+    }
+
+    el.querySelectorAll('.ts-month-pill').forEach(btn => {
+      btn.addEventListener('click', () => {
+        selected = {
+          year:  +btn.dataset.year,
+          month: +btn.dataset.month,
+          short: btn.dataset.short,
+          label: btn.dataset.label,
+        };
+        _render();
+      });
+    });
+
+    // Scroll active pill into view
+    const activeBtn = el.querySelector('.ts-month-pill[data-year="' + selected.year + '"][data-month="' + selected.month + '"]');
+    activeBtn?.scrollIntoView({ behavior: 'instant', block: 'nearest', inline: 'center' });
+
+    document.getElementById('ts-export')?.addEventListener('click', () => {
+      const fileName = `clubmed-tomamu-${selected.year}-${selected.short}-instructor-timesheet.csv`;
+      const csvLines = [
+        ['Instructor', 'Worked Days', 'Hours', 'Day Offs'],
+        ...rows.map(r => [r.inst.name, r.workedDays, r.hours, r.dayOffs]),
+      ];
+      const csv  = csvLines.map(row =>
+        row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')
+      ).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast(`Downloaded ${selected.label} timesheet`, 'success');
+    });
+  }
+
+  _render();
 }
