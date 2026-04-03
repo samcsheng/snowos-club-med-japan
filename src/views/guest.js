@@ -554,90 +554,92 @@ export function renderPrivateBook(container, { session }) {
 
     container.innerHTML = `
       ${pageHead('Private Lesson', 'Premium one-on-one booking', '/guest/book')}
-      <div style="margin:-16px -20px -32px;padding:20px 16px calc(0px + env(safe-area-inset-bottom,0px));min-height:calc(100vh - 120px);
+      <div style="margin:-16px -20px -32px;padding:20px 0 calc(0px + env(safe-area-inset-bottom,0px));min-height:calc(100vh - 120px);
         background:
           radial-gradient(circle at 14% 2%,rgba(247,229,183,0.22),transparent 28%),
           radial-gradient(circle at 86% 10%,rgba(158,174,244,0.16),transparent 24%),
           linear-gradient(180deg,#273154 0%,#2D375A 22%,#384365 34%,#F6EFE7 52%,#F6EFE7 100%);">
-        <div class="glass" style="padding:18px 18px 16px;border-radius:16px;margin:0 0 16px;background:linear-gradient(145deg,rgba(45,55,90,0.98),rgba(61,72,110,0.98));border:1px solid rgba(247,229,183,0.18);box-shadow:0 18px 40px rgba(8,15,31,0.18);">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
-            <div>
-              <div style="font-family:'Newsreader',serif;font-size:34px;font-weight:700;color:#F7E5B7;line-height:1.05;">Private mountain session</div>
-              <div style="font-size:14px;color:rgba(246,239,231,0.82);margin-top:8px;line-height:1.55;">
-                A dedicated instructor, flexible timing, and a lesson plan shaped around your pace.
+        <div style="padding:0 20px;">
+          <div class="glass" style="padding:18px 18px 16px;border-radius:16px;margin:0 0 16px;background:linear-gradient(145deg,rgba(45,55,90,0.98),rgba(61,72,110,0.98));border:1px solid rgba(247,229,183,0.18);box-shadow:0 18px 40px rgba(8,15,31,0.18);">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+              <div>
+                <div style="font-family:'Newsreader',serif;font-size:34px;font-weight:700;color:#F7E5B7;line-height:1.05;">Private mountain session</div>
+                <div style="font-size:14px;color:rgba(246,239,231,0.82);margin-top:8px;line-height:1.55;">
+                  A dedicated instructor, flexible timing, and a lesson plan shaped around your pace.
+                </div>
+              </div>
+              <span class="badge" style="background:rgba(247,229,183,0.14);color:#F7E5B7;border:1px solid rgba(247,229,183,0.30);">Private</span>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;">
+              <span class="badge" style="background:rgba(255,255,255,0.10);color:#F6EFE7;border:1px solid rgba(255,255,255,0.14);">${disciplineLabel}</span>
+              <span class="badge" style="background:rgba(255,255,255,0.10);color:#F6EFE7;border:1px solid rgba(255,255,255,0.14);">${audienceLabel}</span>
+              <span class="badge" style="background:rgba(253,190,0,0.16);color:#F7E5B7;border:1px solid rgba(253,190,0,0.28);">${selectedSlot?.label ?? 'Time TBD'}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-top:18px;padding-top:16px;border-top:1px solid rgba(247,229,183,0.14);">
+              <div>
+                <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(246,239,231,0.58);">Starting from</div>
+                <div style="font-size:28px;font-weight:700;color:#F7E5B7;margin-top:3px;">¥${selectedPrice.toLocaleString()}</div>
+              </div>
+              <div style="font-size:12px;color:rgba(246,239,231,0.72);text-align:right;line-height:1.45;">
+                Charged to room folio<br>Instructor assigned after booking
               </div>
             </div>
-            <span class="badge" style="background:rgba(247,229,183,0.14);color:#F7E5B7;border:1px solid rgba(247,229,183,0.30);">Private</span>
           </div>
-          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;">
-            <span class="badge" style="background:rgba(255,255,255,0.10);color:#F6EFE7;border:1px solid rgba(255,255,255,0.14);">${disciplineLabel}</span>
-            <span class="badge" style="background:rgba(255,255,255,0.10);color:#F6EFE7;border:1px solid rgba(255,255,255,0.14);">${audienceLabel}</span>
-            <span class="badge" style="background:rgba(253,190,0,0.16);color:#F7E5B7;border:1px solid rgba(253,190,0,0.28);">${selectedSlot?.label ?? 'Time TBD'}</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-top:18px;padding-top:16px;border-top:1px solid rgba(247,229,183,0.14);">
-            <div>
-              <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(246,239,231,0.58);">Starting from</div>
-              <div style="font-size:28px;font-weight:700;color:#F7E5B7;margin-top:3px;">¥${selectedPrice.toLocaleString()}</div>
-            </div>
-            <div style="font-size:12px;color:rgba(246,239,231,0.72);text-align:right;line-height:1.45;">
-              Charged to room folio<br>Instructor assigned after booking
-            </div>
-          </div>
-        </div>
-        <div style="padding:0;">
-          <div class="glass" style="min-height:calc(100vh - 340px);padding:18px 18px calc(28px + env(safe-area-inset-bottom,0px));border-radius:16px 16px 0 0;background:linear-gradient(180deg,rgba(246,239,231,0.99),rgba(246,239,231,0.99));border:1px solid rgba(255,255,255,0.42);box-shadow:0 18px 40px rgba(8,15,31,0.12);">
-            <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-bottom:16px;">
-              <div>
-                <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#7A685B;">Booking Details</div>
-                <div style="font-family:'Newsreader',serif;font-size:26px;color:#1E2643;line-height:1.05;margin-top:4px;">Build your private lesson</div>
+          <div style="min-height:calc(100vh - 340px);background:#F6EFE7;border-radius:16px 16px 0 0;padding:0 0 calc(28px + env(safe-area-inset-bottom,0px));">
+            <div class="glass" style="min-height:calc(100vh - 340px);padding:18px 18px calc(28px + env(safe-area-inset-bottom,0px));border-radius:16px;background:linear-gradient(180deg,rgba(246,239,231,0.99),rgba(246,239,231,0.99));border:1px solid rgba(255,255,255,0.42);box-shadow:0 18px 40px rgba(8,15,31,0.12);">
+              <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-bottom:16px;">
+                <div>
+                  <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#7A685B;">Booking Details</div>
+                  <div style="font-family:'Newsreader',serif;font-size:26px;color:#1E2643;line-height:1.05;margin-top:4px;">Build your private lesson</div>
+                </div>
               </div>
-            </div>
-            <div style="margin-bottom:12px;">
-            <label class="field-label">Date</label>
-            <input id="pb-date" type="date" class="field-input" min="${today}" value="${state.date}">
-            </div>
-            <div style="margin-bottom:12px;">
-            <label class="field-label">Session Time</label>
-            <select id="pb-time" class="field-input">
-              ${sessionTimes.map(s => `<option value="${s.id}" ${s.id === selectedSlot?.id ? 'selected' : ''}>${s.label}</option>`).join('')}
-            </select>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
-              <div>
-              <label class="field-label">Age</label>
-              <select id="pb-audience" class="field-input">
-                <option value="adult" ${state.audience === 'adult' ? 'selected' : ''}>Adult</option>
-                <option value="kids" ${state.audience === 'kids' ? 'selected' : ''}>Kids</option>
+              <div style="margin-bottom:12px;">
+              <label class="field-label">Date</label>
+              <input id="pb-date" type="date" class="field-input" min="${today}" value="${state.date}">
+              </div>
+              <div style="margin-bottom:12px;">
+              <label class="field-label">Session Time</label>
+              <select id="pb-time" class="field-input">
+                ${sessionTimes.map(s => `<option value="${s.id}" ${s.id === selectedSlot?.id ? 'selected' : ''}>${s.label}</option>`).join('')}
               </select>
               </div>
-              <div>
-              <label class="field-label">Discipline</label>
-              <select id="pb-sport" class="field-input">
-                <option value="ski" ${state.sport === 'ski' ? 'selected' : ''}>Ski</option>
-                <option value="snowboard" ${state.sport === 'snowboard' ? 'selected' : ''}>Snowboard</option>
-              </select>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+                <div>
+                <label class="field-label">Age</label>
+                <select id="pb-audience" class="field-input">
+                  <option value="adult" ${state.audience === 'adult' ? 'selected' : ''}>Adult</option>
+                  <option value="kids" ${state.audience === 'kids' ? 'selected' : ''}>Kids</option>
+                </select>
+                </div>
+                <div>
+                <label class="field-label">Discipline</label>
+                <select id="pb-sport" class="field-input">
+                  <option value="ski" ${state.sport === 'ski' ? 'selected' : ''}>Ski</option>
+                  <option value="snowboard" ${state.sport === 'snowboard' ? 'selected' : ''}>Snowboard</option>
+                </select>
+                </div>
               </div>
-            </div>
-            <div style="margin-bottom:16px;">
-              <label class="field-label">Level</label>
-              <select id="pb-template" class="field-input">
-                ${templates.map(t => `<option value="${t.id}" ${t.id === state.templateId ? 'selected' : ''}>${t.name}</option>`).join('')}
-              </select>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
-              <div style="background:rgba(30,38,67,0.04);border:1px solid rgba(30,38,67,0.08);border-radius:12px;padding:12px 12px 11px;">
-                <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#7A685B;">Session</div>
-                <div style="font-weight:700;color:#1E2643;margin-top:6px;">${selectedSlot?.label ?? 'TBD'}</div>
+              <div style="margin-bottom:16px;">
+                <label class="field-label">Level</label>
+                <select id="pb-template" class="field-input">
+                  ${templates.map(t => `<option value="${t.id}" ${t.id === state.templateId ? 'selected' : ''}>${t.name}</option>`).join('')}
+                </select>
               </div>
-              <div style="background:rgba(253,190,0,0.12);border:1px solid rgba(253,190,0,0.20);border-radius:12px;padding:12px 12px 11px;">
-                <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#8B6200;">Estimated Total</div>
-                <div style="font-weight:700;color:#1E2643;margin-top:6px;">¥${selectedPrice.toLocaleString()}</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+                <div style="background:rgba(30,38,67,0.04);border:1px solid rgba(30,38,67,0.08);border-radius:12px;padding:12px 12px 11px;">
+                  <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#7A685B;">Session</div>
+                  <div style="font-weight:700;color:#1E2643;margin-top:6px;">${selectedSlot?.label ?? 'TBD'}</div>
+                </div>
+                <div style="background:rgba(253,190,0,0.12);border:1px solid rgba(253,190,0,0.20);border-radius:12px;padding:12px 12px 11px;">
+                  <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#8B6200;">Estimated Total</div>
+                  <div style="font-weight:700;color:#1E2643;margin-top:6px;">¥${selectedPrice.toLocaleString()}</div>
+                </div>
               </div>
+              <div style="font-size:12px;color:#6B584B;background:rgba(172,190,185,0.18);border:1px solid rgba(172,190,185,0.32);padding:11px 12px;border-radius:12px;margin-bottom:14px;line-height:1.5;">
+                Payment will be charged to your room. We will match the booking to an available instructor after confirmation.
+              </div>
+              <button id="pb-confirm" class="btn btn-primary btn-lg btn-full" style="background:#1E2643;color:#F6EFE7;border:1px solid rgba(30,38,67,0.06);box-shadow:0 10px 22px rgba(30,38,67,0.18);">${iCheck()} Confirm Private Booking</button>
             </div>
-            <div style="font-size:12px;color:#6B584B;background:rgba(172,190,185,0.18);border:1px solid rgba(172,190,185,0.32);padding:11px 12px;border-radius:12px;margin-bottom:14px;line-height:1.5;">
-              Payment will be charged to your room. We will match the booking to an available instructor after confirmation.
-            </div>
-            <button id="pb-confirm" class="btn btn-primary btn-lg btn-full" style="background:#1E2643;color:#F6EFE7;border:1px solid rgba(30,38,67,0.06);box-shadow:0 10px 22px rgba(30,38,67,0.18);">${iCheck()} Confirm Private Booking</button>
           </div>
         </div>
       </div>
