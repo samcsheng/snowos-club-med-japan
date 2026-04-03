@@ -1901,11 +1901,13 @@ export function renderSupervisorSchoolTimesheet(container) {
 
     // Floating export bar (rendered outside scroll area so it stays fixed)
     const existingBar = container.querySelector('[data-ts-export-bar]');
+    const isFirstRender = !existingBar;
     if (existingBar) existingBar.remove();
     const bar = document.createElement('div');
     bar.setAttribute('data-ts-export-bar', '');
     bar.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:50;' +
-      'padding:12px 20px 28px;background:linear-gradient(to bottom,transparent,rgba(244,240,235,0.97) 30%);';
+      'padding:12px 20px 28px;background:linear-gradient(to bottom,transparent,rgba(244,240,235,0.97) 30%);' +
+      'will-change:transform,opacity;';
     bar.innerHTML = `
       <button id="ts-export" class="btn btn-primary btn-lg btn-full"
         style="display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 20px rgba(30,38,67,0.22);">
@@ -1913,6 +1915,15 @@ export function renderSupervisorSchoolTimesheet(container) {
         Export ${selected.label} CSV
       </button>`;
     container.appendChild(bar);
+    if (isFirstRender) {
+      bar.style.transform = 'translateY(110%)';
+      bar.style.opacity   = '0';
+      requestAnimationFrame(() => {
+        bar.style.transition = 'transform 0.42s cubic-bezier(0.22,1,0.36,1), opacity 0.42s cubic-bezier(0.22,1,0.36,1)';
+        bar.style.transform  = 'translateY(0)';
+        bar.style.opacity    = '1';
+      });
+    }
 
     el.querySelectorAll('.ts-month-pill').forEach(btn => {
       btn.addEventListener('click', () => {
