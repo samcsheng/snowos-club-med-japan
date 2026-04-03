@@ -216,7 +216,7 @@ export function renderSupervisorLessonDetail(container, { params, session }) {
     sec.innerHTML = `
       <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
         color:#8A6B53;margin-bottom:8px;">
-        Guests (${guestEntries.length}/${tmpl?.maxGuests ?? '?'})
+        Guests (${guestEntries.length}/${lesson.lessonType === 'private' ? 1 : (tmpl?.maxGuests ?? '?')})
       </div>
       <div class="glass-strong" style="border-radius:14px;overflow:hidden;">
         ${guestEntries.length === 0
@@ -362,10 +362,13 @@ function _openTransferInstructor(lesson, date, otherLessons, usersById, onDone) 
     { label: '🏂 Snowboard Adult', sport: 'snowboard', audience: 'adult' },
     { label: '⛷ Ski Kids',        sport: 'ski',       audience: 'kids'  },
     { label: '🏂 Snowboard Kids',  sport: 'snowboard', audience: 'kids'  },
+    { label: '✨ Private Sessions', lessonType: 'private' },
   ];
 
   const sections = CATS.map(cat => {
     const items = swappable.filter(l => {
+      if (cat.lessonType === 'private') return l.lessonType === 'private';
+      if (l.lessonType === 'private') return false;
       const t = getTemplate(l.templateId);
       return t?.sport === cat.sport && t?.audience === cat.audience;
     });
@@ -390,7 +393,8 @@ function _openTransferInstructor(lesson, date, otherLessons, usersById, onDone) 
               <div class="glass-strong lesson-swap" data-lid="${l.id}"
                 style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:12px;cursor:pointer;">
                 <div style="flex:1;">
-                  <div style="font-weight:600;font-size:14px;color:#000;">${t?.name ?? l.templateId}</div>
+                  <div style="font-weight:600;font-size:14px;color:#000;">${lessonTitle(l, t)}</div>
+                  <div style="font-size:12px;color:#888;margin-top:2px;">${lessonTimeLabel(l, t)}</div>
                   <div style="font-size:12px;color:#888;margin-top:2px;">${inst?.name ?? '—'}</div>
                 </div>
                 <div style="color:#CCC;">${iChevR()}</div>
@@ -409,8 +413,15 @@ function _openTransferInstructor(lesson, date, otherLessons, usersById, onDone) 
         if (!other) return;
         const myInst = lesson.instructorId;
         const dayLessons = DB.getLessonsByDate(date);
-        const check1 = canAssignInstructor(other.instructorId, lesson, dayLessons);
-        const check2 = canAssignInstructor(myInst, other, dayLessons);
+        const simulated = dayLessons.map(l => {
+          if (l.id === lesson.id) return { ...l, instructorId: other.instructorId };
+          if (l.id === other.id) return { ...l, instructorId: myInst };
+          return l;
+        });
+        const nextLesson = simulated.find(l => l.id === lesson.id);
+        const nextOther = simulated.find(l => l.id === other.id);
+        const check1 = canAssignInstructor(other.instructorId, nextLesson, simulated);
+        const check2 = canAssignInstructor(myInst, nextOther, simulated);
         if (!check1.ok || !check2.ok) {
           toast('Swap blocked by schedule conflict rule.', 'info');
           return;
@@ -449,7 +460,8 @@ function _openTransferGuest(booking, currentLesson, date, usersById, onDone) {
         const t     = getTemplate(l.templateId);
         const inst  = l.instructorId ? usersById[l.instructorId] : null;
         const count = DB.getConfirmedByLesson(l.id).length;
-        const isFull = count >= (t?.maxGuests ?? 999);
+        const cap = l.lessonType === 'private' ? 1 : (t?.maxGuests ?? 999);
+        const isFull = count >= cap;
         return `
           <div class="glass-strong guest-target" data-lid="${l.id}"
             style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:12px;
@@ -457,7 +469,7 @@ function _openTransferGuest(booking, currentLesson, date, usersById, onDone) {
             <div style="flex:1;">
               <div style="font-weight:600;font-size:14px;color:#000;">${t?.name ?? l.templateId}</div>
               <div style="font-size:12px;color:#888;margin-top:2px;">
-                ${inst?.name ?? 'Unassigned'} · ${count}/${t?.maxGuests ?? '?'} guests
+                ${inst?.name ?? 'Unassigned'} · ${count}/${cap} guests
                 ${isFull ? ' · <span style="color:#C75300;">Full</span>' : ''}
               </div>
             </div>
@@ -473,7 +485,8 @@ function _openTransferGuest(booking, currentLesson, date, usersById, onDone) {
         if (!tl) return;
         const count = DB.getConfirmedByLesson(tl.id).length;
         const tt = getTemplate(tl.templateId);
-        if (count >= (tt?.maxGuests ?? 999)) return;
+        const cap = tl.lessonType === 'private' ? 1 : (tt?.maxGuests ?? 999);
+        if (count >= cap) return;
         DB.upsertBooking({ ...booking, lessonId: tl.id });
         toast(`${guestName} moved to ${tt?.name ?? tl.id}.`, 'success');
         dismissModal('transfer-guest', onDone);
@@ -485,7 +498,7 @@ function _openTransferGuest(booking, currentLesson, date, usersById, onDone) {
 // ── Add guest modal ───────────────────────────────────────────────────────────
 function _openAddGuest(lesson, confirmedBkgs, usersById, onDone) {
   const tmpl    = getTemplate(lesson.templateId);
-  const maxG    = tmpl?.maxGuests ?? 999;
+  const maxG    = lesson.lessonType === 'private' ? 1 : (tmpl?.maxGuests ?? 999);
   if (confirmedBkgs.length >= maxG) {
     openModal('add-guest', 'Add Guest', `
       <div style="text-align:center;padding:20px;color:#C75300;">
@@ -564,6 +577,7 @@ function _openAssignStandbyModal(inst, date, onDone) {
     { sport: 'ski',       audience: 'kids',  label: '⛷ Ski · Kids' },
     { sport: 'snowboard', audience: 'adult', label: '🏂 Snowboard · Adult' },
     { sport: 'snowboard', audience: 'kids',  label: '🏂 Snowboard · Kids' },
+    { lessonType: 'private', label: '✨ Private Sessions' },
   ];
 
   const modalId = 'assign-standby';
@@ -577,6 +591,8 @@ function _openAssignStandbyModal(inst, date, onDone) {
   function buildBody() {
     return CATEGORIES.map(cat => {
       const catLessons = lessons.filter(l => {
+        if (cat.lessonType === 'private') return l.lessonType === 'private';
+        if (l.lessonType === 'private') return false;
         const t = getTemplate(l.templateId);
         return t && t.sport === cat.sport && t.audience === cat.audience;
       });
@@ -593,10 +609,10 @@ function _openAssignStandbyModal(inst, date, onDone) {
             ${i < catLessons.length - 1 ? 'border-bottom:1px solid var(--line-soft);' : ''}">
             <div style="flex:1;min-width:0;">
               <div style="font-weight:600;font-size:14px;color:#000;margin-bottom:2px;">
-                ${tmpl?.name ?? lesson.templateId}
+                ${lessonTitle(lesson, tmpl)}
               </div>
               <div style="font-size:11px;color:#888;margin-bottom:4px;">
-                ${tmpl ? lessonTimes(tmpl) : ''}
+                ${lessonTimeLabel(lesson, tmpl)}
               </div>
               <div style="font-size:12px;display:flex;align-items:center;gap:5px;
                 ${isAssigned ? 'color:#555;' : 'color:#C75300;font-weight:500;'}">
@@ -606,7 +622,7 @@ function _openAssignStandbyModal(inst, date, onDone) {
               </div>
             </div>
             <div style="font-size:12px;color:#888;flex-shrink:0;text-align:right;margin-right:8px;">
-              ${guestCount}/${maxG}
+              ${guestCount}/${lesson.lessonType === 'private' ? 1 : maxG}
             </div>
             <button data-assign-lid="${lesson.id}"
               style="flex-shrink:0;font-size:12px;font-weight:600;

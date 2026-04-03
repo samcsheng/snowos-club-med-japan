@@ -742,7 +742,7 @@ function _schedLessonCard(lesson) {
   const tmpl       = getTemplate(lesson.templateId);
   const bkgs       = DB.getConfirmedByLesson(lesson.id);
   const guestCount = bkgs.length;
-  const maxGuests  = tmpl?.maxGuests ?? null;
+  const maxGuests  = lesson.lessonType === 'private' ? 1 : (tmpl?.maxGuests ?? null);
   const report     = DB.getReportByLesson(lesson.id);
 
   return `
@@ -795,7 +795,7 @@ export function renderLessonDetail(container, { params, session }) {
           <div><div style="color:#888;margin-bottom:2px;">Date</div>
             <div style="font-weight:600;">${fmtDate(lesson.date)}</div></div>
           <div><div style="color:#888;margin-bottom:2px;">Guests</div>
-            <div style="font-weight:600;">${guests.length} / ${tmpl?.maxGuests ?? '—'}</div></div>
+            <div style="font-weight:600;">${guests.length} / ${lesson.lessonType === 'private' ? 1 : (tmpl?.maxGuests ?? '—')}</div></div>
         </div>
       </div>
     </div>
