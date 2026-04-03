@@ -3,7 +3,7 @@ import { navigate } from '../app.js';
 import {
   toast, pageHead, statusBadge, sportBadge, av, secLabel,
   emptyState, fmtDate, fmtDateLong, todayStr,
-  lessonTimes, iCalendar, iChevR, iClipboard, iCheck,
+  lessonTimes, lessonTimeLabel, lessonTitle, privateBadge, iCalendar, iChevR, iClipboard, iCheck,
   iBack, iX, iPlay, iFlag, openModal, closeModal, dismissModal,
   injectHeadAvatar,
 } from '../ui.js';
@@ -272,10 +272,10 @@ function _instructorLessonCard(lesson) {
         </div>
         <div style="font-family:'Newsreader',serif;font-size:26px;font-weight:700;color:#000;
           margin-bottom:8px;line-height:1.2;">
-          ${tmpl ? tmpl.name : lesson.templateId}
+          ${lessonTitle(lesson, tmpl)} ${privateBadge(lesson)}
         </div>
         <div style="font-size:15px;color:#333;font-weight:500;margin-bottom:4px;">
-          ${tmpl ? lessonTimes(tmpl) : ''}
+          ${lessonTimeLabel(lesson, tmpl)}
         </div>
         <div style="font-size:14px;color:#777;">
           ${guestCount}${maxGuests ? ` / ${maxGuests}` : ''} guest${guestCount !== 1 ? 's' : ''} confirmed
@@ -305,7 +305,7 @@ function _openInstructorLessonModal(lesson, session, onReportSuccess = null) {
   const terrainLabels = Object.fromEntries(TERRAINS.map(t => [t.id, t.label]));
   const skillLabels   = Object.fromEntries(SKILLS.map(s => [s.id, s.label]));
 
-  openModal('instructor-lesson-detail', tmpl ? tmpl.name : lesson.id, `
+  openModal('instructor-lesson-detail', lessonTitle(lesson, tmpl) || lesson.id, `
     <div style="display:flex;flex-direction:column;gap:16px;">
 
       <!-- Lesson info -->
@@ -313,7 +313,7 @@ function _openInstructorLessonModal(lesson, session, onReportSuccess = null) {
         <div style="display:flex;flex-direction:column;gap:12px;">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
             <span style="font-size:13px;color:#888;">Schedule</span>
-            <span style="font-weight:600;color:#000;text-align:right;">${tmpl ? lessonTimes(tmpl) : '—'}</span>
+            <span style="font-weight:600;color:#000;text-align:right;">${lessonTimeLabel(lesson, tmpl) || '—'}</span>
           </div>
           <div class="div"></div>
           <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
@@ -329,8 +329,8 @@ function _openInstructorLessonModal(lesson, session, onReportSuccess = null) {
           ${spotsLabel ? `
           <div class="div"></div>
           <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
-            <span style="font-size:13px;color:#888;">Group size</span>
-            <span style="font-weight:600;color:#000;text-align:right;">${spotsLabel}</span>
+            <span style="font-size:13px;color:#888;">${lesson.lessonType === 'private' ? 'Session size' : 'Group size'}</span>
+            <span style="font-weight:600;color:#000;text-align:right;">${lesson.lessonType === 'private' ? '1 guest' : spotsLabel}</span>
           </div>` : ''}
         </div>
       </div>
@@ -751,12 +751,12 @@ function _schedLessonCard(lesson) {
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:5px;">
           <div style="font-family:'Newsreader',serif;font-size:18px;font-weight:700;color:#000;
             line-height:1.2;flex:1;min-width:0;">
-            ${tmpl ? tmpl.name : lesson.templateId}
+            ${lessonTitle(lesson, tmpl)} ${privateBadge(lesson)}
           </div>
           ${statusBadge(lesson.status)}
         </div>
         <div style="font-size:13px;color:#666;">
-          ${tmpl ? lessonTimes(tmpl) : ''}${guestCount > 0 ? ` · ${guestCount}${maxGuests ? `/${maxGuests}` : ''} guest${guestCount !== 1 ? 's' : ''}` : ''}
+          ${lessonTimeLabel(lesson, tmpl)}${guestCount > 0 ? ` · ${guestCount}${maxGuests ? `/${maxGuests}` : ''} guest${guestCount !== 1 ? 's' : ''}` : ''}
         </div>
         ${report ? `
         <div style="display:flex;align-items:center;gap:6px;margin-top:8px;
@@ -780,7 +780,7 @@ export function renderLessonDetail(container, { params, session }) {
   const guests = bkgs.map(b => ({ ...b, guest: DB.getUserById(b.guestId) }));
 
   container.innerHTML = `
-    ${pageHead(tmpl ? tmpl.name : lesson.templateId, fmtDateLong(lesson.date), '/instructor/dashboard')}
+    ${pageHead(lessonTitle(lesson, tmpl) || lesson.templateId, fmtDateLong(lesson.date), '/instructor/dashboard')}
 
     <!-- Lesson info card -->
     <div style="padding:0 20px 20px;">
@@ -791,7 +791,7 @@ export function renderLessonDetail(container, { params, session }) {
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;">
           <div><div style="color:#888;margin-bottom:2px;">Schedule</div>
-            <div style="font-weight:600;">${tmpl ? lessonTimes(tmpl) : '—'}</div></div>
+            <div style="font-weight:600;">${lessonTimeLabel(lesson, tmpl) || '—'}</div></div>
           <div><div style="color:#888;margin-bottom:2px;">Date</div>
             <div style="font-weight:600;">${fmtDate(lesson.date)}</div></div>
           <div><div style="color:#888;margin-bottom:2px;">Guests</div>

@@ -5,6 +5,7 @@ import { renderLogin, renderRegister } from './views/login.js';
 import {
   renderGuestDashboard,
   renderBook,
+  renderPrivateBook,
   renderMyBookings,
 } from './views/guest.js';
 import {
@@ -19,6 +20,7 @@ import {
   renderSupervisorInstructorDetail,
   renderSupervisorSchool,
   renderSupervisorSchoolTemplates,
+  renderSupervisorSchoolPrivateTimes,
   renderSupervisorSchoolTimeOff,
   renderSupervisorSchoolTimesheet,
   renderSupervisorLessonDetail,
@@ -40,6 +42,7 @@ const ROUTES = [
   { pat: /^\/register$/,                      view: renderRegister,            roles: null },
   { pat: /^\/guest\/dashboard$/,              view: renderGuestDashboard,      roles: ['guest'] },
   { pat: /^\/guest\/book$/,                   view: renderBook,                roles: ['guest'], noAvatar: true },
+  { pat: /^\/guest\/private-book$/,           view: renderPrivateBook,         roles: ['guest'], noAvatar: true },
   { pat: /^\/guest\/bookings$/,               view: renderMyBookings,          roles: ['guest'] },
   { pat: /^\/instructor\/dashboard$/,         view: renderInstructorDashboard, roles: ['instructor'] },
   { pat: /^\/instructor\/schedule$/,          view: renderMySchedule,          roles: ['instructor'] },
@@ -51,6 +54,7 @@ const ROUTES = [
   { pat: /^\/supervisor\/instructors\/(?<id>.+)$/,  view: renderSupervisorInstructorDetail,  roles: ['supervisor'], hideNav: true },
   { pat: /^\/supervisor\/school$/,                  view: renderSupervisorSchool,          roles: ['supervisor'] },
   { pat: /^\/supervisor\/school\/templates$/,       view: renderSupervisorSchoolTemplates, roles: ['supervisor'], hideNav: true },
+  { pat: /^\/supervisor\/school\/private-times$/,   view: renderSupervisorSchoolPrivateTimes, roles: ['supervisor'], hideNav: true },
   { pat: /^\/supervisor\/school\/timeoff$/,         view: renderSupervisorSchoolTimeOff,      roles: ['supervisor'], hideNav: true },
   { pat: /^\/supervisor\/school\/timesheet$/,      view: renderSupervisorSchoolTimesheet,    roles: ['supervisor'], hideNav: true },
   { pat: /^\/supervisor\/lesson\/(?<id>.+)$/, view: renderSupervisorLessonDetail,    roles: ['supervisor'], hideNav: true },
