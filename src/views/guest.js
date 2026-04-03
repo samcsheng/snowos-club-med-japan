@@ -554,12 +554,12 @@ export function renderPrivateBook(container, { session }) {
 
     container.innerHTML = `
       ${pageHead('Private Lesson', 'Premium one-on-one booking', '/guest/book')}
-      <div style="margin:-16px -20px -32px;padding:16px 20px calc(40px + env(safe-area-inset-bottom,0px));min-height:calc(100vh - 120px);
+      <div style="margin:-16px -20px -32px;padding:20px 16px calc(0px + env(safe-area-inset-bottom,0px));min-height:calc(100vh - 120px);
         background:
-          radial-gradient(circle at 14% 0%,rgba(247,229,183,0.30),transparent 30%),
-          radial-gradient(circle at 88% 10%,rgba(158,174,244,0.20),transparent 26%),
-          linear-gradient(180deg,#1E2643 0%,#232D4C 42%,#2D3859 100%);">
-        <div class="glass" style="padding:20px 18px 18px;border-radius:20px;margin-bottom:18px;background:linear-gradient(145deg,rgba(34,40,63,0.97),rgba(56,65,98,0.97));border:1px solid rgba(247,229,183,0.20);box-shadow:0 18px 40px rgba(8,15,31,0.20);">
+          radial-gradient(circle at 14% 2%,rgba(247,229,183,0.22),transparent 28%),
+          radial-gradient(circle at 86% 10%,rgba(158,174,244,0.16),transparent 24%),
+          linear-gradient(180deg,#273154 0%,#2D375A 22%,#384365 34%,#F6EFE7 52%,#F6EFE7 100%);">
+        <div class="glass" style="padding:20px 18px 18px;border-radius:20px;margin:0 0 14px;background:linear-gradient(145deg,rgba(45,55,90,0.98),rgba(61,72,110,0.98));border:1px solid rgba(247,229,183,0.18);box-shadow:0 18px 40px rgba(8,15,31,0.18);">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
             <div>
               <div style="font-family:'Newsreader',serif;font-size:34px;font-weight:700;color:#F7E5B7;line-height:1.05;">Private mountain session</div>
@@ -584,8 +584,8 @@ export function renderPrivateBook(container, { session }) {
             </div>
           </div>
         </div>
-        <div style="padding:0 0 8px;">
-          <div class="glass" style="padding:18px 16px 16px;border-radius:18px;background:linear-gradient(180deg,rgba(246,239,231,0.98),rgba(255,250,244,0.94));border:1px solid rgba(255,255,255,0.42);box-shadow:0 18px 40px rgba(8,15,31,0.22);">
+        <div style="padding:0;">
+          <div class="glass" style="min-height:calc(100vh - 340px);padding:18px 16px calc(28px + env(safe-area-inset-bottom,0px));border-radius:18px 18px 0 0;background:linear-gradient(180deg,rgba(246,239,231,0.99),rgba(246,239,231,0.99));border:1px solid rgba(255,255,255,0.42);box-shadow:0 18px 40px rgba(8,15,31,0.12);">
             <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-bottom:16px;">
               <div>
                 <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#7A685B;">Booking Details</div>
