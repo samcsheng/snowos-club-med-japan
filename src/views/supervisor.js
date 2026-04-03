@@ -1,10 +1,10 @@
-import { DB, TEMPLATES, getTemplate, saveTemplateOverride, isoDate } from '../data.js';
+import { DB, TEMPLATES, getTemplate, saveTemplateOverride, isoDate, uid, checkInstructorConflict } from '../data.js';
 import { navigate } from '../app.js';
 import {
   toast, pageHead, statusBadge, sportBadge, audienceBadge, av, secLabel,
   emptyState, openModal, dismissModal, fmtDate, fmtDateLong, todayStr, lessonTimes,
   iPlus, iCheck, iChevR, iWarn, iEdit, iUserPlus, iClipboard, iCalendar, iX, iFlag, iBack,
-  iList, iDownload,
+  iList, iDownload, privateBadge, iClock,
 } from '../ui.js';
 
 // ── Date offset helper ────────────────────────────────────────────────────────
@@ -214,7 +214,7 @@ export function renderSupervisorLessonDetail(container, { params, session }) {
     sec.innerHTML = `
       <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
         color:#8A6B53;margin-bottom:8px;">
-        Guests (${guestEntries.length}/${tmpl?.maxGuests ?? '?'})
+        Guests (${guestEntries.length}/${lesson.type === 'private' ? 1 : (tmpl?.maxGuests ?? '?')})
       </div>
       <div class="glass-strong" style="border-radius:14px;overflow:hidden;">
         ${guestEntries.length === 0
@@ -277,17 +277,29 @@ export function renderSupervisorLessonDetail(container, { params, session }) {
     return;
   }
 
+  const isPrivate = lesson.type === 'private';
+  const pageTitle = isPrivate
+    ? `${lesson.startTime} – ${lesson.endTime}`
+    : (tmpl?.name ?? lessonId);
+  const timeInfo = isPrivate
+    ? `${lesson.startTime} – ${lesson.endTime}`
+    : (tmpl ? lessonTimes(tmpl) : '—');
+
   container.innerHTML = `
-    ${pageHead(tmpl?.name ?? lessonId, fmtDateLong(lesson.date), _lessonBackHref(lesson))}
+    ${pageHead(pageTitle, fmtDateLong(lesson.date), _lessonBackHref(lesson))}
     <div style="padding:0 20px 20px;">
       <div class="glass" style="padding:14px 16px;border-radius:14px;">
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
           ${statusBadge(lesson.status)}
-          ${tmpl ? sportBadge(tmpl.sport) : ''}
-          ${tmpl ? audienceBadge(tmpl.audience) : ''}
-          ${tmpl ? `<span class="badge" style="background:var(--bg-tile);color:#555;border:1px solid var(--line-soft);">${tmpl.level}</span>` : ''}
+          ${isPrivate ? privateBadge() : ''}
+          ${isPrivate ? `<span class="badge" style="background:var(--bg-tile);color:#555;border:1px solid var(--line-soft);">${lesson.discipline === 'ski' ? '⛷ Ski' : '🏂 Snowboard'}</span>` : ''}
+          ${isPrivate ? `<span class="badge" style="background:var(--bg-tile);color:#555;border:1px solid var(--line-soft);">${lesson.age === 'adult' ? 'Adult' : 'Kids'}</span>` : ''}
+          ${isPrivate ? `<span class="badge" style="background:var(--bg-tile);color:#555;border:1px solid var(--line-soft);">${lesson.level}</span>` : ''}
+          ${!isPrivate && tmpl ? sportBadge(tmpl.sport) : ''}
+          ${!isPrivate && tmpl ? audienceBadge(tmpl.audience) : ''}
+          ${!isPrivate && tmpl ? `<span class="badge" style="background:var(--bg-tile);color:#555;border:1px solid var(--line-soft);">${tmpl.level}</span>` : ''}
         </div>
-        <div style="font-size:13px;color:#6b625d;">${tmpl ? lessonTimes(tmpl) : '—'}</div>
+        <div style="font-size:13px;color:#6b625d;">${timeInfo}</div>
       </div>
     </div>
     <div data-section="instructor" style="padding:0 20px 16px;"></div>
@@ -333,6 +345,11 @@ function _openAssignInstructor(lesson, date, instructors, usersById, onDone) {
       el.addEventListener('click', () => {
         const iid = el.dataset.iid;
         if (iid === lesson.instructorId) return;
+        const conflict = checkInstructorConflict(iid, lesson.date, lesson.type ?? 'group');
+        if (!conflict.ok) {
+          toast(conflict.reason, 'error');
+          return;
+        }
         DB.upsertLesson({ ...lesson, instructorId: iid });
         toast(`${usersById[iid]?.name ?? 'Instructor'} assigned.`, 'success');
         dismissModal('assign-inst', onDone);
@@ -663,6 +680,11 @@ function _openAssignStandbyModal(inst, date, onDone) {
         const lid = btn.dataset.assignLid;
         const lesson = lessons.find(l => l.id === lid);
         if (!lesson) return;
+        const conflict = checkInstructorConflict(inst.id, lesson.date, lesson.type ?? 'group');
+        if (!conflict.ok) {
+          toast(conflict.reason, 'error');
+          return;
+        }
         DB.upsertLesson({ ...lesson, instructorId: inst.id });
         toast(`${inst.name} assigned.`, 'success');
         dismiss(onDone);
@@ -714,6 +736,91 @@ function _renderStandby(container, date) {
   });
 }
 
+// ── Private lesson card list (Today + Plan private tab) ──────────────────────
+function _renderPrivateLessons(container, date) {
+  const allPrivate = DB.getPrivateLessonsByDate(date);
+  const allUsers   = DB.getUsers();
+  const usersById  = Object.fromEntries(allUsers.map(u => [u.id, u]));
+  const instructors = allUsers.filter(u => u.role === 'instructor');
+
+  const listEl = container.querySelector('[data-private-list]');
+  if (!listEl) return;
+
+  if (allPrivate.length === 0) {
+    listEl.innerHTML = `<div style="padding:0 20px;">${emptyState('⭐', 'No private lessons', 'No private lessons booked for this date.')}</div>`;
+    return;
+  }
+
+  listEl.innerHTML = `
+    <div style="padding:0 20px 32px;display:flex;flex-direction:column;gap:8px;">
+      ${allPrivate.map(lesson => {
+        const guest      = usersById[lesson.guestId];
+        const inst       = lesson.instructorId ? usersById[lesson.instructorId] : null;
+        const unassigned = !lesson.instructorId;
+        return `
+          <div class="glass-strong" style="border-radius:14px;overflow:hidden;cursor:pointer;
+            ${unassigned ? 'border:1.5px solid rgba(199,83,0,0.22);' : ''}"
+            data-prv-lid="${lesson.id}">
+            <div style="padding:14px 16px;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+                ${privateBadge()}
+                ${statusBadge(lesson.status)}
+              </div>
+              <div style="font-family:'Newsreader',serif;font-size:18px;font-weight:700;color:#000;margin-bottom:4px;">
+                ${lesson.startTime} – ${lesson.endTime}
+              </div>
+              <div style="font-size:13px;color:#555;margin-bottom:4px;">
+                ${lesson.age === 'adult' ? 'Adult' : 'Kids'} ·
+                ${lesson.discipline === 'ski' ? '⛷ Ski' : '🏂 Snowboard'} ·
+                ${lesson.level.charAt(0).toUpperCase() + lesson.level.slice(1)}
+              </div>
+              <div style="font-size:13px;color:#888;margin-bottom:8px;">
+                Guest: <span style="font-weight:600;color:#333;">${guest?.name ?? 'Unknown'}</span>
+              </div>
+              <div style="font-size:13px;display:flex;align-items:center;gap:6px;
+                ${unassigned ? 'color:#C75300;font-weight:500;' : 'color:#444;'}">
+                ${unassigned
+                  ? `<span style="display:inline-flex;align-items:center;gap:4px;">${iWarn()} Unassigned</span>`
+                  : `${av(inst?.avatar, 'sm')} ${inst?.name ?? '—'}`}
+              </div>
+            </div>
+            <div style="padding:0 16px 14px;display:flex;gap:8px;">
+              ${unassigned
+                ? `<button class="prv-assign-btn" data-lid="${lesson.id}"
+                    style="font-size:12px;font-weight:600;color:#fff;background:#1E2643;border:none;
+                    border-radius:999px;padding:6px 14px;cursor:pointer;font-family:'Inter',sans-serif;">
+                    Assign Instructor
+                  </button>`
+                : `<button class="prv-remove-btn" data-lid="${lesson.id}"
+                    style="font-size:12px;font-weight:600;color:#BF2F17;background:rgba(191,47,23,0.06);
+                    border:1px solid rgba(191,47,23,0.2);border-radius:999px;padding:5px 12px;
+                    cursor:pointer;font-family:'Inter',sans-serif;">
+                    Remove Instructor
+                  </button>`}
+            </div>
+          </div>`;
+      }).join('')}
+    </div>`;
+
+  listEl.querySelectorAll('.prv-assign-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const lesson = DB.getLessonById(btn.dataset.lid);
+      if (lesson) _openAssignInstructor(lesson, date, instructors, usersById,
+        () => _renderPrivateLessons(container, date));
+    });
+  });
+
+  listEl.querySelectorAll('.prv-remove-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const lesson = DB.getLessonById(btn.dataset.lid);
+      if (!lesson) return;
+      DB.upsertLesson({ ...lesson, instructorId: null });
+      toast('Instructor removed.', 'info');
+      _renderPrivateLessons(container, date);
+    });
+  });
+}
+
 // ── Tab 1: Today ──────────────────────────────────────────────────────────────
 export function renderSupervisorToday(container, { session }) {
   const date = todayStr();
@@ -721,9 +828,11 @@ export function renderSupervisorToday(container, { session }) {
 
   // Compute tab counts
   const { lessons, instructors } = _loadDayData(date);
-  const assignedIds = new Set(lessons.map(l => l.instructorId).filter(Boolean));
-  const groupCount   = assignedIds.size;
-  const standbyCount = instructors.filter(i => !assignedIds.has(i.id)).length;
+  const groupLessons   = lessons.filter(l => (l.type ?? 'group') === 'group');
+  const assignedIds    = new Set(groupLessons.map(l => l.instructorId).filter(Boolean));
+  const groupCount     = assignedIds.size;
+  const privateCount   = DB.getPrivateLessonsByDate(date).length;
+  const standbyCount   = instructors.filter(i => !assignedIds.has(i.id)).length;
 
   container.innerHTML = `
     <div class="page-head" style="padding-bottom:12px;">
@@ -747,6 +856,13 @@ export function renderSupervisorToday(container, { session }) {
         style="padding:4px 0;background:none;border:none;cursor:pointer;
         font-family:'Inter',sans-serif;font-size:15px;
         -webkit-tap-highlight-color:transparent;user-select:none;">
+        <span style="font-weight:700;color:var(--text-main);">Private</span><span
+          style="font-weight:400;color:var(--text-muted);margin-left:4px;">${privateCount}</span>
+      </button>
+      <button data-page-btn="2"
+        style="padding:4px 0;background:none;border:none;cursor:pointer;
+        font-family:'Inter',sans-serif;font-size:15px;
+        -webkit-tap-highlight-color:transparent;user-select:none;">
         <span style="font-weight:700;color:var(--text-main);">Standby</span><span
           style="font-weight:400;color:var(--text-muted);margin-left:4px;">${standbyCount}</span>
       </button>
@@ -766,39 +882,43 @@ export function renderSupervisorToday(container, { session }) {
       </div>
       <div data-page-content="1"
         style="min-width:100%;width:100%;overflow-y:auto;scroll-snap-align:start;flex-shrink:0;">
+        <div style="height:16px;"></div>
+        <div data-private-list></div>
+        <div style="height:calc(96px + env(safe-area-inset-bottom, 0px));flex-shrink:0;"></div>
+      </div>
+      <div data-page-content="2"
+        style="min-width:100%;width:100%;overflow-y:auto;scroll-snap-align:start;flex-shrink:0;">
         <div data-standby-list></div>
         <div style="height:calc(96px + env(safe-area-inset-bottom, 0px));flex-shrink:0;"></div>
       </div>
     </div>`;
 
-  // ── Indicator positioning ─────────────────────────────────────────────────
-  function _positionIndicator(progress) {
+  // ── Indicator positioning — 3 tabs ───────────────────────────────────────
+  function _positionIndicator(rawProgress) {
     const indicator = container.querySelector('[data-tab-indicator]');
-    const btn0 = container.querySelector('[data-page-btn="0"]');
-    const btn1 = container.querySelector('[data-page-btn="1"]');
-    if (!indicator || !btn0 || !btn1) return;
-    const l0 = btn0.offsetLeft, w0 = btn0.offsetWidth;
-    const l1 = btn1.offsetLeft, w1 = btn1.offsetWidth;
-    indicator.style.left  = (l0 + (l1 - l0) * progress) + 'px';
-    indicator.style.width = (w0 + (w1 - w0) * progress) + 'px';
+    if (!indicator) return;
+    const btns = [0,1,2].map(i => container.querySelector(`[data-page-btn="${i}"]`));
+    if (btns.some(b => !b)) return;
+    // rawProgress = scrollLeft / pageWidth → 0..2 for 3 pages
+    const progress  = Math.max(0, Math.min(2, rawProgress));
+    const lo   = Math.min(Math.floor(progress), 1);
+    const hi   = Math.min(lo + 1, 2);
+    const frac = progress - lo;
+    const left  = btns[lo].offsetLeft  + (btns[hi].offsetLeft  - btns[lo].offsetLeft)  * frac;
+    const width = btns[lo].offsetWidth + (btns[hi].offsetWidth - btns[lo].offsetWidth) * frac;
+    indicator.style.left  = left  + 'px';
+    indicator.style.width = width + 'px';
   }
 
-  // ── Set swipe container height using getBoundingClientRect for accuracy ───
+  // ── Set swipe container height ────────────────────────────────────────────
   requestAnimationFrame(() => {
     const head   = container.querySelector('.page-head');
     const tabRow = container.querySelector('[data-tab-row]');
-    const nav    = document.getElementById('bottom-nav');
     const outer  = container.querySelector('[data-swipe-outer]');
     if (!outer || !head) return;
-
-    const headH   = head.offsetHeight;
-    if (tabRow) tabRow.style.top = headH + 'px';
-
-    // Swipe area fills from below tab row to bottom of screen.
-    // Nav floats over it; pages have bottom padding so last items clear the nav.
+    if (tabRow) tabRow.style.top = head.offsetHeight + 'px';
     const tabBottom = tabRow ? tabRow.getBoundingClientRect().bottom : head.getBoundingClientRect().bottom;
     outer.style.height = Math.max(200, window.innerHeight - tabBottom) + 'px';
-
     _positionIndicator(0);
   });
 
@@ -810,12 +930,11 @@ export function renderSupervisorToday(container, { session }) {
     _rafId = requestAnimationFrame(() => {
       _rafId = null;
       const p = swipeOuter.scrollLeft / (swipeOuter.offsetWidth || 1);
-      _positionIndicator(Math.max(0, Math.min(1, p)));
+      _positionIndicator(p);
     });
   }, { passive: true });
 
-  // ── Tab button clicks — custom snappy scroll (220ms ease-out) ───────────
-  // scroll-snap must be disabled during animation or the browser snaps every frame
+  // ── Tab button clicks — snappy scroll ────────────────────────────────────
   let _scrollRaf = null;
   function _scrollToPage(page) {
     if (!swipeOuter) return;
@@ -829,13 +948,13 @@ export function renderSupervisorToday(container, { session }) {
     swipeOuter.style.scrollSnapType = 'none';
     function step(now) {
       const t = Math.min(1, (now - startT) / duration);
-      const ease = 1 - Math.pow(1 - t, 3); // ease-out cubic
+      const ease = 1 - Math.pow(1 - t, 3);
       swipeOuter.scrollLeft = startX + delta * ease;
       if (t < 1) {
         _scrollRaf = requestAnimationFrame(step);
       } else {
         swipeOuter.scrollLeft = targetX;
-        swipeOuter.style.scrollSnapType = 'x mandatory'; // restore — '' would delete it
+        swipeOuter.style.scrollSnapType = 'x mandatory';
       }
     }
     _scrollRaf = requestAnimationFrame(step);
@@ -861,6 +980,7 @@ export function renderSupervisorToday(container, { session }) {
 
   // ── Initial render ────────────────────────────────────────────────────────
   _renderLessons(container, date, f.sport, f.audience);
+  _renderPrivateLessons(container, date);
   _renderStandby(container, date);
 }
 
@@ -1282,7 +1402,7 @@ export function renderSupervisorSchool(container, { session }) {
           <div style="color:#bbb;display:flex;">${iChevR()}</div>
         </a>
         <a href="#/supervisor/school/timesheet"
-          style="display:flex;align-items:center;gap:14px;padding:16px;text-decoration:none;color:inherit;">
+          style="display:flex;align-items:center;gap:14px;padding:16px;text-decoration:none;color:inherit;border-bottom:1px solid rgba(0,0,0,0.06);">
           <div style="width:36px;height:36px;border-radius:10px;background:rgba(0,140,60,0.1);
             display:flex;align-items:center;justify-content:center;flex-shrink:0;">
             ${iList()}
@@ -1290,6 +1410,20 @@ export function renderSupervisorSchool(container, { session }) {
           <div style="flex:1;min-width:0;">
             <div style="font-weight:600;font-size:15px;color:#000;">Instructor Timesheet</div>
             <div style="font-size:13px;color:#888;margin-top:1px;">Monthly export for HR</div>
+          </div>
+          <div style="color:#bbb;display:flex;">${iChevR()}</div>
+        </a>
+        <a href="#/supervisor/school/private-sessions"
+          style="display:flex;align-items:center;gap:14px;padding:16px;text-decoration:none;color:inherit;">
+          <div style="width:36px;height:36px;border-radius:10px;background:rgba(253,190,0,0.18);
+            display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            ${iClock()}
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:600;font-size:15px;color:#000;">Private Session Times</div>
+            <div style="font-size:13px;color:#888;margin-top:1px;">
+              ${DB.getPrivateSessions().length} time slots configured
+            </div>
           </div>
           <div style="color:#bbb;display:flex;">${iChevR()}</div>
         </a>
@@ -1961,6 +2095,134 @@ export function renderSupervisorSchoolTimesheet(container) {
       URL.revokeObjectURL(url);
       toast(`Downloaded ${selected.label} timesheet`, 'success');
     });
+  }
+
+  _render();
+}
+
+// ── Private session slot edit/add modal ───────────────────────────────────────
+function _openSlotModal(ps, onDone) {
+  const isEdit = !!ps;
+  openModal('slot-edit', isEdit ? 'Edit Time Slot' : 'New Time Slot', `
+    <div style="margin-bottom:14px;">
+      <label class="field-label">Label <span style="color:#aaa;font-weight:400;">(display name)</span></label>
+      <input type="text" class="field-input" id="ps-label"
+        value="${isEdit ? ps.label : ''}" placeholder="e.g. 09:00 – 10:00">
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:14px;">
+      <div style="flex:1;">
+        <label class="field-label">Start Time</label>
+        <input type="time" class="field-input" id="ps-start"
+          value="${isEdit ? ps.startTime : ''}">
+      </div>
+      <div style="flex:1;">
+        <label class="field-label">End Time</label>
+        <input type="time" class="field-input" id="ps-end"
+          value="${isEdit ? ps.endTime : ''}">
+      </div>
+    </div>
+    <button id="ps-save" class="btn btn-primary btn-lg btn-full">
+      ${isEdit ? 'Save Changes' : 'Add Slot'}
+    </button>`);
+
+  setTimeout(() => {
+    const startEl = document.getElementById('ps-start');
+    const endEl   = document.getElementById('ps-end');
+    const labelEl = document.getElementById('ps-label');
+    // Auto-generate label from times
+    function _autoLabel() {
+      const s = startEl?.value, e = endEl?.value;
+      if (s && e && labelEl && !labelEl.value.trim()) {
+        labelEl.value = `${s} – ${e}`;
+      }
+    }
+    endEl?.addEventListener('change', _autoLabel);
+
+    document.getElementById('ps-save')?.addEventListener('click', () => {
+      const label     = labelEl?.value.trim() ?? '';
+      const startTime = startEl?.value ?? '';
+      const endTime   = endEl?.value ?? '';
+      if (!label || !startTime || !endTime) {
+        toast('Please fill all fields.', 'error');
+        return;
+      }
+      if (startTime >= endTime) {
+        toast('End time must be after start time.', 'error');
+        return;
+      }
+      DB.upsertPrivateSession({
+        id:        isEdit ? ps.id : 'pst-' + uid(),
+        label,
+        startTime,
+        endTime,
+      });
+      toast(isEdit ? 'Time slot updated.' : 'Time slot added.', 'success');
+      dismissModal('slot-edit', onDone);
+    });
+  }, 50);
+}
+
+// ── Private Session Times management page ─────────────────────────────────────
+export function renderSupervisorPrivateSessions(container) {
+  function _render() {
+    const slots = DB.getPrivateSessions();
+
+    container.innerHTML = `
+      ${pageHead('Private Session Times', '', '/supervisor/school')}
+      <div style="padding:0 20px 32px;">
+        <div data-slots-list style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;"></div>
+        <button id="add-slot" class="btn btn-navy btn-md btn-full">${iPlus()} Add Time Slot</button>
+      </div>`;
+
+    const listEl = container.querySelector('[data-slots-list]');
+    if (slots.length === 0) {
+      listEl.innerHTML = emptyState('🕐', 'No time slots', 'Add your first private session time slot below.');
+    } else {
+      listEl.innerHTML = slots.map(s => `
+        <div class="glass-strong" style="border-radius:12px;overflow:hidden;">
+          <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;">
+            <div style="width:36px;height:36px;border-radius:10px;background:rgba(253,190,0,0.18);
+              display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#8a6800;">
+              ${iClock()}
+            </div>
+            <div style="flex:1;">
+              <div style="font-weight:600;font-size:15px;color:#000;">${s.label}</div>
+              <div style="font-size:12px;color:#888;margin-top:2px;">${s.startTime} – ${s.endTime}</div>
+            </div>
+            <div style="display:flex;gap:6px;flex-shrink:0;">
+              <button data-edit-slot="${s.id}"
+                style="font-size:12px;font-weight:600;color:#1E2643;
+                background:var(--bg-section-soft);border:1px solid var(--line-soft);
+                border-radius:999px;padding:5px 12px;cursor:pointer;font-family:'Inter',sans-serif;">
+                Edit
+              </button>
+              <button data-delete-slot="${s.id}"
+                style="font-size:12px;font-weight:600;color:#BF2F17;
+                background:rgba(191,47,23,0.06);border:1px solid rgba(191,47,23,0.2);
+                border-radius:999px;padding:5px 12px;cursor:pointer;font-family:'Inter',sans-serif;">
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>`).join('');
+    }
+
+    listEl.querySelectorAll('[data-edit-slot]').forEach(btn =>
+      btn.addEventListener('click', () => {
+        const slot = slots.find(s => s.id === btn.dataset.editSlot);
+        if (slot) _openSlotModal(slot, _render);
+      }));
+
+    listEl.querySelectorAll('[data-delete-slot]').forEach(btn =>
+      btn.addEventListener('click', () => {
+        if (!confirm('Delete this time slot? It will no longer appear as an option for guests.')) return;
+        DB.deletePrivateSession(btn.dataset.deleteSlot);
+        toast('Time slot deleted.', 'info');
+        _render();
+      }));
+
+    container.querySelector('#add-slot')?.addEventListener('click', () =>
+      _openSlotModal(null, _render));
   }
 
   _render();

@@ -4,7 +4,9 @@ import { renderNav, closeModal, dismissModal, injectHeadAvatar, setNavHidden } f
 import { renderLogin, renderRegister } from './views/login.js';
 import {
   renderGuestDashboard,
+  renderBookLanding,
   renderBook,
+  renderBookPrivate,
   renderMyBookings,
 } from './views/guest.js';
 import {
@@ -22,6 +24,7 @@ import {
   renderSupervisorSchoolTimeOff,
   renderSupervisorSchoolTimesheet,
   renderSupervisorLessonDetail,
+  renderSupervisorPrivateSessions,
 } from './views/supervisor.js';
 
 // ── Bootstrap ────────────────────────────────────────────────────────────────
@@ -39,7 +42,9 @@ const ROUTES = [
   { pat: /^\/login$/,                         view: renderLogin,               roles: null },
   { pat: /^\/register$/,                      view: renderRegister,            roles: null },
   { pat: /^\/guest\/dashboard$/,              view: renderGuestDashboard,      roles: ['guest'] },
-  { pat: /^\/guest\/book$/,                   view: renderBook,                roles: ['guest'], noAvatar: true },
+  { pat: /^\/guest\/book\/group$/,            view: renderBook,                roles: ['guest'], noAvatar: true },
+  { pat: /^\/guest\/book\/private$/,          view: renderBookPrivate,         roles: ['guest'], noAvatar: true },
+  { pat: /^\/guest\/book$/,                   view: renderBookLanding,         roles: ['guest'], noAvatar: true },
   { pat: /^\/guest\/bookings$/,               view: renderMyBookings,          roles: ['guest'] },
   { pat: /^\/instructor\/dashboard$/,         view: renderInstructorDashboard, roles: ['instructor'] },
   { pat: /^\/instructor\/schedule$/,          view: renderMySchedule,          roles: ['instructor'] },
@@ -53,6 +58,7 @@ const ROUTES = [
   { pat: /^\/supervisor\/school\/templates$/,       view: renderSupervisorSchoolTemplates, roles: ['supervisor'], hideNav: true },
   { pat: /^\/supervisor\/school\/timeoff$/,         view: renderSupervisorSchoolTimeOff,      roles: ['supervisor'], hideNav: true },
   { pat: /^\/supervisor\/school\/timesheet$/,      view: renderSupervisorSchoolTimesheet,    roles: ['supervisor'], hideNav: true },
+  { pat: /^\/supervisor\/school\/private-sessions$/, view: renderSupervisorPrivateSessions, roles: ['supervisor'], hideNav: true },
   { pat: /^\/supervisor\/lesson\/(?<id>.+)$/, view: renderSupervisorLessonDetail,    roles: ['supervisor'], hideNav: true },
 ];
 
@@ -101,7 +107,7 @@ function router() {
     setNavHidden(!!route.hideNav);
     // Yellow accent for Book tab (immersive experience)
     const nav = document.getElementById('bottom-nav');
-    if (nav) nav.dataset.accent = path === '/guest/book' ? 'yellow' : '';
+    if (nav) nav.dataset.accent = path.startsWith('/guest/book') ? 'yellow' : '';
   } else {
     document.getElementById('bottom-nav')?.remove();
     content.classList.remove('nav-hidden-offset');

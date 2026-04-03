@@ -96,6 +96,14 @@
 	      border: 1px solid var(--line-soft);
 	      border-radius: 10px;
 	    }
+	    .glass-private {
+	      background: linear-gradient(135deg, rgba(255,248,220,0.94), rgba(255,235,153,0.72));
+	      border: 1.5px solid rgba(253,190,0,0.38);
+	      border-radius: 16px;
+	      box-shadow: var(--shadow-soft), 0 0 0 1px rgba(253,190,0,0.10) inset;
+	      backdrop-filter: blur(20px) saturate(1.3);
+	      -webkit-backdrop-filter: blur(20px) saturate(1.3);
+	    }
 
     /* ── Bottom nav ───────────────────────────────────── */
     #bottom-nav {
@@ -249,6 +257,7 @@
     .badge-completed    { background: #fff0cc; color: #875700; }
     .badge-reported     { background: #dcf5e2; color: #076b1a; }
     .badge-pending      { background: #fff0cc; color: #875700; }
+    .badge-private      { background: #FDBE00; color: #000; font-weight: 700; letter-spacing: 0.3px; }
     .badge-ski         { background: #e6ebfb; color: #1E2643; }
     .badge-snowboard   { background: #f0e8fb; color: #5b1b8a; }
     .badge-adult       { background: #e6f0fb; color: #1a4a8a; }

@@ -1,7 +1,7 @@
 import { DB, TEMPLATES, getTemplate, isoDate } from '../data.js';
 import { navigate } from '../app.js';
 import {
-  toast, pageHead, statusBadge, sportBadge, av, secLabel,
+  toast, pageHead, statusBadge, sportBadge, av, secLabel, privateBadge,
   emptyState, fmtDate, fmtDateLong, todayStr,
   lessonTimes, iCalendar, iChevR, iClipboard, iCheck,
   iBack, iX, iPlay, iFlag, openModal, closeModal, dismissModal,
@@ -216,12 +216,19 @@ export function renderInstructorDashboard(container, { session }) {
 }
 
 function _instructorLessonCard(lesson) {
-  const tmpl       = getTemplate(lesson.templateId);
+  const isPrivate  = lesson.type === 'private';
+  const tmpl       = isPrivate ? null : getTemplate(lesson.templateId);
   const bkgs       = DB.getConfirmedByLesson(lesson.id);
   const guestList  = bkgs.map(b => ({ ...b, guest: DB.getUserById(b.guestId) }));
   const guestCount = guestList.length;
-  const maxGuests  = tmpl?.maxGuests ?? null;
+  const maxGuests  = isPrivate ? 1 : (tmpl?.maxGuests ?? null);
   const report     = DB.getReportByLesson(lesson.id);
+  const lessonTitle = isPrivate
+    ? `${lesson.discipline === 'ski' ? '⛷' : '🏂'} Private Lesson`
+    : (tmpl ? tmpl.name : lesson.templateId);
+  const timeText   = isPrivate
+    ? `${lesson.startTime} – ${lesson.endTime}`
+    : (tmpl ? lessonTimes(tmpl) : '');
 
   // Action strip: drives the lesson lifecycle, shown only in today tab
   let actionStrip = '';
@@ -267,15 +274,18 @@ function _instructorLessonCard(lesson) {
       <!-- Card body — clickable, opens detail modal -->
       <div data-lesson-id="${lesson.id}" style="padding:22px;cursor:pointer;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
-          <span class="badge badge-in-progress" style="font-size:12px;padding:5px 14px;">Today</span>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span class="badge badge-in-progress" style="font-size:12px;padding:5px 14px;">Today</span>
+            ${isPrivate ? privateBadge() : ''}
+          </div>
           ${statusBadge(lesson.status)}
         </div>
         <div style="font-family:'Newsreader',serif;font-size:26px;font-weight:700;color:#000;
           margin-bottom:8px;line-height:1.2;">
-          ${tmpl ? tmpl.name : lesson.templateId}
+          ${lessonTitle}
         </div>
         <div style="font-size:15px;color:#333;font-weight:500;margin-bottom:4px;">
-          ${tmpl ? lessonTimes(tmpl) : ''}
+          ${timeText}
         </div>
         <div style="font-size:14px;color:#777;">
           ${guestCount}${maxGuests ? ` / ${maxGuests}` : ''} guest${guestCount !== 1 ? 's' : ''} confirmed
@@ -294,43 +304,62 @@ function _instructorLessonCard(lesson) {
 
 // ── Instructor Lesson Detail Modal ────────────────────────────────────────────
 function _openInstructorLessonModal(lesson, session, onReportSuccess = null) {
-  const tmpl       = getTemplate(lesson.templateId);
+  const isPrivate  = lesson.type === 'private';
+  const tmpl       = isPrivate ? null : getTemplate(lesson.templateId);
   const report     = DB.getReportByLesson(lesson.id);
   const bkgs       = DB.getConfirmedByLesson(lesson.id);
   const guests     = bkgs.map(b => ({ ...b, guest: DB.getUserById(b.guestId) }));
   const needsReport = lesson.status === 'completed' && !report;
-  const spotsLabel  = tmpl ? `${guests.length} of ${tmpl.maxGuests} spots filled` : null;
+  const maxGuests  = isPrivate ? 1 : (tmpl?.maxGuests ?? null);
+  const spotsLabel  = maxGuests ? `${guests.length} of ${maxGuests} spots filled` : null;
+  const modalTitle = isPrivate
+    ? `${lesson.discipline === 'ski' ? '⛷' : '🏂'} Private Lesson`
+    : (tmpl ? tmpl.name : lesson.id);
+  const scheduleText = isPrivate
+    ? `${lesson.startTime} – ${lesson.endTime}`
+    : (tmpl ? lessonTimes(tmpl) : '—');
+  const sportText = isPrivate
+    ? (lesson.discipline === 'ski' ? '⛷ Ski' : '🏂 Snowboard')
+    : (tmpl ? (tmpl.sport === 'ski' ? '⛷ Ski' : '🏂 Snowboard') : null);
 
   // Label lookup maps (TERRAINS/SKILLS defined later in module, available at call time)
   const terrainLabels = Object.fromEntries(TERRAINS.map(t => [t.id, t.label]));
   const skillLabels   = Object.fromEntries(SKILLS.map(s => [s.id, s.label]));
 
-  openModal('instructor-lesson-detail', tmpl ? tmpl.name : lesson.id, `
+  openModal('instructor-lesson-detail', modalTitle, `
     <div style="display:flex;flex-direction:column;gap:16px;">
+
+      ${isPrivate ? `<div style="display:flex;justify-content:center;">${privateBadge()}</div>` : ''}
 
       <!-- Lesson info -->
       <div class="glass" style="padding:16px;border-radius:14px;">
         <div style="display:flex;flex-direction:column;gap:12px;">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
             <span style="font-size:13px;color:#888;">Schedule</span>
-            <span style="font-weight:600;color:#000;text-align:right;">${tmpl ? lessonTimes(tmpl) : '—'}</span>
+            <span style="font-weight:600;color:#000;text-align:right;">${scheduleText}</span>
           </div>
           <div class="div"></div>
           <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
             <span style="font-size:13px;color:#888;">Status</span>
             <span>${statusBadge(lesson.status)}</span>
           </div>
-          ${tmpl ? `
+          ${sportText ? `
           <div class="div"></div>
           <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
             <span style="font-size:13px;color:#888;">Sport</span>
-            <span style="font-weight:600;color:#000;">${tmpl.sport === 'ski' ? '⛷ Ski' : '🏂 Snowboard'}</span>
+            <span style="font-weight:600;color:#000;">${sportText}</span>
+          </div>` : ''}
+          ${isPrivate && lesson.level ? `
+          <div class="div"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+            <span style="font-size:13px;color:#888;">Level</span>
+            <span style="font-weight:600;color:#000;text-transform:capitalize;">${lesson.level}</span>
           </div>` : ''}
           ${spotsLabel ? `
           <div class="div"></div>
           <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
-            <span style="font-size:13px;color:#888;">Group size</span>
-            <span style="font-weight:600;color:#000;text-align:right;">${spotsLabel}</span>
+            <span style="font-size:13px;color:#888;">${isPrivate ? 'Type' : 'Group size'}</span>
+            <span style="font-weight:600;color:#000;text-align:right;">${isPrivate ? '1-on-1 Private' : spotsLabel}</span>
           </div>` : ''}
         </div>
       </div>
@@ -739,24 +768,34 @@ export function renderMySchedule(container, { session }) {
 
 // ── Schedule lesson card (read-only — no lifecycle actions) ───────────────────
 function _schedLessonCard(lesson) {
-  const tmpl       = getTemplate(lesson.templateId);
+  const isPrivate  = lesson.type === 'private';
+  const tmpl       = isPrivate ? null : getTemplate(lesson.templateId);
   const bkgs       = DB.getConfirmedByLesson(lesson.id);
   const guestCount = bkgs.length;
-  const maxGuests  = tmpl?.maxGuests ?? null;
+  const maxGuests  = isPrivate ? 1 : (tmpl?.maxGuests ?? null);
   const report     = DB.getReportByLesson(lesson.id);
+  const cardTitle  = isPrivate
+    ? `${lesson.discipline === 'ski' ? '⛷' : '🏂'} Private Lesson`
+    : (tmpl ? tmpl.name : lesson.templateId);
+  const cardTime   = isPrivate
+    ? `${lesson.startTime} – ${lesson.endTime}`
+    : (tmpl ? lessonTimes(tmpl) : '');
 
   return `
     <div class="glass-strong" style="border-radius:12px;overflow:hidden;">
       <div data-lesson-id="${lesson.id}" style="padding:14px 16px;cursor:pointer;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:5px;">
-          <div style="font-family:'Newsreader',serif;font-size:18px;font-weight:700;color:#000;
-            line-height:1.2;flex:1;min-width:0;">
-            ${tmpl ? tmpl.name : lesson.templateId}
+          <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
+            <div style="font-family:'Newsreader',serif;font-size:18px;font-weight:700;color:#000;
+              line-height:1.2;">
+              ${cardTitle}
+            </div>
+            ${isPrivate ? privateBadge() : ''}
           </div>
           ${statusBadge(lesson.status)}
         </div>
         <div style="font-size:13px;color:#666;">
-          ${tmpl ? lessonTimes(tmpl) : ''}${guestCount > 0 ? ` · ${guestCount}${maxGuests ? `/${maxGuests}` : ''} guest${guestCount !== 1 ? 's' : ''}` : ''}
+          ${cardTime}${guestCount > 0 ? ` · ${guestCount}${maxGuests ? `/${maxGuests}` : ''} guest${guestCount !== 1 ? 's' : ''}` : ''}
         </div>
         ${report ? `
         <div style="display:flex;align-items:center;gap:6px;margin-top:8px;
@@ -774,28 +813,39 @@ export function renderLessonDetail(container, { params, session }) {
     container.innerHTML = pageHead('Not Found') + emptyState('❓','Lesson not found','');
     return;
   }
-  const tmpl   = getTemplate(lesson.templateId);
+  const isPrivate = lesson.type === 'private';
+  const tmpl   = isPrivate ? null : getTemplate(lesson.templateId);
   const report = DB.getReportByLesson(lesson.id);
   const bkgs   = DB.getConfirmedByLesson(lesson.id);
   const guests = bkgs.map(b => ({ ...b, guest: DB.getUserById(b.guestId) }));
+  const detailTitle = isPrivate
+    ? `${lesson.discipline === 'ski' ? '⛷' : '🏂'} Private Lesson`
+    : (tmpl ? tmpl.name : lesson.templateId);
+  const scheduleText = isPrivate
+    ? `${lesson.startTime} – ${lesson.endTime}`
+    : (tmpl ? lessonTimes(tmpl) : '—');
+  const maxGuests = isPrivate ? 1 : (tmpl?.maxGuests ?? null);
 
   container.innerHTML = `
-    ${pageHead(tmpl ? tmpl.name : lesson.templateId, fmtDateLong(lesson.date), '/instructor/dashboard')}
+    ${pageHead(detailTitle, fmtDateLong(lesson.date), '/instructor/dashboard')}
 
     <!-- Lesson info card -->
     <div style="padding:0 20px 20px;">
       <div class="glass-strong" style="padding:18px 16px;">
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
           ${statusBadge(lesson.status)}
-          ${tmpl ? `<span class="badge badge-${tmpl.sport}">${tmpl.sport==='ski'?'⛷ Ski':'🏂 Snowboard'}</span>` : ''}
+          ${isPrivate ? privateBadge() : (tmpl ? `<span class="badge badge-${tmpl.sport}">${tmpl.sport==='ski'?'⛷ Ski':'🏂 Snowboard'}</span>` : '')}
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;">
           <div><div style="color:#888;margin-bottom:2px;">Schedule</div>
-            <div style="font-weight:600;">${tmpl ? lessonTimes(tmpl) : '—'}</div></div>
+            <div style="font-weight:600;">${scheduleText}</div></div>
           <div><div style="color:#888;margin-bottom:2px;">Date</div>
             <div style="font-weight:600;">${fmtDate(lesson.date)}</div></div>
           <div><div style="color:#888;margin-bottom:2px;">Guests</div>
-            <div style="font-weight:600;">${guests.length} / ${tmpl?.maxGuests ?? '—'}</div></div>
+            <div style="font-weight:600;">${guests.length} / ${maxGuests ?? '—'}</div></div>
+          ${isPrivate && lesson.level ? `
+          <div><div style="color:#888;margin-bottom:2px;">Level</div>
+            <div style="font-weight:600;text-transform:capitalize;">${lesson.level}</div></div>` : ''}
         </div>
       </div>
     </div>
