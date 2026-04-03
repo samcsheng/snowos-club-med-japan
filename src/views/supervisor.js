@@ -352,25 +352,49 @@ function _openTransferInstructor(lesson, date, otherLessons, usersById, onDone) 
     return;
   }
 
-  openModal('transfer-inst', 'Swap Instructor With', `
-    <p style="font-size:13px;color:#888;margin:0 0 12px;">
-      Select a lesson to swap instructors with:
-    </p>
-    <div style="display:flex;flex-direction:column;gap:8px;">
-      ${swappable.map(l => {
-        const t = getTemplate(l.templateId);
-        const inst = usersById[l.instructorId];
-        return `
-          <div class="glass-strong lesson-swap" data-lid="${l.id}"
-            style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:12px;cursor:pointer;">
-            <div style="flex:1;">
-              <div style="font-weight:600;font-size:14px;color:#000;">${t?.name ?? l.templateId}</div>
-              <div style="font-size:12px;color:#888;margin-top:2px;">${inst?.name ?? '—'}</div>
-            </div>
-            <div style="color:#CCC;">${iChevR()}</div>
-          </div>`;
-      }).join('')}
-    </div>`);
+  const CATS = [
+    { label: '⛷ Ski Adult',       sport: 'ski',       audience: 'adult' },
+    { label: '🏂 Snowboard Adult', sport: 'snowboard', audience: 'adult' },
+    { label: '⛷ Ski Kids',        sport: 'ski',       audience: 'kids'  },
+    { label: '🏂 Snowboard Kids',  sport: 'snowboard', audience: 'kids'  },
+  ];
+
+  const sections = CATS.map(cat => {
+    const items = swappable.filter(l => {
+      const t = getTemplate(l.templateId);
+      return t?.sport === cat.sport && t?.audience === cat.audience;
+    });
+    if (!items.length) return '';
+    return `
+      <div>
+        <div style="display:flex;justify-content:center;padding:16px 0 16px;">
+          <span style="display:inline-flex;align-items:center;
+            font-size:13px;font-weight:700;color:#1E2643;
+            background:rgba(30,38,67,0.09);border-radius:999px;
+            padding:6px 16px;letter-spacing:0.01em;
+            backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);">
+            ${cat.label}
+          </span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;padding-bottom:8px;">
+          ${items.map(l => {
+            const t    = getTemplate(l.templateId);
+            const inst = usersById[l.instructorId];
+            return `
+              <div class="glass-strong lesson-swap" data-lid="${l.id}"
+                style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:12px;cursor:pointer;">
+                <div style="flex:1;">
+                  <div style="font-weight:600;font-size:14px;color:#000;">${t?.name ?? l.templateId}</div>
+                  <div style="font-size:12px;color:#888;margin-top:2px;">${inst?.name ?? '—'}</div>
+                </div>
+                <div style="color:#CCC;">${iChevR()}</div>
+              </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+  }).join('');
+
+  openModal('transfer-inst', 'Swap Instructor With', sections);
 
   setTimeout(() => {
     document.querySelectorAll('.lesson-swap').forEach(el => {
