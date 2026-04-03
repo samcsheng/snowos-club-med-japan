@@ -367,12 +367,11 @@ function _openTransferInstructor(lesson, date, otherLessons, usersById, onDone) 
     if (!items.length) return '';
     return `
       <div>
-        <div style="display:flex;justify-content:center;padding:16px 0 16px;">
+        <div style="position:sticky;top:0;z-index:2;display:flex;justify-content:center;padding:16px 0 16px;">
           <span style="display:inline-flex;align-items:center;
             font-size:13px;font-weight:700;color:#1E2643;
             background:rgba(30,38,67,0.09);border-radius:999px;
-            padding:6px 16px;letter-spacing:0.01em;
-            backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);">
+            padding:6px 16px;letter-spacing:0.01em;">
             ${cat.label}
           </span>
         </div>
@@ -612,8 +611,7 @@ function _openAssignStandbyModal(inst, date, onDone) {
             <span style="display:inline-flex;align-items:center;
               font-size:13px;font-weight:700;color:#1E2643;
               background:rgba(30,38,67,0.09);border-radius:999px;
-              padding:6px 16px;letter-spacing:0.01em;
-              backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);">
+              padding:6px 16px;letter-spacing:0.01em;">
               ${cat.label}
             </span>
           </div>
