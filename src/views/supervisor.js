@@ -1916,12 +1916,13 @@ export function renderSupervisorSchoolTimesheet(container) {
       </button>`;
     container.appendChild(bar);
     if (isFirstRender) {
-      bar.style.transition = 'transform 0.42s cubic-bezier(0.22,1,0.36,1), opacity 0.42s cubic-bezier(0.22,1,0.36,1)';
-      bar.style.transform  = 'translateY(110%)';
-      bar.style.opacity    = '0';
-      void bar.offsetHeight; // force layout commit before transition fires
-      bar.style.transform  = 'translateY(0)';
-      bar.style.opacity    = '1';
+      bar.style.transform = 'translateY(110%)';
+      bar.style.opacity   = '0';
+      setTimeout(() => {
+        bar.style.transition = 'transform 0.42s cubic-bezier(0.22,1,0.36,1), opacity 0.42s cubic-bezier(0.22,1,0.36,1)';
+        bar.style.transform  = 'translateY(0)';
+        bar.style.opacity    = '1';
+      }, 500);
     }
 
     el.querySelectorAll('.ts-month-pill').forEach(btn => {
