@@ -1937,6 +1937,10 @@ export function renderSupervisorSchoolTimesheet(container) {
       });
     });
 
+    // Scroll active pill into view
+    const activeBtn = el.querySelector('.ts-month-pill[data-year="' + selected.year + '"][data-month="' + selected.month + '"]');
+    activeBtn?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+
     document.getElementById('ts-export')?.addEventListener('click', () => {
       const fileName = `clubmed-tomamu-${selected.year}-${selected.short}-instructor-timesheet.csv`;
       const csvLines = [
