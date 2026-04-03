@@ -1896,14 +1896,23 @@ export function renderSupervisorSchoolTimesheet(container) {
         </div>
       </div>
 
-      <div style="padding:0 20px 32px;">
-        <button id="ts-export" class="btn btn-primary btn-lg btn-full"
-          style="display:flex;align-items:center;justify-content:center;gap:8px;">
-          ${iDownload()}
-          Export ${selected.label} CSV
-        </button>
-      </div>
+      <div style="height:80px;"></div>
     `;
+
+    // Floating export bar (rendered outside scroll area so it stays fixed)
+    const existingBar = container.querySelector('[data-ts-export-bar]');
+    if (existingBar) existingBar.remove();
+    const bar = document.createElement('div');
+    bar.setAttribute('data-ts-export-bar', '');
+    bar.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:50;' +
+      'padding:12px 20px 28px;background:linear-gradient(to bottom,transparent,rgba(244,240,235,0.97) 30%);';
+    bar.innerHTML = `
+      <button id="ts-export" class="btn btn-primary btn-lg btn-full"
+        style="display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 20px rgba(30,38,67,0.22);">
+        ${iDownload()}
+        Export ${selected.label} CSV
+      </button>`;
+    container.appendChild(bar);
 
     el.querySelectorAll('.ts-month-pill').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -1935,7 +1944,7 @@ export function renderSupervisorSchoolTimesheet(container) {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      toast(`Downloaded ${fileName}`, 'success');
+      toast(`Downloaded ${selected.label} timesheet`, 'success');
     });
   }
 
