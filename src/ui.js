@@ -322,6 +322,38 @@ export function lessonTimes(tmpl) {
   return `AM ${tmpl.amStart}–${tmpl.amEnd} · PM ${tmpl.pmStart}–${tmpl.pmEnd}`;
 }
 
+export function lessonTimeLabel(lesson, tmpl = null) {
+  if (lesson?.lessonType === 'private') {
+    if (lesson.privateTimeLabel) return lesson.privateTimeLabel;
+    if (lesson.privateStart && lesson.privateEnd) return `${lesson.privateStart} - ${lesson.privateEnd}`;
+  }
+  return lessonTimes(tmpl);
+}
+
+export function lessonTitle(lesson, tmpl = null) {
+  if (!lesson) return '';
+  const base = tmpl?.name ?? lesson.templateId ?? 'Lesson';
+  return lesson.lessonType === 'private' ? `Private · ${base}` : base;
+}
+
+export function privateBadge(lesson) {
+  if (lesson?.lessonType !== 'private') return '';
+  return `<span class="badge" style="background:rgba(247,229,183,0.16);color:#F7E5B7;border:1px solid rgba(247,229,183,0.34);box-shadow:inset 0 1px 0 rgba(255,255,255,0.08);">Private</span>`;
+}
+
+export function privateCardStyle(lesson) {
+  if (lesson?.lessonType !== 'private') return '';
+  return `background:
+    radial-gradient(circle at 14% 16%, rgba(247,229,183,0.18), transparent 28%),
+    linear-gradient(160deg, rgba(29,34,52,0.98), rgba(47,57,88,0.98));
+    border:1px solid rgba(247,229,183,0.24);
+    --private-card-title:#F7E5B7;
+    --private-card-meta:rgba(243,229,196,0.82);
+    --private-card-icon:#F7E5B7;
+    --private-card-chevron:#F7E5B7;
+    --private-card-divider:rgba(247,229,183,0.16);`;
+}
+
 // ── Tab bar ───────────────────────────────────────────────────────────────────
 export function tabBar(tabs, activeId) {
   return `

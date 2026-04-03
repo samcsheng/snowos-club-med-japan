@@ -5,9 +5,10 @@ export const KEYS = {
   BOOKINGS: 'snow_bookings',
   REPORTS:  'snow_reports',
   SESSION:  'snow_session',
-  SEEDED:   'snow_seeded_v6',
+  SEEDED:   'snow_seeded_v7',
   TIME_OFF: 'snow_time_off',
   TMPL_OVERRIDES: 'snow_tmpl_overrides',
+  PRIVATE_SESSION_TIMES: 'snow_private_session_times',
 };
 
 // ── Generic helpers ──────────────────────────────────────────────────────────
@@ -15,6 +16,14 @@ function read(key)        { try { return JSON.parse(localStorage.getItem(key) ||
 function write(key, arr)  { localStorage.setItem(key, JSON.stringify(arr)); }
 function readOne(key)     { try { return JSON.parse(localStorage.getItem(key)); } catch { return null; } }
 function writeOne(key, v) { localStorage.setItem(key, JSON.stringify(v)); }
+
+export const DEFAULT_PRIVATE_SESSION_TIMES = [
+  { id: 'pst-0900-1000', label: '09:00 - 10:00', start: '09:00', end: '10:00', active: true, sortOrder: 1 },
+  { id: 'pst-0900-1100', label: '09:00 - 11:00', start: '09:00', end: '11:00', active: true, sortOrder: 2 },
+  { id: 'pst-1000-1100', label: '10:00 - 11:00', start: '10:00', end: '11:00', active: true, sortOrder: 3 },
+  { id: 'pst-1100-1300', label: '11:00 - 13:00', start: '11:00', end: '13:00', active: true, sortOrder: 4 },
+  { id: 'pst-1400-1600', label: '14:00 - 16:00', start: '14:00', end: '16:00', active: true, sortOrder: 5 },
+];
 
 export function uid() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -107,6 +116,12 @@ export const DB = {
     if (i >= 0) arr[i] = lesson; else arr.push(lesson);
     write(KEYS.LESSONS, arr);
   },
+  getPrivateSessionTimes: () => {
+    const arr = read(KEYS.PRIVATE_SESSION_TIMES);
+    if (!arr.length) return DEFAULT_PRIVATE_SESSION_TIMES;
+    return arr.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  },
+  savePrivateSessionTimes: (rows) => write(KEYS.PRIVATE_SESSION_TIMES, rows),
 
   // Bookings
   getBookings:          ()        => read(KEYS.BOOKINGS),
@@ -153,6 +168,50 @@ export const DB = {
     write(KEYS.TIME_OFF, arr);
   },
 };
+
+function _toMins(hhmm) {
+  if (!hhmm || !hhmm.includes(':')) return null;
+  const [h, m] = hhmm.split(':').map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return null;
+  return h * 60 + m;
+}
+
+export function lessonWindow(lesson) {
+  if (!lesson) return null;
+  const tmpl = lesson.templateId ? getTemplate(lesson.templateId) : null;
+  if (lesson.lessonType === 'private') {
+    const start = _toMins(lesson.privateStart);
+    const end = _toMins(lesson.privateEnd);
+    if (start == null || end == null) return null;
+    return { start, end };
+  }
+  if (!tmpl) return null;
+  const start = _toMins(tmpl.amStart);
+  const end = _toMins(tmpl.pmEnd);
+  if (start == null || end == null) return null;
+  return { start, end };
+}
+
+export function canAssignInstructor(instructorId, targetLesson, allLessons = null) {
+  if (!instructorId || !targetLesson) return { ok: false, reason: 'Missing input.' };
+  const lessons = allLessons ?? DB.getLessonsByDate(targetLesson.date);
+  const sameDay = lessons.filter(l => l.instructorId === instructorId && l.id !== targetLesson.id);
+  if (!sameDay.length) return { ok: true };
+
+  const targetType = targetLesson.lessonType === 'private' ? 'private' : 'group';
+  const hasOtherType = sameDay.some(l => (l.lessonType === 'private' ? 'private' : 'group') !== targetType);
+  if (hasOtherType) return { ok: false, reason: 'Instructor already assigned to the other lesson type on this date.' };
+
+  const targetWindow = lessonWindow(targetLesson);
+  for (const lesson of sameDay) {
+    const win = lessonWindow(lesson);
+    if (!win || !targetWindow) continue;
+    if (targetWindow.start < win.end && targetWindow.end > win.start) {
+      return { ok: false, reason: 'Instructor has an overlapping schedule item.' };
+    }
+  }
+  return { ok: true };
+}
 
 // ── Seed helpers ─────────────────────────────────────────────────────────────
 const _FIRST = [
@@ -219,6 +278,7 @@ function _doSeed() {
   }
 
   write(KEYS.USERS, users);
+  write(KEYS.PRIVATE_SESSION_TIMES, DEFAULT_PRIVATE_SESSION_TIMES);
 
   // ── Lessons: all 24 templates × 14 days (−7…+6) × AM + PM ─────────────────
   const instIds = users.filter(u => u.role === 'instructor').map(u => u.id);
@@ -384,6 +444,7 @@ export function resetSeed() {
   localStorage.removeItem(KEYS.LESSONS);
   localStorage.removeItem(KEYS.BOOKINGS);
   localStorage.removeItem(KEYS.REPORTS);
+  localStorage.removeItem(KEYS.PRIVATE_SESSION_TIMES);
   localStorage.removeItem(KEYS.SEEDED);
   _doSeed();
   localStorage.setItem(KEYS.SEEDED, '1');

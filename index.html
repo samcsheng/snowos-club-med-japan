@@ -329,9 +329,10 @@
     /* ── Toast ────────────────────────────────────────── */
     .toast {
       position: fixed; top: env(safe-area-inset-top, 0px); left: 50%; transform: translateX(-50%);
-      margin-top: 20px; z-index: 200; padding: 11px 22px; border-radius: 999px;
+      margin-top: 16px; z-index: 200; padding: 13px 18px; border-radius: 18px;
       font-size: 14px; font-weight: 600; font-family: 'Inter', sans-serif;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.14); white-space: nowrap; pointer-events: none;
+      width: min(90vw, 560px); max-width: min(90vw, 560px); box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+      white-space: normal; text-align: center; pointer-events: none;
       animation: toastIn 0.25s cubic-bezier(0.32,0.72,0,1);
     }
     .toast-success { background: #088A20; color: #fff; }

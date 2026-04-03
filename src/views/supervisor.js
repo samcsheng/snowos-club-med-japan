@@ -1,8 +1,8 @@
-import { DB, TEMPLATES, getTemplate, saveTemplateOverride, isoDate } from '../data.js';
+import { DB, TEMPLATES, getTemplate, saveTemplateOverride, isoDate, canAssignInstructor, uid } from '../data.js';
 import { navigate } from '../app.js';
 import {
   toast, pageHead, statusBadge, sportBadge, audienceBadge, av, secLabel,
-  emptyState, openModal, dismissModal, fmtDate, fmtDateLong, todayStr, lessonTimes,
+  emptyState, openModal, dismissModal, fmtDate, fmtDateLong, todayStr, lessonTimes, lessonTimeLabel, lessonTitle, privateBadge, privateCardStyle,
   iPlus, iCheck, iChevR, iWarn, iEdit, iUserPlus, iClipboard, iCalendar, iX, iFlag, iBack,
   iList, iDownload,
 } from '../ui.js';
@@ -38,6 +38,7 @@ function _renderLessons(container, date, sport, audience) {
   const { lessons, usersById, confirmedByLesson } = _loadDayData(date);
 
   const filtered = lessons.filter(l => {
+    if (l.lessonType === 'private') return false;
     const t = getTemplate(l.templateId);
     return t && t.sport === sport && t.audience === audience;
   });
@@ -59,14 +60,15 @@ function _renderLessons(container, date, sport, audience) {
     return `
       <div class="glass-strong lesson-tap" data-lid="${lesson.id}"
         style="border-radius:14px;overflow:hidden;cursor:pointer;
-        ${unassigned ? 'border:1.5px solid rgba(199,83,0,0.22);' : ''}">
+        ${privateCardStyle(lesson)}${unassigned ? 'border:1.5px solid rgba(199,83,0,0.22);' : ''}">
         <div style="padding:14px 16px;display:flex;align-items:center;gap:12px;">
           <div style="flex:1;min-width:0;">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">
-              <span style="font-weight:700;font-size:15px;color:#000;">${tmpl?.name ?? lesson.templateId}</span>
+              <span style="font-weight:700;font-size:15px;color:#000;">${lessonTitle(lesson, tmpl)}</span>
+              ${privateBadge(lesson)}
               ${statusBadge(lesson.status)}
             </div>
-            <div style="font-size:12px;color:#6b625d;margin-bottom:5px;">${tmpl ? lessonTimes(tmpl) : ''}</div>
+            <div style="font-size:12px;color:#6b625d;margin-bottom:5px;">${lessonTimeLabel(lesson, tmpl)}</div>
             <div style="font-size:13px;display:flex;align-items:center;gap:6px;
               ${unassigned ? 'color:#C75300;font-weight:500;' : 'color:#444;'}">
               ${unassigned
@@ -208,13 +210,14 @@ export function renderSupervisorLessonDetail(container, { params, session }) {
   function _renderGuestSection() {
     const { lesson, tmpl, confirmedBkgs, guestEntries, usersById } = _data();
     if (!lesson) return;
+    const isPrivateLesson = lesson.lessonType === 'private';
     const sec = container.querySelector('[data-section="guests"]');
     if (!sec) return;
 
     sec.innerHTML = `
       <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
         color:#8A6B53;margin-bottom:8px;">
-        Guests (${guestEntries.length}/${tmpl?.maxGuests ?? '?'})
+        Guests (${guestEntries.length}/${lesson.lessonType === 'private' ? 1 : (tmpl?.maxGuests ?? '?')})
       </div>
       <div class="glass-strong" style="border-radius:14px;overflow:hidden;">
         ${guestEntries.length === 0
@@ -227,30 +230,34 @@ export function renderSupervisorLessonDetail(container, { params, session }) {
                 white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                 ${g.user?.name ?? 'Guest'}
               </div>
-              <div data-btn-group style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
-                <button data-action="transfer-guest" data-bid="${g.booking.id}"
-                  style="font-size:12px;font-weight:600;color:#1E2643;
-                  background:var(--bg-section-soft);border:1px solid var(--line-soft);
-                  border-radius:999px;padding:5px 12px;cursor:pointer;font-family:'Inter',sans-serif;">
-                  Transfer
-                </button>
-                <button data-action="remove-guest" data-bid="${g.booking.id}"
-                  style="font-size:12px;font-weight:600;color:#BF2F17;
-                  background:rgba(191,47,23,0.06);border:1px solid rgba(191,47,23,0.2);
-                  border-radius:999px;padding:5px 12px;cursor:pointer;font-family:'Inter',sans-serif;">
-                  Remove
-                </button>
-              </div>
+              ${isPrivateLesson ? '' : `
+                <div data-btn-group style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                  <button data-action="transfer-guest" data-bid="${g.booking.id}"
+                    style="font-size:12px;font-weight:600;color:#1E2643;
+                    background:var(--bg-section-soft);border:1px solid var(--line-soft);
+                    border-radius:999px;padding:5px 12px;cursor:pointer;font-family:'Inter',sans-serif;">
+                    Transfer
+                  </button>
+                  <button data-action="remove-guest" data-bid="${g.booking.id}"
+                    style="font-size:12px;font-weight:600;color:#BF2F17;
+                    background:rgba(191,47,23,0.06);border:1px solid rgba(191,47,23,0.2);
+                    border-radius:999px;padding:5px 12px;cursor:pointer;font-family:'Inter',sans-serif;">
+                    Remove
+                  </button>
+                </div>`}
             </div>`).join('')}
-        <div style="border-top:1px solid rgba(30,38,67,0.06);">
-          <button data-action="add-guest"
-            style="width:100%;padding:12px 16px;background:none;border:none;cursor:pointer;
-            font-size:14px;font-weight:600;color:#1E2643;font-family:'Inter',sans-serif;
-            display:flex;align-items:center;justify-content:center;gap:8px;">
-            ${iPlus()} Add Guest
-          </button>
-        </div>
+        ${isPrivateLesson ? '' : `
+          <div style="border-top:1px solid rgba(30,38,67,0.06);">
+            <button data-action="add-guest"
+              style="width:100%;padding:12px 16px;background:none;border:none;cursor:pointer;
+              font-size:14px;font-weight:600;color:#1E2643;font-family:'Inter',sans-serif;
+              display:flex;align-items:center;justify-content:center;gap:8px;">
+              ${iPlus()} Add Guest
+            </button>
+          </div>`}
       </div>`;
+
+    if (isPrivateLesson) return;
 
     sec.querySelectorAll('[data-action="remove-guest"]').forEach(btn =>
       btn.addEventListener('click', function() {
@@ -278,7 +285,7 @@ export function renderSupervisorLessonDetail(container, { params, session }) {
   }
 
   container.innerHTML = `
-    ${pageHead(tmpl?.name ?? lessonId, fmtDateLong(lesson.date), _lessonBackHref(lesson))}
+    ${pageHead(lessonTitle(lesson, tmpl) || lessonId, fmtDateLong(lesson.date), _lessonBackHref(lesson))}
     <div style="padding:0 20px 20px;">
       <div class="glass" style="padding:14px 16px;border-radius:14px;">
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
@@ -287,7 +294,7 @@ export function renderSupervisorLessonDetail(container, { params, session }) {
           ${tmpl ? audienceBadge(tmpl.audience) : ''}
           ${tmpl ? `<span class="badge" style="background:var(--bg-tile);color:#555;border:1px solid var(--line-soft);">${tmpl.level}</span>` : ''}
         </div>
-        <div style="font-size:13px;color:#6b625d;">${tmpl ? lessonTimes(tmpl) : '—'}</div>
+        <div style="font-size:13px;color:#6b625d;">${lessonTimeLabel(lesson, tmpl) || '—'}</div>
       </div>
     </div>
     <div data-section="instructor" style="padding:0 20px 16px;"></div>
@@ -301,12 +308,24 @@ export function renderSupervisorLessonDetail(container, { params, session }) {
 // ── Assign instructor modal ───────────────────────────────────────────────────
 function _openAssignInstructor(lesson, date, instructors, usersById, onDone) {
   const dayLessons = DB.getLessonsByDate(date);
+  const sortedInstructors = [...instructors]
+    .map(inst => {
+      const assigned = dayLessons.filter(l => l.instructorId === inst.id);
+      return { inst, assigned, load: assigned.length };
+    })
+    .sort((a, b) => {
+      if ((a.load === 0) !== (b.load === 0)) return a.load === 0 ? -1 : 1;
+      if (a.load !== b.load) return a.load - b.load;
+      return a.inst.name.localeCompare(b.inst.name);
+    });
 
   openModal('assign-inst', 'Assign Instructor', `
     <div style="display:flex;flex-direction:column;gap:8px;">
-      ${instructors.map(inst => {
-        const load = dayLessons.filter(l => l.instructorId === inst.id).length;
+      ${sortedInstructors.map(({ inst, assigned, load }) => {
         const isCurrent = lesson.instructorId === inst.id;
+        const scheduleCopy = load === 0
+          ? 'Standby'
+          : assigned.map(l => lessonTitle(l, getTemplate(l.templateId))).slice(0, 2).join(' · ');
         return `
           <div class="glass-strong inst-pick" data-iid="${inst.id}"
             style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:12px;cursor:pointer;
@@ -319,6 +338,9 @@ function _openAssignInstructor(lesson, date, instructors, usersById, onDone) {
               <div style="font-size:12px;color:#888;margin-top:2px;">
                 ${load} session${load !== 1 ? 's' : ''} today
                 ${load === 0 ? '<span style="color:#088A20;font-weight:500;"> · Free</span>' : ''}
+              </div>
+              <div style="font-size:11px;color:#9A948E;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                ${scheduleCopy}
               </div>
             </div>
             <div style="color:${isCurrent ? '#088A20' : '#CCC'};">
@@ -333,6 +355,8 @@ function _openAssignInstructor(lesson, date, instructors, usersById, onDone) {
       el.addEventListener('click', () => {
         const iid = el.dataset.iid;
         if (iid === lesson.instructorId) return;
+        const check = canAssignInstructor(iid, lesson, dayLessons);
+        if (!check.ok) { toast(check.reason, 'info'); return; }
         DB.upsertLesson({ ...lesson, instructorId: iid });
         toast(`${usersById[iid]?.name ?? 'Instructor'} assigned.`, 'success');
         dismissModal('assign-inst', onDone);
@@ -343,7 +367,19 @@ function _openAssignInstructor(lesson, date, instructors, usersById, onDone) {
 
 // ── Transfer instructor between lessons ───────────────────────────────────────
 function _openTransferInstructor(lesson, date, otherLessons, usersById, onDone) {
-  const swappable = otherLessons.filter(l => l.instructorId && l.instructorId !== lesson.instructorId);
+  if (lesson.lessonType === 'private') {
+    openModal('transfer-inst', 'Transfer Instructor', `
+      <div style="text-align:center;padding:24px;color:#888;">
+        Private lessons cannot be swapped. Please remove and reassign.
+      </div>`);
+    return;
+  }
+
+  const swappable = otherLessons.filter(l =>
+    l.instructorId &&
+    l.instructorId !== lesson.instructorId &&
+    l.lessonType !== 'private'
+  );
 
   if (swappable.length === 0) {
     openModal('transfer-inst', 'Transfer Instructor', `
@@ -358,10 +394,13 @@ function _openTransferInstructor(lesson, date, otherLessons, usersById, onDone) 
     { label: '🏂 Snowboard Adult', sport: 'snowboard', audience: 'adult' },
     { label: '⛷ Ski Kids',        sport: 'ski',       audience: 'kids'  },
     { label: '🏂 Snowboard Kids',  sport: 'snowboard', audience: 'kids'  },
+    { label: '✨ Private Sessions', lessonType: 'private' },
   ];
 
   const sections = CATS.map(cat => {
     const items = swappable.filter(l => {
+      if (cat.lessonType === 'private') return l.lessonType === 'private';
+      if (l.lessonType === 'private') return false;
       const t = getTemplate(l.templateId);
       return t?.sport === cat.sport && t?.audience === cat.audience;
     });
@@ -386,7 +425,8 @@ function _openTransferInstructor(lesson, date, otherLessons, usersById, onDone) 
               <div class="glass-strong lesson-swap" data-lid="${l.id}"
                 style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:12px;cursor:pointer;">
                 <div style="flex:1;">
-                  <div style="font-weight:600;font-size:14px;color:#000;">${t?.name ?? l.templateId}</div>
+                  <div style="font-weight:600;font-size:14px;color:#000;">${lessonTitle(l, t)}</div>
+                  <div style="font-size:12px;color:#888;margin-top:2px;">${lessonTimeLabel(l, t)}</div>
                   <div style="font-size:12px;color:#888;margin-top:2px;">${inst?.name ?? '—'}</div>
                 </div>
                 <div style="color:#CCC;">${iChevR()}</div>
@@ -404,6 +444,20 @@ function _openTransferInstructor(lesson, date, otherLessons, usersById, onDone) 
         const other = DB.getLessonById(el.dataset.lid);
         if (!other) return;
         const myInst = lesson.instructorId;
+        const dayLessons = DB.getLessonsByDate(date);
+        const simulated = dayLessons.map(l => {
+          if (l.id === lesson.id) return { ...l, instructorId: other.instructorId };
+          if (l.id === other.id) return { ...l, instructorId: myInst };
+          return l;
+        });
+        const nextLesson = simulated.find(l => l.id === lesson.id);
+        const nextOther = simulated.find(l => l.id === other.id);
+        const check1 = canAssignInstructor(other.instructorId, nextLesson, simulated);
+        const check2 = canAssignInstructor(myInst, nextOther, simulated);
+        if (!check1.ok || !check2.ok) {
+          toast('Swap blocked by schedule conflict rule.', 'info');
+          return;
+        }
         DB.upsertLesson({ ...lesson, instructorId: other.instructorId });
         DB.upsertLesson({ ...other,  instructorId: myInst });
         toast('Instructors swapped.', 'success');
@@ -438,7 +492,8 @@ function _openTransferGuest(booking, currentLesson, date, usersById, onDone) {
         const t     = getTemplate(l.templateId);
         const inst  = l.instructorId ? usersById[l.instructorId] : null;
         const count = DB.getConfirmedByLesson(l.id).length;
-        const isFull = count >= (t?.maxGuests ?? 999);
+        const cap = l.lessonType === 'private' ? 1 : (t?.maxGuests ?? 999);
+        const isFull = count >= cap;
         return `
           <div class="glass-strong guest-target" data-lid="${l.id}"
             style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:12px;
@@ -446,7 +501,7 @@ function _openTransferGuest(booking, currentLesson, date, usersById, onDone) {
             <div style="flex:1;">
               <div style="font-weight:600;font-size:14px;color:#000;">${t?.name ?? l.templateId}</div>
               <div style="font-size:12px;color:#888;margin-top:2px;">
-                ${inst?.name ?? 'Unassigned'} · ${count}/${t?.maxGuests ?? '?'} guests
+                ${inst?.name ?? 'Unassigned'} · ${count}/${cap} guests
                 ${isFull ? ' · <span style="color:#C75300;">Full</span>' : ''}
               </div>
             </div>
@@ -462,7 +517,8 @@ function _openTransferGuest(booking, currentLesson, date, usersById, onDone) {
         if (!tl) return;
         const count = DB.getConfirmedByLesson(tl.id).length;
         const tt = getTemplate(tl.templateId);
-        if (count >= (tt?.maxGuests ?? 999)) return;
+        const cap = tl.lessonType === 'private' ? 1 : (tt?.maxGuests ?? 999);
+        if (count >= cap) return;
         DB.upsertBooking({ ...booking, lessonId: tl.id });
         toast(`${guestName} moved to ${tt?.name ?? tl.id}.`, 'success');
         dismissModal('transfer-guest', onDone);
@@ -474,7 +530,7 @@ function _openTransferGuest(booking, currentLesson, date, usersById, onDone) {
 // ── Add guest modal ───────────────────────────────────────────────────────────
 function _openAddGuest(lesson, confirmedBkgs, usersById, onDone) {
   const tmpl    = getTemplate(lesson.templateId);
-  const maxG    = tmpl?.maxGuests ?? 999;
+  const maxG    = lesson.lessonType === 'private' ? 1 : (tmpl?.maxGuests ?? 999);
   if (confirmedBkgs.length >= maxG) {
     openModal('add-guest', 'Add Guest', `
       <div style="text-align:center;padding:20px;color:#C75300;">
@@ -553,6 +609,7 @@ function _openAssignStandbyModal(inst, date, onDone) {
     { sport: 'ski',       audience: 'kids',  label: '⛷ Ski · Kids' },
     { sport: 'snowboard', audience: 'adult', label: '🏂 Snowboard · Adult' },
     { sport: 'snowboard', audience: 'kids',  label: '🏂 Snowboard · Kids' },
+    { lessonType: 'private', label: '✨ Private Sessions' },
   ];
 
   const modalId = 'assign-standby';
@@ -566,6 +623,8 @@ function _openAssignStandbyModal(inst, date, onDone) {
   function buildBody() {
     return CATEGORIES.map(cat => {
       const catLessons = lessons.filter(l => {
+        if (cat.lessonType === 'private') return l.lessonType === 'private';
+        if (l.lessonType === 'private') return false;
         const t = getTemplate(l.templateId);
         return t && t.sport === cat.sport && t.audience === cat.audience;
       });
@@ -582,10 +641,10 @@ function _openAssignStandbyModal(inst, date, onDone) {
             ${i < catLessons.length - 1 ? 'border-bottom:1px solid var(--line-soft);' : ''}">
             <div style="flex:1;min-width:0;">
               <div style="font-weight:600;font-size:14px;color:#000;margin-bottom:2px;">
-                ${tmpl?.name ?? lesson.templateId}
+                ${lessonTitle(lesson, tmpl)}
               </div>
               <div style="font-size:11px;color:#888;margin-bottom:4px;">
-                ${tmpl ? lessonTimes(tmpl) : ''}
+                ${lessonTimeLabel(lesson, tmpl)}
               </div>
               <div style="font-size:12px;display:flex;align-items:center;gap:5px;
                 ${isAssigned ? 'color:#555;' : 'color:#C75300;font-weight:500;'}">
@@ -595,7 +654,7 @@ function _openAssignStandbyModal(inst, date, onDone) {
               </div>
             </div>
             <div style="font-size:12px;color:#888;flex-shrink:0;text-align:right;margin-right:8px;">
-              ${guestCount}/${maxG}
+              ${guestCount}/${lesson.lessonType === 'private' ? 1 : maxG}
             </div>
             <button data-assign-lid="${lesson.id}"
               style="flex-shrink:0;font-size:12px;font-weight:600;
@@ -663,6 +722,8 @@ function _openAssignStandbyModal(inst, date, onDone) {
         const lid = btn.dataset.assignLid;
         const lesson = lessons.find(l => l.id === lid);
         if (!lesson) return;
+        const check = canAssignInstructor(inst.id, lesson, lessons);
+        if (!check.ok) { toast(check.reason, 'info'); return; }
         DB.upsertLesson({ ...lesson, instructorId: inst.id });
         toast(`${inst.name} assigned.`, 'success');
         dismiss(onDone);
@@ -714,6 +775,48 @@ function _renderStandby(container, date) {
   });
 }
 
+function _renderPrivateDay(container, date) {
+  const { lessons, usersById } = _loadDayData(date);
+  const privateLessons = lessons.filter(l => l.lessonType === 'private')
+    .sort((a, b) => (a.privateStart || '').localeCompare(b.privateStart || ''));
+  const listEl = container.querySelector('[data-private-list]');
+  if (!listEl) return;
+  if (privateLessons.length === 0) {
+    listEl.innerHTML = emptyState('✨', 'No private sessions', 'No private bookings for this day.');
+    return;
+  }
+  listEl.innerHTML = privateLessons.map(lesson => {
+    const tmpl = getTemplate(lesson.templateId);
+    const inst = lesson.instructorId ? usersById[lesson.instructorId] : null;
+    const guestCount = DB.getConfirmedByLesson(lesson.id).length;
+    return `
+      <div class="glass-strong lesson-tap" data-lid="${lesson.id}" style="border-radius:14px;overflow:hidden;cursor:pointer;margin:0 20px 8px;border:1.5px solid rgba(247,229,183,0.32);">
+        <div style="padding:14px 16px;display:flex;align-items:center;gap:12px;">
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">
+              <span style="font-weight:700;font-size:15px;color:#000;">${lessonTitle(lesson, tmpl)}</span>
+              ${privateBadge(lesson)}
+              ${statusBadge(lesson.status)}
+            </div>
+            <div style="font-size:12px;color:#6b625d;margin-bottom:5px;">${lessonTimeLabel(lesson, tmpl)}</div>
+            <div style="font-size:13px;display:flex;align-items:center;gap:6px;${inst ? 'color:#444;' : 'color:#C75300;font-weight:500;'}">
+              ${inst ? `${av(inst.avatar, 'sm')} ${inst.name}` : `${iWarn()} Unassigned`}
+            </div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;margin-right:4px;">
+            <div style="font-size:20px;font-weight:700;color:#000;line-height:1;">${guestCount}<span style="font-size:12px;font-weight:400;color:#888;">/1</span></div>
+            <div style="font-size:11px;color:#888;margin-top:2px;">guest</div>
+          </div>
+          <div style="color:#CCC;flex-shrink:0;">${iChevR()}</div>
+        </div>
+      </div>`;
+  }).join('') + `<div style="height:calc(96px + env(safe-area-inset-bottom, 0px));flex-shrink:0;"></div>`;
+
+  listEl.querySelectorAll('.lesson-tap').forEach(el => {
+    el.addEventListener('click', () => navigate('/supervisor/lesson/' + el.dataset.lid));
+  });
+}
+
 // ── Tab 1: Today ──────────────────────────────────────────────────────────────
 export function renderSupervisorToday(container, { session }) {
   const date = todayStr();
@@ -722,7 +825,8 @@ export function renderSupervisorToday(container, { session }) {
   // Compute tab counts
   const { lessons, instructors } = _loadDayData(date);
   const assignedIds = new Set(lessons.map(l => l.instructorId).filter(Boolean));
-  const groupCount   = assignedIds.size;
+  const groupCount   = lessons.filter(l => l.lessonType !== 'private').length;
+  const privateCount = lessons.filter(l => l.lessonType === 'private').length;
   const standbyCount = instructors.filter(i => !assignedIds.has(i.id)).length;
 
   container.innerHTML = `
@@ -747,6 +851,13 @@ export function renderSupervisorToday(container, { session }) {
         style="padding:4px 0;background:none;border:none;cursor:pointer;
         font-family:'Inter',sans-serif;font-size:15px;
         -webkit-tap-highlight-color:transparent;user-select:none;">
+        <span style="font-weight:700;color:var(--text-main);">Private</span><span
+          style="font-weight:400;color:var(--text-muted);margin-left:4px;">${privateCount}</span>
+      </button>
+      <button data-page-btn="2"
+        style="padding:4px 0;background:none;border:none;cursor:pointer;
+        font-family:'Inter',sans-serif;font-size:15px;
+        -webkit-tap-highlight-color:transparent;user-select:none;">
         <span style="font-weight:700;color:var(--text-main);">Standby</span><span
           style="font-weight:400;color:var(--text-muted);margin-left:4px;">${standbyCount}</span>
       </button>
@@ -766,6 +877,10 @@ export function renderSupervisorToday(container, { session }) {
       </div>
       <div data-page-content="1"
         style="min-width:100%;width:100%;overflow-y:auto;scroll-snap-align:start;flex-shrink:0;">
+        <div data-private-list></div>
+      </div>
+      <div data-page-content="2"
+        style="min-width:100%;width:100%;overflow-y:auto;scroll-snap-align:start;flex-shrink:0;">
         <div data-standby-list></div>
         <div style="height:calc(96px + env(safe-area-inset-bottom, 0px));flex-shrink:0;"></div>
       </div>
@@ -776,11 +891,19 @@ export function renderSupervisorToday(container, { session }) {
     const indicator = container.querySelector('[data-tab-indicator]');
     const btn0 = container.querySelector('[data-page-btn="0"]');
     const btn1 = container.querySelector('[data-page-btn="1"]');
-    if (!indicator || !btn0 || !btn1) return;
+    const btn2 = container.querySelector('[data-page-btn="2"]');
+    if (!indicator || !btn0 || !btn1 || !btn2) return;
     const l0 = btn0.offsetLeft, w0 = btn0.offsetWidth;
     const l1 = btn1.offsetLeft, w1 = btn1.offsetWidth;
-    indicator.style.left  = (l0 + (l1 - l0) * progress) + 'px';
-    indicator.style.width = (w0 + (w1 - w0) * progress) + 'px';
+    const l2 = btn2.offsetLeft, w2 = btn2.offsetWidth;
+    if (progress <= 1) {
+      indicator.style.left  = (l0 + (l1 - l0) * progress) + 'px';
+      indicator.style.width = (w0 + (w1 - w0) * progress) + 'px';
+    } else {
+      const p2 = progress - 1;
+      indicator.style.left  = (l1 + (l2 - l1) * p2) + 'px';
+      indicator.style.width = (w1 + (w2 - w1) * p2) + 'px';
+    }
   }
 
   // ── Set swipe container height using getBoundingClientRect for accuracy ───
@@ -810,7 +933,7 @@ export function renderSupervisorToday(container, { session }) {
     _rafId = requestAnimationFrame(() => {
       _rafId = null;
       const p = swipeOuter.scrollLeft / (swipeOuter.offsetWidth || 1);
-      _positionIndicator(Math.max(0, Math.min(1, p)));
+      _positionIndicator(Math.max(0, Math.min(2, p)));
     });
   }, { passive: true });
 
@@ -861,6 +984,7 @@ export function renderSupervisorToday(container, { session }) {
 
   // ── Initial render ────────────────────────────────────────────────────────
   _renderLessons(container, date, f.sport, f.audience);
+  _renderPrivateDay(container, date);
   _renderStandby(container, date);
 }
 
@@ -1147,10 +1271,11 @@ export function renderSupervisorInstructorDetail(container, { session, params })
                 const t = getTemplate(l.templateId);
                 return `
                   <div class="glass-strong" style="display:flex;align-items:center;gap:10px;
+                    ${privateCardStyle(l)}
                     padding:9px 13px;border-radius:10px;margin-bottom:4px;">
                     <div style="flex:1;">
-                      <div style="font-weight:600;font-size:13px;color:#000;">${t?.name ?? l.templateId}</div>
-                      ${t ? `<div style="font-size:11px;color:#888;margin-top:1px;">${lessonTimes(t)}</div>` : ''}
+                      <div style="font-weight:600;font-size:13px;color:#000;">${lessonTitle(l, t)} ${privateBadge(l)}</div>
+                      <div style="font-size:11px;color:#888;margin-top:1px;">${lessonTimeLabel(l, t)}</div>
                     </div>
                     ${statusBadge(l.status)}
                   </div>`;
@@ -1262,6 +1387,18 @@ export function renderSupervisorSchool(container, { session }) {
           </div>
           <div style="color:#bbb;display:flex;">${iChevR()}</div>
         </a>
+        <a href="#/supervisor/school/private-times"
+          style="display:flex;align-items:center;gap:14px;padding:16px;text-decoration:none;color:inherit;border-bottom:1px solid rgba(0,0,0,0.06);">
+          <div style="width:36px;height:36px;border-radius:10px;background:rgba(90,70,160,0.1);
+            display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            ${iCalendar()}
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:600;font-size:15px;color:#000;">Private Session Times</div>
+            <div style="font-size:13px;color:#888;margin-top:1px;">Manage guest booking time windows</div>
+          </div>
+          <div style="color:#bbb;display:flex;">${iChevR()}</div>
+        </a>
         <a href="#/supervisor/school/timeoff"
           style="display:flex;align-items:center;gap:14px;padding:16px;text-decoration:none;color:inherit;border-bottom:1px solid rgba(0,0,0,0.06);">
           <div style="width:36px;height:36px;border-radius:10px;background:rgba(200,80,0,0.1);
@@ -1369,6 +1506,60 @@ export function renderSupervisorSchoolTemplates(container, { session }) {
 
   _render();
   container.querySelector('#btn-edit-max')?.addEventListener('click', () => _openMaxModal(_render));
+}
+
+export function renderSupervisorSchoolPrivateTimes(container) {
+  container.innerHTML = `
+    ${pageHead('Private Session Times', '', '/supervisor/school')}
+    <div data-section="private-times" style="padding:0 20px 28px;"></div>
+  `;
+
+  function _render() {
+    const list = DB.getPrivateSessionTimes();
+    const wrap = container.querySelector('[data-section="private-times"]');
+    if (!wrap) return;
+    wrap.innerHTML = `
+      <div class="glass-strong" style="border-radius:14px;overflow:hidden;">
+        ${list.map((row, idx) => `
+          <div style="padding:14px 16px;${idx > 0 ? 'border-top:1px solid rgba(30,38,67,0.06);' : ''}">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <input type="time" class="field-input pst-start" data-id="${row.id}" value="${row.start}" style="padding:8px 10px;max-width:120px;">
+              <span style="color:#888;">→</span>
+              <input type="time" class="field-input pst-end" data-id="${row.id}" value="${row.end}" style="padding:8px 10px;max-width:120px;">
+              <button class="btn btn-ghost btn-xs pst-del" data-id="${row.id}" style="margin-left:auto;color:#BF2F17;">Delete</button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <button id="pst-add" class="btn btn-ghost btn-md" style="margin-top:12px;width:100%;">${iPlus()} Add session time</button>
+      <button id="pst-save" class="btn btn-primary btn-lg btn-full" style="margin-top:12px;">Save Changes</button>
+    `;
+
+    wrap.querySelectorAll('.pst-del').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const next = list.filter(r => r.id !== btn.dataset.id).map((r, i) => ({ ...r, sortOrder: i + 1 }));
+        DB.savePrivateSessionTimes(next);
+        toast('Session time removed.', 'info');
+        _render();
+      });
+    });
+    wrap.querySelector('#pst-add')?.addEventListener('click', () => {
+      DB.savePrivateSessionTimes([...list, { id: 'pst-' + uid(), start: '15:00', end: '16:00', label: '15:00 - 16:00', active: true, sortOrder: list.length + 1 }]);
+      _render();
+    });
+    wrap.querySelector('#pst-save')?.addEventListener('click', () => {
+      const next = list.map((row, i) => {
+        const start = wrap.querySelector(`.pst-start[data-id="${row.id}"]`)?.value || row.start;
+        const end = wrap.querySelector(`.pst-end[data-id="${row.id}"]`)?.value || row.end;
+        return { ...row, start, end, label: `${start} - ${end}`, active: true, sortOrder: i + 1 };
+      });
+      DB.savePrivateSessionTimes(next);
+      toast('Private session times saved.', 'success');
+      _render();
+    });
+  }
+
+  _render();
 }
 
 export function renderSupervisorSchoolTimeOff(container, { session }) {
