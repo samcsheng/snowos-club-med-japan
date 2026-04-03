@@ -322,6 +322,30 @@ export function lessonTimes(tmpl) {
   return `AM ${tmpl.amStart}–${tmpl.amEnd} · PM ${tmpl.pmStart}–${tmpl.pmEnd}`;
 }
 
+export function lessonTimeLabel(lesson, tmpl = null) {
+  if (lesson?.lessonType === 'private') {
+    if (lesson.privateTimeLabel) return lesson.privateTimeLabel;
+    if (lesson.privateStart && lesson.privateEnd) return `${lesson.privateStart} - ${lesson.privateEnd}`;
+  }
+  return lessonTimes(tmpl);
+}
+
+export function lessonTitle(lesson, tmpl = null) {
+  if (!lesson) return '';
+  const base = tmpl?.name ?? lesson.templateId ?? 'Lesson';
+  return lesson.lessonType === 'private' ? `Private · ${base}` : base;
+}
+
+export function privateBadge(lesson) {
+  if (lesson?.lessonType !== 'private') return '';
+  return `<span class="badge" style="background:linear-gradient(135deg,#2A334F,#1E2643);color:#F7E5B7;border:1px solid rgba(247,229,183,0.32);">Private</span>`;
+}
+
+export function privateCardStyle(lesson) {
+  if (lesson?.lessonType !== 'private') return '';
+  return 'background:linear-gradient(160deg,rgba(37,45,70,0.96),rgba(56,66,102,0.96));border:1px solid rgba(247,229,183,0.26);';
+}
+
 // ── Tab bar ───────────────────────────────────────────────────────────────────
 export function tabBar(tabs, activeId) {
   return `

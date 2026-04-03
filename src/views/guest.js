@@ -1,9 +1,9 @@
-import { DB, TEMPLATES, getTemplate, isoDate } from '../data.js';
+import { DB, TEMPLATES, getTemplate, isoDate, uid } from '../data.js';
 import { navigate }   from '../app.js';
 import {
   toast, pageHead, injectHeadAvatar, statusBadge, bookingDisplayStatus, sportBadge, av,
   secLabel, emptyState, fmtDate, fmtDateLong, todayStr,
-  greeting, lessonTimes, iCalendar, iPlus, iChevR, iUser,
+  greeting, lessonTimes, lessonTimeLabel, lessonTitle, privateBadge, privateCardStyle, iCalendar, iPlus, iChevR, iUser,
   iCheck, iWarn, iBack, setNavHidden, openModal, closeModal, dismissModal, iClipboard,
 } from '../ui.js';
 
@@ -113,17 +113,18 @@ function _todayCard(booking) {
   const displayStatus = bookingDisplayStatus(booking, lesson);
 
   return `
-    <div class="glass" data-today-card="${booking.id}" style="padding:22px;border-radius:16px;cursor:pointer;">
+    <div class="glass" data-today-card="${booking.id}" style="padding:22px;border-radius:16px;cursor:pointer;${privateCardStyle(lesson)}">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
         <span class="badge badge-in-progress" style="font-size:12px;padding:5px 14px;">Today</span>
         ${statusBadge(displayStatus)}
       </div>
       <div style="font-family:'Newsreader',serif;font-size:26px;font-weight:700;color:#000;
         margin-bottom:8px;line-height:1.2;">
-        ${tmpl ? tmpl.name : lesson.templateId}
+        ${lessonTitle(lesson, tmpl)}
+        ${privateBadge(lesson)}
       </div>
       <div style="font-size:15px;color:#333;font-weight:500;margin-bottom:4px;">
-        ${tmpl ? lessonTimes(tmpl) : ''}
+        ${lessonTimeLabel(lesson, tmpl)}
       </div>
       <div style="font-size:14px;color:#777;">
         ${inst ? `with ${inst.name}` : 'Instructor TBD'}
@@ -148,18 +149,18 @@ function _lessonCard(booking) {
   const displayStatus = bookingDisplayStatus(booking, lesson);
 
   return `
-    <div class="glass card-row" style="border-radius:12px;cursor:default;">
+    <div class="glass card-row" style="border-radius:12px;cursor:default;${privateCardStyle(lesson)}">
       ${_lessonDateTile(lesson.date, isToday
         ? {}
         : { background: 'var(--bg-tile)', monthColor: '#7f756d', dayColor: '#1E2643' })}
       <div style="flex:1;min-width:0;">
         <div style="font-weight:600;font-size:15px;color:#000;white-space:nowrap;
           overflow:hidden;text-overflow:ellipsis;">
-          ${tmpl ? tmpl.name : lesson.templateId}
+          ${lessonTitle(lesson, tmpl)} ${privateBadge(lesson)}
           ${isToday ? '<span style="margin-left:6px;" class="badge badge-in-progress">Today</span>' : ''}
         </div>
         <div style="font-size:13px;color:#777;margin-top:2px;">
-          ${tmpl ? lessonTimes(tmpl) : ''}
+          ${lessonTimeLabel(lesson, tmpl)}
           · ${inst ? inst.name : 'Instructor TBD'}
         </div>
       </div>
@@ -180,18 +181,18 @@ function _runWizardTransition(container, ctx, mutate) {
 export function renderBook(container, ctx) {
   if (!window._bookActive) { resetWiz(); window._bookActive = true; }
   window.addEventListener('hashchange', () => { window._bookActive = false; setNavHidden(false); }, { once: true });
-  setNavHidden(wiz.step === 2);
+  setNavHidden(wiz.step >= 2);
   _renderWizardStep(container, ctx);
 }
 
 function _renderWizardStep(container, ctx) {
   container.innerHTML = '';
-  const enterClass = wiz.step === 2 ? 'wizard-step-enter-right' : (wiz.templateId ? 'wizard-step-enter-left' : '');
+  const enterClass = wiz.step >= 2 ? 'wizard-step-enter-right' : (wiz.templateId ? 'wizard-step-enter-left' : '');
 
   const wrap = document.createElement('div');
   if (enterClass) wrap.classList.add(enterClass);
 
-  if (wiz.step === 2) {
+  if (wiz.step >= 2) {
     setNavHidden(true);
     wrap.innerHTML = pageHead('');
     container.appendChild(wrap);
@@ -208,7 +209,7 @@ function _renderWizardStep(container, ctx) {
     titleRow.prepend(backBtn);
     wrap.querySelector('#wiz-back').addEventListener('click', () => {
       _runWizardTransition(container, ctx, () => {
-        wiz.step = 1;
+        wiz.step = Math.max(1, wiz.step - 1);
         setNavHidden(false);
       });
     });
@@ -223,11 +224,12 @@ function _renderWizardStep(container, ctx) {
   if (enterClass) body.classList.add(enterClass);
   container.appendChild(body);
 
-  if (wiz.step === 1) _step1(body, container, ctx);
-  else _step2(body, container, ctx);
+  if (wiz.step === 1) _step1Choice(body, container, ctx);
+  else if (wiz.step === 2) _step2GroupPicker(body, container, ctx);
+  else _step3Confirm(body, container, ctx);
 }
 
-// Step 1 — Date picker + class list combined
+// Step 1 — choose booking type
 function _bookingCutoffPassed(dateStr) {
   // Booking closes at 20:00 the night before the lesson date
   const [y, m, d] = dateStr.split('-').map(Number);
@@ -235,7 +237,39 @@ function _bookingCutoffPassed(dateStr) {
   return Date.now() >= cutoff.getTime();
 }
 
-function _step1(body, container, ctx) {
+function _step1Choice(body, container, ctx) {
+  body.innerHTML = `
+    <div class="glass" style="padding:18px 18px 16px;border-radius:16px;margin-bottom:16px;
+      background:linear-gradient(135deg,rgba(29,34,52,0.96),rgba(53,62,94,0.96));border:1px solid rgba(247,229,183,0.2);">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+        <div>
+          <div style="font-family:'Newsreader',serif;font-size:24px;font-weight:700;color:#F7E5B7;line-height:1.15;">Private Lessons</div>
+          <div style="font-size:13px;color:#E3D6B7;margin-top:6px;line-height:1.5;">Premium one-on-one coaching with bespoke session timing and priority support.</div>
+          <div style="font-size:12px;color:#FFE6B8;margin-top:10px;">from ¥38,000 / session</div>
+        </div>
+        <span class="badge" style="background:rgba(247,229,183,0.16);color:#F7E5B7;border:1px solid rgba(247,229,183,0.35);">Private</span>
+      </div>
+      <a href="#/guest/private-book" class="btn btn-md"
+        style="margin-top:14px;width:100%;background:#F7E5B7;color:#1D2234;border:none;border-radius:999px;">
+        Reserve Private Session
+      </a>
+    </div>
+    <div class="glass" style="padding:18px 18px 16px;border-radius:16px;background:linear-gradient(145deg,rgba(251,247,239,0.95),rgba(245,237,225,0.95));border:1px solid rgba(30,38,67,0.08);">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+        <div>
+          <div style="font-family:'Newsreader',serif;font-size:24px;font-weight:700;color:#1E2643;line-height:1.15;">Group Lessons</div>
+          <div style="font-size:13px;color:#6f6761;margin-top:6px;line-height:1.5;">Join level-based classes and book your next group session in two quick steps.</div>
+        </div>
+      </div>
+      <button id="go-group-booking" class="btn btn-primary btn-md btn-full" style="margin-top:14px;">Browse Group Lessons</button>
+    </div>`;
+  body.querySelector('#go-group-booking')?.addEventListener('click', () => {
+    _runWizardTransition(container, ctx, () => { wiz.step = 2; setNavHidden(true); });
+  });
+}
+
+// Step 2 — Date picker + class list
+function _step2GroupPicker(body, container, ctx) {
   const chips = [];
   for (let i = 0; i < 14; i++) {
     const d = new Date();
@@ -309,7 +343,7 @@ function _step1(body, container, ctx) {
       card.addEventListener('click', () => {
         _runWizardTransition(container, ctx, () => {
           wiz.templateId = card.dataset.tmpl;
-          wiz.step = 2;
+          wiz.step = 3;
           setNavHidden(true);
         });
       });
@@ -383,8 +417,8 @@ function _step1(body, container, ctx) {
   });
 }
 
-// Step 2 — Confirm booking
-function _step2(body, container, ctx) {
+// Step 3 — Confirm booking
+function _step3Confirm(body, container, ctx) {
   const { session } = ctx;
   const tmpl    = getTemplate(wiz.templateId);
   const lesson  = DB.getLessonsByDateTemplate(wiz.date, wiz.templateId)[0];
@@ -452,6 +486,154 @@ function _step2(body, container, ctx) {
     setNavHidden(false);
     navigate('/guest/bookings');
   });
+}
+
+export function renderPrivateBook(container, { session }) {
+  setNavHidden(true);
+  window.addEventListener('hashchange', () => setNavHidden(false), { once: true });
+  const today = todayStr();
+  const sessionTimes = DB.getPrivateSessionTimes().filter(s => s.active !== false);
+  const state = {
+    date: today,
+    sessionTimeId: sessionTimes[0]?.id ?? '',
+    audience: 'adult',
+    sport: 'ski',
+    templateId: '',
+  };
+
+  const templateOptions = () => TEMPLATES
+    .filter(t => t.sport === state.sport && t.audience === state.audience);
+  state.templateId = templateOptions()[0]?.id ?? '';
+
+  function priceFor(timeId) {
+    const map = {
+      '09:00 - 10:00': 38000,
+      '10:00 - 11:00': 38000,
+      '09:00 - 11:00': 68000,
+      '11:00 - 13:00': 72000,
+      '14:00 - 16:00': 72000,
+    };
+    const slot = sessionTimes.find(s => s.id === timeId);
+    return map[slot?.label] ?? 42000;
+  }
+
+  function render() {
+    const templates = templateOptions();
+    if (!templates.find(t => t.id === state.templateId)) state.templateId = templates[0]?.id ?? '';
+    const selectedSlot = sessionTimes.find(s => s.id === state.sessionTimeId) ?? sessionTimes[0];
+    const selectedPrice = priceFor(selectedSlot?.id);
+
+    container.innerHTML = `
+      ${pageHead('Private Lesson', 'Premium one-on-one booking', '/guest/book')}
+      <div style="margin:0 -20px;padding:14px 20px 28px;
+        background:radial-gradient(circle at 18% 0%,rgba(247,229,183,0.30),transparent 34%),
+        radial-gradient(circle at 95% 12%,rgba(81,96,151,0.30),transparent 30%),
+        linear-gradient(180deg,#151B2A,#242F4D 38%,#1A243D 100%);">
+        <div class="glass" style="padding:18px;border-radius:16px;
+          background:linear-gradient(145deg,rgba(34,40,63,0.97),rgba(56,65,98,0.97));border:1px solid rgba(247,229,183,0.22);">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+            <div style="font-family:'Newsreader',serif;font-size:28px;color:#F7E5B7;line-height:1.1;">Private</div>
+            <span class="badge" style="background:rgba(247,229,183,0.2);color:#F7E5B7;border:1px solid rgba(247,229,183,0.35);">Private</span>
+          </div>
+          <div style="font-size:13px;color:#E3D6B7;margin-top:8px;line-height:1.55;">
+            A curated private mountain experience tailored to your goals and pace.
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:end;margin-top:14px;">
+            <div style="font-size:13px;color:#E3D6B7;">from</div>
+            <div style="font-size:24px;font-weight:700;color:#F7E5B7;">¥${selectedPrice.toLocaleString()}</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="padding:0 0 8px;">
+        <div class="glass" style="padding:16px;border-radius:14px;">
+          <div style="margin-bottom:12px;">
+            <label class="field-label">Date</label>
+            <input id="pb-date" type="date" class="field-input" min="${today}" value="${state.date}">
+          </div>
+          <div style="margin-bottom:12px;">
+            <label class="field-label">Session Time</label>
+            <select id="pb-time" class="field-input">
+              ${sessionTimes.map(s => `<option value="${s.id}" ${s.id === selectedSlot?.id ? 'selected' : ''}>${s.label}</option>`).join('')}
+            </select>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+            <div>
+              <label class="field-label">Age</label>
+              <select id="pb-audience" class="field-input">
+                <option value="adult" ${state.audience === 'adult' ? 'selected' : ''}>Adult</option>
+                <option value="kids" ${state.audience === 'kids' ? 'selected' : ''}>Kids</option>
+              </select>
+            </div>
+            <div>
+              <label class="field-label">Discipline</label>
+              <select id="pb-sport" class="field-input">
+                <option value="ski" ${state.sport === 'ski' ? 'selected' : ''}>Ski</option>
+                <option value="snowboard" ${state.sport === 'snowboard' ? 'selected' : ''}>Snowboard</option>
+              </select>
+            </div>
+          </div>
+          <div style="margin-bottom:16px;">
+            <label class="field-label">Level</label>
+            <select id="pb-template" class="field-input">
+              ${templates.map(t => `<option value="${t.id}" ${t.id === state.templateId ? 'selected' : ''}>${t.name}</option>`).join('')}
+            </select>
+          </div>
+          <div style="font-size:12px;color:#7F6B55;background:rgba(253,190,0,0.12);padding:10px 12px;border-radius:10px;margin-bottom:14px;">
+            Payment will be charged to your room.
+          </div>
+          <button id="pb-confirm" class="btn btn-primary btn-lg btn-full">${iCheck()} Confirm Private Booking</button>
+        </div>
+      </div>
+    `;
+
+    container.querySelector('#pb-date')?.addEventListener('change', e => state.date = e.target.value);
+    container.querySelector('#pb-time')?.addEventListener('change', e => { state.sessionTimeId = e.target.value; render(); });
+    container.querySelector('#pb-audience')?.addEventListener('change', e => { state.audience = e.target.value; render(); });
+    container.querySelector('#pb-sport')?.addEventListener('change', e => { state.sport = e.target.value; render(); });
+    container.querySelector('#pb-template')?.addEventListener('change', e => { state.templateId = e.target.value; });
+    container.querySelector('#pb-confirm')?.addEventListener('click', () => {
+      const slot = sessionTimes.find(s => s.id === state.sessionTimeId);
+      if (!slot || !state.date || !state.templateId) return;
+      const groupTemplate = getTemplate(state.templateId);
+      if (!groupTemplate) return;
+      const duplicate = DB.getBookingsByGuest(session.id)
+        .filter(b => b.status === 'confirmed')
+        .map(b => DB.getLessonById(b.lessonId))
+        .some(l => l?.lessonType === 'private' && l.date === state.date && l.privateSessionTimeId === slot.id);
+      if (duplicate) {
+        toast('You already booked this private session time.', 'info');
+        return;
+      }
+      const lessonId = 'les-private-' + uid();
+      DB.upsertLesson({
+        id: lessonId,
+        templateId: groupTemplate.id,
+        date: state.date,
+        instructorId: null,
+        status: 'scheduled',
+        lessonType: 'private',
+        privateSessionTimeId: slot.id,
+        privateTimeLabel: slot.label,
+        privateStart: slot.start,
+        privateEnd: slot.end,
+        privatePrice: priceFor(slot.id),
+      });
+      const bookingId = 'bkg-private-' + uid();
+      DB.upsertBooking({
+        id: bookingId,
+        guestId: session.id,
+        lessonId,
+        createdAt: new Date().toISOString(),
+        status: 'confirmed',
+      });
+      sessionStorage.setItem('snow_new_booking_id', bookingId);
+      toast('Private lesson reserved. We will assign your instructor shortly.', 'success');
+      navigate('/guest/bookings');
+    });
+  }
+
+  render();
 }
 
 // ── My Bookings ───────────────────────────────────────────────────────────────
@@ -561,7 +743,7 @@ function _bookingCard(b, today) {
 
   return `
     <div class="glass" data-booking-card="${b.id}"
-      style="border-radius:12px;overflow:hidden;cursor:pointer;${isCancelled ? 'opacity:0.56;' : ''}">
+      style="border-radius:12px;overflow:hidden;cursor:pointer;${privateCardStyle(b.lesson)}${isCancelled ? 'opacity:0.56;' : ''}">
       <div class="card-row" style="align-items:flex-start;padding:16px;">
         <!-- Date block -->
         ${_lessonDateTile(b.lesson?.date, isToday
@@ -571,13 +753,14 @@ function _bookingCard(b, today) {
         <div style="flex:1;min-width:0;">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
             <span style="font-weight:600;font-size:15px;color:#000;">
-              ${b.tmpl ? b.tmpl.name : b.lessonId}
+              ${lessonTitle(b.lesson, b.tmpl)}
             </span>
+            ${privateBadge(b.lesson)}
             ${statusBadge(displayStatus)}
             ${b.isNew ? `<span class="badge" style="background:#E8F5E9;color:#1B5E20;">NEW</span>` : ''}
           </div>
           <div style="font-size:13px;color:#777;margin-top:4px;">
-            ${b.tmpl ? lessonTimes(b.tmpl) : ''}
+            ${lessonTimeLabel(b.lesson, b.tmpl)}
             ${b.inst ? ` · ${b.inst.name}` : b.lesson?.instructorId ? '' : ' · Instructor TBD'}
           </div>
         </div>
@@ -627,8 +810,9 @@ function _openBookingDetailModal(booking, onDone) {
           <div style="flex:1;min-width:0;">
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
               <span style="font-family:'Newsreader',serif;font-size:24px;font-weight:700;color:#000;line-height:1.1;">
-                ${tmpl ? tmpl.name : booking.lessonId}
+                ${lessonTitle(lesson, tmpl)}
               </span>
+              ${privateBadge(lesson)}
               ${statusBadge(bookingDisplayStatus(booking, lesson))}
             </div>
             <div style="font-size:13px;color:#777;margin-top:6px;">
@@ -642,7 +826,7 @@ function _openBookingDetailModal(booking, onDone) {
         <div style="display:flex;flex-direction:column;gap:12px;">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
             <span style="font-size:13px;color:#888;">Schedule</span>
-            <span style="font-weight:600;color:#000;text-align:right;">${tmpl ? lessonTimes(tmpl) : '—'}</span>
+            <span style="font-weight:600;color:#000;text-align:right;">${lessonTimeLabel(lesson, tmpl) || '—'}</span>
           </div>
           <div class="div"></div>
           <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
@@ -652,8 +836,8 @@ function _openBookingDetailModal(booking, onDone) {
           ${spotsLabel ? `
             <div class="div"></div>
             <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
-              <span style="font-size:13px;color:#888;">Group size</span>
-              <span style="font-weight:600;color:#000;text-align:right;">${spotsLabel}</span>
+              <span style="font-size:13px;color:#888;">${lesson.lessonType === 'private' ? 'Session size' : 'Group size'}</span>
+              <span style="font-weight:600;color:#000;text-align:right;">${lesson.lessonType === 'private' ? '1 guest' : spotsLabel}</span>
             </div>` : ''}
         </div>
       </div>
@@ -728,8 +912,24 @@ function _openBookingDetailModal(booking, onDone) {
             swapStrip(primaryHTML, bindPrimary);
           });
           cancelStrip.querySelector('[data-sc="yes"]').addEventListener('click', () => {
-            DB.cancelBooking(booking.id);
-            dismissModal('guest-booking-detail', () => { toast('Booking cancelled.', 'info'); onDone(); });
+            openModal('refund-policy', 'Refund Policy', `
+              <div style="font-size:14px;color:#5D4B40;line-height:1.6;margin-bottom:16px;">
+                Cancellations may be subject to resort policy and time-based handling fees. Please confirm you understand before cancelling.
+              </div>
+              <div style="display:flex;gap:8px;">
+                <button id="rp-back" class="btn btn-ghost btn-md" style="flex:1;">Back</button>
+                <button id="rp-confirm" class="btn btn-primary btn-md" style="flex:1;background:#8B3A2E;">Confirm Cancel</button>
+              </div>
+            `);
+            setTimeout(() => {
+              document.getElementById('rp-back')?.addEventListener('click', () => dismissModal('refund-policy'));
+              document.getElementById('rp-confirm')?.addEventListener('click', () => {
+                DB.cancelBooking(booking.id);
+                dismissModal('refund-policy', () => {
+                  dismissModal('guest-booking-detail', () => { toast('Booking cancelled.', 'info'); onDone(); });
+                });
+              });
+            }, 50);
           });
         });
     }
@@ -774,7 +974,7 @@ function _openReportCardModal(booking) {
     <div style="display:flex;flex-direction:column;gap:16px;">
       <div class="glass" style="padding:16px;border-radius:12px;">
         <div style="font-family:'Newsreader',serif;font-size:22px;font-weight:700;color:#000;">
-          ${tmpl ? tmpl.name : lesson.templateId}
+          ${lessonTitle(lesson, tmpl)} ${privateBadge(lesson)}
         </div>
         <div style="font-size:13px;color:#777;margin-top:4px;">
           ${fmtDateLong(lesson.date)}${inst ? ` · ${inst.name}` : ''}
