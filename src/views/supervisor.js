@@ -371,7 +371,9 @@ function _openTransferInstructor(lesson, date, otherLessons, usersById, onDone) 
           <span style="display:inline-flex;align-items:center;
             font-size:13px;font-weight:700;color:#1E2643;
             background:rgba(30,38,67,0.09);border-radius:999px;
-            padding:6px 16px;letter-spacing:0.01em;">
+            padding:6px 16px;letter-spacing:0.01em;
+            transform:translateZ(0);
+            backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);">
             ${cat.label}
           </span>
         </div>
@@ -611,7 +613,9 @@ function _openAssignStandbyModal(inst, date, onDone) {
             <span style="display:inline-flex;align-items:center;
               font-size:13px;font-weight:700;color:#1E2643;
               background:rgba(30,38,67,0.09);border-radius:999px;
-              padding:6px 16px;letter-spacing:0.01em;">
+              padding:6px 16px;letter-spacing:0.01em;
+              transform:translateZ(0);
+              backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);">
               ${cat.label}
             </span>
           </div>
@@ -1457,7 +1461,9 @@ function _openMaxModal(onDone) {
           <span style="display:inline-flex;align-items:center;
             font-size:13px;font-weight:700;color:#1E2643;
             background:rgba(30,38,67,0.09);border-radius:999px;
-            padding:6px 16px;letter-spacing:0.01em;">
+            padding:6px 16px;letter-spacing:0.01em;
+            transform:translateZ(0);
+            backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);">
             ${cat.label}
           </span>
         </div>
