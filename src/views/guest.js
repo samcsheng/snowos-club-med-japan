@@ -686,10 +686,11 @@ function _openBookingDetailModal(booking, onDone) {
   );
   const isPrivate   = lesson.type === 'private';
   const levelTmpl   = isPrivate && lesson.level ? getTemplate(lesson.level) : null;
-  const sportEmoji  = lesson.discipline === 'ski' ? '⛷' : '🏂';
-  const modalTitle  = isPrivate ? `${sportEmoji} Private Lesson` : (tmpl ? tmpl.name : booking.lessonId);
+  const sport       = isPrivate ? lesson.discipline : tmpl?.sport;
+  const sportEmoji  = sport === 'ski' ? '⛷' : '🏂';
+  const modalTitle  = `${sportEmoji} ${isPrivate ? 'Private' : 'Group'} Lesson`;
   const cardHeading = isPrivate
-    ? `${sportEmoji} ${levelTmpl ? levelTmpl.name : 'Private Lesson'}`
+    ? (levelTmpl ? levelTmpl.name : 'Private Lesson')
     : (tmpl ? tmpl.name : booking.lessonId);
   const scheduleText = isPrivate
     ? `${lesson.startTime} – ${lesson.endTime}`
