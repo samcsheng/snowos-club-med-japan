@@ -905,11 +905,9 @@ function _resetPrivWiz() {
 }
 
 function _privLevels(age, discipline) {
-  const sport    = discipline;
-  const audience = age;
-  return [...new Set(
-    TEMPLATES.filter(t => t.sport === sport && t.audience === audience).map(t => t.level)
-  )];
+  return TEMPLATES
+    .filter(t => t.sport === discipline && t.audience === age)
+    .map(t => ({ id: t.id, name: t.name }));
 }
 
 export function renderBookPrivate(container, ctx) {
@@ -969,7 +967,7 @@ function _privStep1(body, container, ctx) {
 
   const sessions = DB.getPrivateSessions();
   const levels   = _privLevels(_privWiz.age, _privWiz.discipline);
-  if (_privWiz.level && !levels.includes(_privWiz.level)) _privWiz.level = null;
+  if (_privWiz.level && !levels.some(t => t.id === _privWiz.level)) _privWiz.level = null;
 
   const canContinue = _privWiz.date && _privWiz.sessionId && _privWiz.level;
 
@@ -1040,9 +1038,9 @@ function _privStep1(body, container, ctx) {
         Your level
       </div>
       <div id="prv-levels" style="display:flex;gap:8px;flex-wrap:wrap;">
-        ${levels.map(lv => `
-          <button class="pill-filter${_privWiz.level === lv ? ' active' : ''}" data-level="${lv}">
-            ${lv.charAt(0).toUpperCase() + lv.slice(1)}
+        ${levels.map(t => `
+          <button class="pill-filter${_privWiz.level === t.id ? ' active' : ''}" data-level="${t.id}">
+            ${t.name}
           </button>`).join('')}
       </div>
     </div>
@@ -1118,9 +1116,9 @@ function _privStep1(body, container, ctx) {
 function _refreshPrivLevels(body) {
   const levels = _privLevels(_privWiz.age, _privWiz.discipline);
   const el = body.querySelector('#prv-levels');
-  if (el) el.innerHTML = levels.map(lv => `
-    <button class="pill-filter${_privWiz.level === lv ? ' active' : ''}" data-level="${lv}">
-      ${lv.charAt(0).toUpperCase() + lv.slice(1)}
+  if (el) el.innerHTML = levels.map(t => `
+    <button class="pill-filter${_privWiz.level === t.id ? ' active' : ''}" data-level="${t.id}">
+      ${t.name}
     </button>`).join('');
   el?.querySelectorAll('[data-level]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1145,7 +1143,8 @@ function _privStep2(body, container, ctx) {
   const sportEmoji = _privWiz.discipline === 'ski' ? '⛷️' : '🏂';
   const ageLabel   = _privWiz.age === 'adult' ? 'Adult' : 'Kids';
   const discLabel  = _privWiz.discipline === 'ski' ? 'Ski' : 'Snowboard';
-  const levLabel   = _privWiz.level.charAt(0).toUpperCase() + _privWiz.level.slice(1);
+  const tmplForLevel = getTemplate(_privWiz.level);
+  const levLabel   = tmplForLevel ? tmplForLevel.name : _privWiz.level;
 
   // Duration calculation
   const [sh, sm] = ps.startTime.split(':').map(Number);

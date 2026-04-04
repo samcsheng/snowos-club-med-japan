@@ -294,7 +294,7 @@ export function renderSupervisorLessonDetail(container, { params, session }) {
           ${isPrivate ? privateBadge() : ''}
           ${isPrivate ? `<span class="badge" style="background:var(--bg-tile);color:#555;border:1px solid var(--line-soft);">${lesson.discipline === 'ski' ? '⛷ Ski' : '🏂 Snowboard'}</span>` : ''}
           ${isPrivate ? `<span class="badge" style="background:var(--bg-tile);color:#555;border:1px solid var(--line-soft);">${lesson.age === 'adult' ? 'Adult' : 'Kids'}</span>` : ''}
-          ${isPrivate ? `<span class="badge" style="background:var(--bg-tile);color:#555;border:1px solid var(--line-soft);">${lesson.level}</span>` : ''}
+          ${isPrivate && lesson.level ? `<span class="badge" style="background:var(--bg-tile);color:#555;border:1px solid var(--line-soft);">${getTemplate(lesson.level)?.name ?? lesson.level}</span>` : ''}
           ${!isPrivate && tmpl ? sportBadge(tmpl.sport) : ''}
           ${!isPrivate && tmpl ? audienceBadge(tmpl.audience) : ''}
           ${!isPrivate && tmpl ? `<span class="badge" style="background:var(--bg-tile);color:#555;border:1px solid var(--line-soft);">${tmpl.level}</span>` : ''}
@@ -772,7 +772,7 @@ function _renderPrivateLessons(container, date) {
               <div style="font-size:13px;color:#555;margin-bottom:4px;">
                 ${lesson.age === 'adult' ? 'Adult' : 'Kids'} ·
                 ${lesson.discipline === 'ski' ? '⛷ Ski' : '🏂 Snowboard'} ·
-                ${lesson.level.charAt(0).toUpperCase() + lesson.level.slice(1)}
+                ${getTemplate(lesson.level)?.name ?? lesson.level}
               </div>
               <div style="font-size:13px;color:#888;margin-bottom:8px;">
                 Guest: <span style="font-weight:600;color:#333;">${guest?.name ?? 'Unknown'}</span>

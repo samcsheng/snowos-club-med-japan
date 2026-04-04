@@ -5,7 +5,7 @@ export const KEYS = {
   BOOKINGS:         'snow_bookings',
   REPORTS:          'snow_reports',
   SESSION:          'snow_session',
-  SEEDED:           'snow_seeded_v7',
+  SEEDED:           'snow_seeded_v8',
   TIME_OFF:         'snow_time_off',
   TMPL_OVERRIDES:   'snow_tmpl_overrides',
   PRIVATE_SESSIONS: 'snow_private_sessions',
@@ -429,19 +429,19 @@ function _doSeed() {
       id: 'les-prv-demo1', type: 'private',
       date: past3, startTime: '09:00', endTime: '10:00',
       instructorId: 'u-i2', status: 'reported',
-      guestId: 'u-g1', age: 'adult', discipline: 'ski', level: 'beginner',
+      guestId: 'u-g1', age: 'adult', discipline: 'ski', level: 'CB',
     },
     {
       id: 'les-prv-demo2', type: 'private',
       date: todayStr, startTime: '10:00', endTime: '11:00',
       instructorId: 'u-i3', status: 'scheduled',
-      guestId: 'u-g1', age: 'adult', discipline: 'ski', level: 'intermediate',
+      guestId: 'u-g1', age: 'adult', discipline: 'ski', level: 'C3',
     },
     {
       id: 'les-prv-demo3', type: 'private',
       date: fut4, startTime: '14:00', endTime: '16:00',
       instructorId: null, status: 'scheduled',
-      guestId: 'u-g1', age: 'adult', discipline: 'ski', level: 'intermediate',
+      guestId: 'u-g1', age: 'adult', discipline: 'ski', level: 'C4',
     },
   ];
   const allLessons = [...lessons, ...privLessons];

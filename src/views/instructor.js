@@ -353,7 +353,7 @@ function _openInstructorLessonModal(lesson, session, onReportSuccess = null) {
           <div class="div"></div>
           <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
             <span style="font-size:13px;color:#888;">Level</span>
-            <span style="font-weight:600;color:#000;text-transform:capitalize;">${lesson.level}</span>
+            <span style="font-weight:600;color:#000;">${getTemplate(lesson.level)?.name ?? lesson.level}</span>
           </div>` : ''}
           ${spotsLabel ? `
           <div class="div"></div>
@@ -845,7 +845,7 @@ export function renderLessonDetail(container, { params, session }) {
             <div style="font-weight:600;">${guests.length} / ${maxGuests ?? '—'}</div></div>
           ${isPrivate && lesson.level ? `
           <div><div style="color:#888;margin-bottom:2px;">Level</div>
-            <div style="font-weight:600;text-transform:capitalize;">${lesson.level}</div></div>` : ''}
+            <div style="font-weight:600;">${getTemplate(lesson.level)?.name ?? lesson.level}</div></div>` : ''}
         </div>
       </div>
     </div>
