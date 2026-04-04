@@ -684,10 +684,12 @@ function _openBookingDetailModal(booking, onDone) {
     !!report?.submittedAt &&
     !!guestReport
   );
-  const isPrivate  = lesson.type === 'private';
-  const levelTmpl  = isPrivate && lesson.level ? getTemplate(lesson.level) : null;
-  const lessonName = isPrivate
-    ? `${lesson.discipline === 'ski' ? '⛷' : '🏂'} ${levelTmpl ? levelTmpl.name : 'Private Lesson'}`
+  const isPrivate   = lesson.type === 'private';
+  const levelTmpl   = isPrivate && lesson.level ? getTemplate(lesson.level) : null;
+  const sportEmoji  = lesson.discipline === 'ski' ? '⛷' : '🏂';
+  const modalTitle  = isPrivate ? `${sportEmoji} Private Lesson` : (tmpl ? tmpl.name : booking.lessonId);
+  const cardHeading = isPrivate
+    ? `${sportEmoji} ${levelTmpl ? levelTmpl.name : 'Private Lesson'}`
     : (tmpl ? tmpl.name : booking.lessonId);
   const scheduleText = isPrivate
     ? `${lesson.startTime} – ${lesson.endTime}`
@@ -695,7 +697,7 @@ function _openBookingDetailModal(booking, onDone) {
   const spotsTaken = DB.getConfirmedByLesson(lesson.id).length;
   const spotsLabel = !isPrivate && tmpl ? `${spotsTaken} of ${tmpl.maxGuests} spots filled` : null;
 
-  openModal('guest-booking-detail', lessonName, `
+  openModal('guest-booking-detail', modalTitle, `
     <div style="display:flex;flex-direction:column;gap:16px;">
       <div class="glass" style="padding:18px;border-radius:14px;">
         <div style="display:flex;align-items:flex-start;gap:14px;">
@@ -705,7 +707,7 @@ function _openBookingDetailModal(booking, onDone) {
           <div style="flex:1;min-width:0;">
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
               <span style="font-family:'Newsreader',serif;font-size:24px;font-weight:700;color:#000;line-height:1.1;">
-                ${lessonName}
+                ${cardHeading}
               </span>
               ${isPrivate ? privateBadge() : ''}
               ${statusBadge(bookingDisplayStatus(booking, lesson))}
