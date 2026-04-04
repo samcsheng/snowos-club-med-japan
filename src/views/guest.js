@@ -685,8 +685,9 @@ function _openBookingDetailModal(booking, onDone) {
     !!guestReport
   );
   const isPrivate  = lesson.type === 'private';
+  const levelTmpl  = isPrivate && lesson.level ? getTemplate(lesson.level) : null;
   const lessonName = isPrivate
-    ? `${lesson.discipline === 'ski' ? '⛷' : '🏂'} Private Lesson`
+    ? `${lesson.discipline === 'ski' ? '⛷' : '🏂'} ${levelTmpl ? levelTmpl.name : 'Private Lesson'}`
     : (tmpl ? tmpl.name : booking.lessonId);
   const scheduleText = isPrivate
     ? `${lesson.startTime} – ${lesson.endTime}`
