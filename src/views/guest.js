@@ -684,10 +684,17 @@ function _openBookingDetailModal(booking, onDone) {
     !!report?.submittedAt &&
     !!guestReport
   );
+  const isPrivate  = lesson.type === 'private';
+  const lessonName = isPrivate
+    ? `${lesson.discipline === 'ski' ? '⛷' : '🏂'} Private Lesson`
+    : (tmpl ? tmpl.name : booking.lessonId);
+  const scheduleText = isPrivate
+    ? `${lesson.startTime} – ${lesson.endTime}`
+    : (tmpl ? lessonTimes(tmpl) : '—');
   const spotsTaken = DB.getConfirmedByLesson(lesson.id).length;
-  const spotsLabel = tmpl ? `${spotsTaken} of ${tmpl.maxGuests} spots filled` : null;
+  const spotsLabel = !isPrivate && tmpl ? `${spotsTaken} of ${tmpl.maxGuests} spots filled` : null;
 
-  openModal('guest-booking-detail', 'Lesson Details', `
+  openModal('guest-booking-detail', lessonName, `
     <div style="display:flex;flex-direction:column;gap:16px;">
       <div class="glass" style="padding:18px;border-radius:14px;">
         <div style="display:flex;align-items:flex-start;gap:14px;">
@@ -697,8 +704,9 @@ function _openBookingDetailModal(booking, onDone) {
           <div style="flex:1;min-width:0;">
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
               <span style="font-family:'Newsreader',serif;font-size:24px;font-weight:700;color:#000;line-height:1.1;">
-                ${tmpl ? tmpl.name : booking.lessonId}
+                ${lessonName}
               </span>
+              ${isPrivate ? privateBadge() : ''}
               ${statusBadge(bookingDisplayStatus(booking, lesson))}
             </div>
             <div style="font-size:13px;color:#777;margin-top:6px;">
@@ -712,7 +720,7 @@ function _openBookingDetailModal(booking, onDone) {
         <div style="display:flex;flex-direction:column;gap:12px;">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
             <span style="font-size:13px;color:#888;">Schedule</span>
-            <span style="font-weight:600;color:#000;text-align:right;">${tmpl ? lessonTimes(tmpl) : '—'}</span>
+            <span style="font-weight:600;color:#000;text-align:right;">${scheduleText}</span>
           </div>
           <div class="div"></div>
           <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
