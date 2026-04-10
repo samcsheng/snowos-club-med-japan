@@ -1,13 +1,14 @@
 // ── Storage keys ────────────────────────────────────────────────────────────
 export const KEYS = {
-  USERS:    'snow_users',
-  LESSONS:  'snow_lessons',
-  BOOKINGS: 'snow_bookings',
-  REPORTS:  'snow_reports',
-  SESSION:  'snow_session',
-  SEEDED:   'snow_seeded_v6',
-  TIME_OFF: 'snow_time_off',
-  TMPL_OVERRIDES: 'snow_tmpl_overrides',
+  USERS:            'snow_users',
+  LESSONS:          'snow_lessons',
+  BOOKINGS:         'snow_bookings',
+  REPORTS:          'snow_reports',
+  SESSION:          'snow_session',
+  SEEDED:           'snow_seeded_v8',
+  TIME_OFF:         'snow_time_off',
+  TMPL_OVERRIDES:   'snow_tmpl_overrides',
+  PRIVATE_SESSIONS: 'snow_private_sessions',
 };
 
 // ── Generic helpers ──────────────────────────────────────────────────────────
@@ -56,6 +57,15 @@ export const TEMPLATES = [
   { id:'R2',  name:'RIDER 2',   sport:'snowboard',  audience:'kids',  level:'beginner',     maxGuests:6, amStart:'09:00', amEnd:'11:15', pmStart:'13:00', pmEnd:'15:15' },
   { id:'R1',  name:'RIDER 1',   sport:'snowboard',  audience:'kids',  level:'beginner',     maxGuests:6, amStart:'09:00', amEnd:'11:00', pmStart:'13:00', pmEnd:'15:00' },
   { id:'RD',  name:'RIDER',     sport:'snowboard',  audience:'kids',  level:'beginner',     maxGuests:6, amStart:'09:00', amEnd:'11:00', pmStart:'13:00', pmEnd:'15:00' },
+];
+
+// ── Default private session time slots ──────────────────────────────────────
+export const PRIVATE_SESSION_DEFAULTS = [
+  { id:'pst-1', label:'09:00 – 10:00', startTime:'09:00', endTime:'10:00' },
+  { id:'pst-2', label:'09:00 – 11:00', startTime:'09:00', endTime:'11:00' },
+  { id:'pst-3', label:'10:00 – 11:00', startTime:'10:00', endTime:'11:00' },
+  { id:'pst-4', label:'11:00 – 13:00', startTime:'11:00', endTime:'13:00' },
+  { id:'pst-5', label:'14:00 – 16:00', startTime:'14:00', endTime:'16:00' },
 ];
 
 export function getTemplate(id) {
@@ -142,6 +152,28 @@ export const DB = {
     write(KEYS.LESSONS, arr);
   },
 
+  // Private lesson queries (type === 'private')
+  getPrivateLessons: () => read(KEYS.LESSONS).filter(l => l.type === 'private'),
+  getPrivateLessonsByDate: (date) => read(KEYS.LESSONS).filter(l => l.type === 'private' && l.date === date),
+
+  // Private session time slots (supervisor-managed)
+  getPrivateSessions: () => {
+    const stored = read(KEYS.PRIVATE_SESSIONS);
+    return stored.length > 0 ? stored : PRIVATE_SESSION_DEFAULTS;
+  },
+  upsertPrivateSession: (slot) => {
+    let arr = read(KEYS.PRIVATE_SESSIONS);
+    if (arr.length === 0) arr = [...PRIVATE_SESSION_DEFAULTS];
+    const i = arr.findIndex(s => s.id === slot.id);
+    if (i >= 0) arr[i] = slot; else arr.push(slot);
+    write(KEYS.PRIVATE_SESSIONS, arr);
+  },
+  deletePrivateSession: (id) => {
+    let arr = read(KEYS.PRIVATE_SESSIONS);
+    if (arr.length === 0) arr = [...PRIVATE_SESSION_DEFAULTS];
+    write(KEYS.PRIVATE_SESSIONS, arr.filter(s => s.id !== id));
+  },
+
   // Time-off requests
   getTimeOff:              ()    => read(KEYS.TIME_OFF),
   getTimeOffByInstructor:  (iid) => read(KEYS.TIME_OFF).filter(t => t.instructorId === iid),
@@ -153,6 +185,24 @@ export const DB = {
     write(KEYS.TIME_OFF, arr);
   },
 };
+
+// ── Instructor conflict checker ──────────────────────────────────────────────
+/**
+ * Returns { ok: true } if the instructor can be assigned to a lesson of
+ * requestedType on the given date, or { ok: false, reason: string } if blocked.
+ * Rule: an instructor cannot have group AND private lessons on the same day.
+ */
+export function checkInstructorConflict(instructorId, date, requestedType) {
+  const dayLessons = read(KEYS.LESSONS).filter(
+    l => l.instructorId === instructorId && l.date === date
+  );
+  if (dayLessons.length === 0) return { ok: true };
+  const hasGroup   = dayLessons.some(l => (l.type ?? 'group') === 'group');
+  const hasPrivate = dayLessons.some(l => l.type === 'private');
+  if (requestedType === 'group'   && hasPrivate) return { ok: false, reason: 'Instructor already has a private lesson this day.' };
+  if (requestedType === 'private' && hasGroup)   return { ok: false, reason: 'Instructor already has a group lesson this day.' };
+  return { ok: true };
+}
 
 // ── Seed helpers ─────────────────────────────────────────────────────────────
 const _FIRST = [
@@ -369,6 +419,42 @@ function _doSeed() {
   const reportedLessonIds = new Set(reports.map(r => r.lessonId));
   lessons.forEach(l => { if (reportedLessonIds.has(l.id)) l.status = 'reported'; });
   write(KEYS.LESSONS, lessons);
+
+  // ── Private session time slots ─────────────────────────────────────────────
+  write(KEYS.PRIVATE_SESSIONS, PRIVATE_SESSION_DEFAULTS);
+
+  // ── Demo private lessons (for Sophie: 1 past, 1 today, 1 future) ──────────
+  const privLessons = [
+    {
+      id: 'les-prv-demo1', type: 'private',
+      date: past3, startTime: '09:00', endTime: '10:00',
+      instructorId: 'u-i2', status: 'reported',
+      guestId: 'u-g1', age: 'adult', discipline: 'ski', level: 'CB',
+    },
+    {
+      id: 'les-prv-demo2', type: 'private',
+      date: todayStr, startTime: '10:00', endTime: '11:00',
+      instructorId: 'u-i3', status: 'scheduled',
+      guestId: 'u-g1', age: 'adult', discipline: 'ski', level: 'C3',
+    },
+    {
+      id: 'les-prv-demo3', type: 'private',
+      date: fut4, startTime: '14:00', endTime: '16:00',
+      instructorId: null, status: 'scheduled',
+      guestId: 'u-g1', age: 'adult', discipline: 'ski', level: 'C4',
+    },
+  ];
+  const allLessons = [...lessons, ...privLessons];
+  write(KEYS.LESSONS, allLessons);
+
+  // Bookings for demo private lessons
+  const existingBookings = read(KEYS.BOOKINGS);
+  existingBookings.push(
+    { id:'bkg-prv1', guestId:'u-g1', lessonId:'les-prv-demo1', createdAt: new Date(today.getTime()-5*86400000).toISOString(), status:'confirmed' },
+    { id:'bkg-prv2', guestId:'u-g1', lessonId:'les-prv-demo2', createdAt: new Date(today.getTime()-1*86400000).toISOString(), status:'confirmed' },
+    { id:'bkg-prv3', guestId:'u-g1', lessonId:'les-prv-demo3', createdAt: new Date(today.getTime()-1*86400000).toISOString(), status:'confirmed' },
+  );
+  write(KEYS.BOOKINGS, existingBookings);
 }
 
 // ── Public seed API ───────────────────────────────────────────────────────────
@@ -385,6 +471,7 @@ export function resetSeed() {
   localStorage.removeItem(KEYS.BOOKINGS);
   localStorage.removeItem(KEYS.REPORTS);
   localStorage.removeItem(KEYS.SEEDED);
+  localStorage.removeItem(KEYS.PRIVATE_SESSIONS);
   _doSeed();
   localStorage.setItem(KEYS.SEEDED, '1');
   // Restore session so user stays logged in

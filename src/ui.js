@@ -272,6 +272,10 @@ export function audienceBadge(audience) {
     : `<span class="badge badge-kids">Kids</span>`;
 }
 
+export function privateBadge() {
+  return `<span class="badge badge-private">★ Private</span>`;
+}
+
 // ── Avatar ────────────────────────────────────────────────────────────────────
 export function av(initials, size = 'md') {
   return `<div class="av av-${size}">${(initials||'?').slice(0,2).toUpperCase()}</div>`;
@@ -367,3 +371,4 @@ export function iTrash()    { return svg('<polyline points="3 6 5 6 21 6"/><path
 export function iUserPlus() { return svg('<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/>'); }
 export function iChevDown() { return svg('<polyline points="6 9 12 15 18 9"/>'); }
 export function iDownload() { return svg('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>'); }
+export function iClock()    { return svg('<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>'); }

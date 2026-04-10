@@ -1,10 +1,11 @@
-import { DB, TEMPLATES, getTemplate, isoDate } from '../data.js';
+import { DB, TEMPLATES, getTemplate, isoDate, uid } from '../data.js';
 import { navigate }   from '../app.js';
 import {
   toast, pageHead, injectHeadAvatar, statusBadge, bookingDisplayStatus, sportBadge, av,
   secLabel, emptyState, fmtDate, fmtDateLong, todayStr,
   greeting, lessonTimes, iCalendar, iPlus, iChevR, iUser,
   iCheck, iWarn, iBack, setNavHidden, openModal, closeModal, dismissModal, iClipboard,
+  privateBadge,
 } from '../ui.js';
 
 // ── Guest Dashboard ──────────────────────────────────────────────────────────
@@ -115,15 +116,18 @@ function _todayCard(booking) {
   return `
     <div class="glass" data-today-card="${booking.id}" style="padding:22px;border-radius:16px;cursor:pointer;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
-        <span class="badge badge-in-progress" style="font-size:12px;padding:5px 14px;">Today</span>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span class="badge badge-in-progress" style="font-size:12px;padding:5px 14px;">Today</span>
+          ${lesson.type === 'private' ? privateBadge() : ''}
+        </div>
         ${statusBadge(displayStatus)}
       </div>
       <div style="font-family:'Newsreader',serif;font-size:26px;font-weight:700;color:#000;
         margin-bottom:8px;line-height:1.2;">
-        ${tmpl ? tmpl.name : lesson.templateId}
+        ${lesson.type === 'private' ? `${lesson.discipline === 'ski' ? '⛷' : '🏂'} Private Lesson` : (tmpl ? tmpl.name : lesson.templateId)}
       </div>
       <div style="font-size:15px;color:#333;font-weight:500;margin-bottom:4px;">
-        ${tmpl ? lessonTimes(tmpl) : ''}
+        ${lesson.type === 'private' ? `${lesson.startTime} – ${lesson.endTime}` : (tmpl ? lessonTimes(tmpl) : '')}
       </div>
       <div style="font-size:14px;color:#777;">
         ${inst ? `with ${inst.name}` : 'Instructor TBD'}
@@ -142,29 +146,90 @@ function _todayCard(booking) {
 
 function _lessonCard(booking) {
   const lesson = booking.lesson;
-  const tmpl   = getTemplate(lesson.templateId);
-  const inst   = lesson.instructorId ? DB.getUserById(lesson.instructorId) : null;
-  const isToday = lesson.date === todayStr();
+  const tmpl   = getTemplate(lesson?.templateId);
+  const inst   = lesson?.instructorId ? DB.getUserById(lesson.instructorId) : null;
+  const isToday = lesson?.date === todayStr();
   const displayStatus = bookingDisplayStatus(booking, lesson);
+  const isPrivate = lesson?.type === 'private';
+  const lessonName = isPrivate
+    ? `${lesson.discipline === 'ski' ? '⛷' : '🏂'} Private Lesson`
+    : (tmpl ? tmpl.name : lesson?.templateId ?? '—');
+  const timeDisplay = isPrivate
+    ? `${lesson.startTime} – ${lesson.endTime}`
+    : (tmpl ? lessonTimes(tmpl) : '');
 
   return `
     <div class="glass card-row" style="border-radius:12px;cursor:default;">
-      ${_lessonDateTile(lesson.date, isToday
+      ${_lessonDateTile(lesson?.date, isToday
         ? {}
         : { background: 'var(--bg-tile)', monthColor: '#7f756d', dayColor: '#1E2643' })}
       <div style="flex:1;min-width:0;">
-        <div style="font-weight:600;font-size:15px;color:#000;white-space:nowrap;
-          overflow:hidden;text-overflow:ellipsis;">
-          ${tmpl ? tmpl.name : lesson.templateId}
-          ${isToday ? '<span style="margin-left:6px;" class="badge badge-in-progress">Today</span>' : ''}
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <span style="font-weight:600;font-size:15px;color:#000;white-space:nowrap;
+            overflow:hidden;text-overflow:ellipsis;">${lessonName}</span>
+          ${isPrivate ? privateBadge() : ''}
+          ${isToday ? '<span class="badge badge-in-progress">Today</span>' : ''}
         </div>
         <div style="font-size:13px;color:#777;margin-top:2px;">
-          ${tmpl ? lessonTimes(tmpl) : ''}
+          ${timeDisplay}
           · ${inst ? inst.name : 'Instructor TBD'}
         </div>
       </div>
       ${statusBadge(displayStatus)}
     </div>`;
+}
+
+// ── Book Landing Page (2-card entry) ─────────────────────────────────────────
+export function renderBookLanding(container, { session }) {
+  setNavHidden(false);
+  container.innerHTML = `
+    ${pageHead('Book a Lesson')}
+    <div style="padding:0 20px 32px;display:flex;flex-direction:column;gap:16px;">
+
+      <!-- Card 1: Premium Private Lesson -->
+      <a href="#/guest/book/private" style="text-decoration:none;display:block;">
+        <div class="glass-private" style="padding:24px;position:relative;overflow:hidden;">
+          <div style="position:absolute;top:0;left:0;right:0;height:3px;
+            background:linear-gradient(90deg,#FDBE00,#F0A800);border-radius:16px 16px 0 0;"></div>
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;">
+            ${privateBadge()}
+            <span style="font-size:28px;line-height:1;margin-top:-4px;">⛷️</span>
+          </div>
+          <div style="font-family:'Newsreader',serif;font-size:28px;font-weight:800;color:#1E2643;
+            line-height:1.15;margin-bottom:10px;">
+            Your mountain,<br>your pace.
+          </div>
+          <div style="font-size:14px;color:#6b5d4a;line-height:1.65;margin-bottom:22px;">
+            One instructor. Entirely tailored to your level, discipline and chosen time. An experience like no other.
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div style="font-size:12px;color:#9a8060;font-style:italic;">Charged to your room · All levels</div>
+            <div class="btn btn-primary btn-md"
+              style="background:#FDBE00;color:#000;border-color:#FDBE00;font-weight:700;flex-shrink:0;">
+              Reserve now →
+            </div>
+          </div>
+        </div>
+      </a>
+
+      <!-- Card 2: Group Lesson -->
+      <a href="#/guest/book/group" style="text-decoration:none;display:block;">
+        <div class="glass" style="padding:20px;">
+          <div style="font-family:'Newsreader',serif;font-size:22px;font-weight:700;
+            color:#1E2643;margin-bottom:6px;">
+            Group Lesson
+          </div>
+          <div style="font-size:14px;color:#777;line-height:1.6;margin-bottom:16px;">
+            Join a scheduled group class matched to your sport, level and audience. AM & PM sessions available.
+          </div>
+          <div style="display:flex;justify-content:flex-end;">
+            <div class="btn btn-navy btn-md">Browse classes →</div>
+          </div>
+        </div>
+      </a>
+
+    </div>`;
+  injectHeadAvatar(session, container);
 }
 
 // ── Book Lesson Wizard ────────────────────────────────────────────────────────
@@ -214,7 +279,7 @@ function _renderWizardStep(container, ctx) {
     });
   } else {
     setNavHidden(false);
-    wrap.innerHTML = pageHead('Book a lesson', 'Group lesson booking');
+    wrap.innerHTML = pageHead('Group Lesson', 'Book a group lesson');
     container.appendChild(wrap);
   }
 
@@ -569,15 +634,20 @@ function _bookingCard(b, today) {
           : { background: 'var(--bg-tile)', monthColor: '#7f756d', dayColor: '#1E2643' })}
         <!-- Info -->
         <div style="flex:1;min-width:0;">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
             <span style="font-weight:600;font-size:15px;color:#000;">
-              ${b.tmpl ? b.tmpl.name : b.lessonId}
+              ${b.lesson?.type === 'private'
+                ? `${b.lesson.discipline === 'ski' ? '⛷' : '🏂'} Private Lesson`
+                : (b.tmpl ? b.tmpl.name : b.lessonId)}
             </span>
+            ${b.lesson?.type === 'private' ? privateBadge() : ''}
             ${statusBadge(displayStatus)}
             ${b.isNew ? `<span class="badge" style="background:#E8F5E9;color:#1B5E20;">NEW</span>` : ''}
           </div>
           <div style="font-size:13px;color:#777;margin-top:4px;">
-            ${b.tmpl ? lessonTimes(b.tmpl) : ''}
+            ${b.lesson?.type === 'private'
+              ? `${b.lesson.startTime} – ${b.lesson.endTime}`
+              : (b.tmpl ? lessonTimes(b.tmpl) : '')}
             ${b.inst ? ` · ${b.inst.name}` : b.lesson?.instructorId ? '' : ' · Instructor TBD'}
           </div>
         </div>
@@ -614,10 +684,21 @@ function _openBookingDetailModal(booking, onDone) {
     !!report?.submittedAt &&
     !!guestReport
   );
+  const isPrivate   = lesson.type === 'private';
+  const levelTmpl   = isPrivate && lesson.level ? getTemplate(lesson.level) : null;
+  const sport       = isPrivate ? lesson.discipline : tmpl?.sport;
+  const sportEmoji  = sport === 'ski' ? '⛷' : '🏂';
+  const modalTitle  = `${sportEmoji} ${isPrivate ? 'Private' : 'Group'} Lesson`;
+  const cardHeading = isPrivate
+    ? (levelTmpl ? levelTmpl.name : 'Private Lesson')
+    : (tmpl ? tmpl.name : booking.lessonId);
+  const scheduleText = isPrivate
+    ? `${lesson.startTime} – ${lesson.endTime}`
+    : (tmpl ? lessonTimes(tmpl) : '—');
   const spotsTaken = DB.getConfirmedByLesson(lesson.id).length;
-  const spotsLabel = tmpl ? `${spotsTaken} of ${tmpl.maxGuests} spots filled` : null;
+  const spotsLabel = !isPrivate && tmpl ? `${spotsTaken} of ${tmpl.maxGuests} spots filled` : null;
 
-  openModal('guest-booking-detail', 'Lesson Details', `
+  openModal('guest-booking-detail', modalTitle, `
     <div style="display:flex;flex-direction:column;gap:16px;">
       <div class="glass" style="padding:18px;border-radius:14px;">
         <div style="display:flex;align-items:flex-start;gap:14px;">
@@ -627,8 +708,9 @@ function _openBookingDetailModal(booking, onDone) {
           <div style="flex:1;min-width:0;">
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
               <span style="font-family:'Newsreader',serif;font-size:24px;font-weight:700;color:#000;line-height:1.1;">
-                ${tmpl ? tmpl.name : booking.lessonId}
+                ${cardHeading}
               </span>
+              ${isPrivate ? privateBadge() : ''}
               ${statusBadge(bookingDisplayStatus(booking, lesson))}
             </div>
             <div style="font-size:13px;color:#777;margin-top:6px;">
@@ -642,7 +724,7 @@ function _openBookingDetailModal(booking, onDone) {
         <div style="display:flex;flex-direction:column;gap:12px;">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
             <span style="font-size:13px;color:#888;">Schedule</span>
-            <span style="font-weight:600;color:#000;text-align:right;">${tmpl ? lessonTimes(tmpl) : '—'}</span>
+            <span style="font-weight:600;color:#000;text-align:right;">${scheduleText}</span>
           </div>
           <div class="div"></div>
           <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
@@ -825,4 +907,338 @@ function _openReportCardModal(booking) {
       </div>
     </div>
   `);
+}
+
+// ── Private Lesson Booking Wizard ─────────────────────────────────────────────
+const _privWiz = { step:1, date:null, sessionId:null, age:'adult', discipline:'ski', level:null };
+
+function _resetPrivWiz() {
+  Object.assign(_privWiz, { step:1, date:null, sessionId:null, age:'adult', discipline:'ski', level:null });
+}
+
+function _privLevels(age, discipline) {
+  return TEMPLATES
+    .filter(t => t.sport === discipline && t.audience === age)
+    .map(t => ({ id: t.id, name: t.name }));
+}
+
+export function renderBookPrivate(container, ctx) {
+  if (!window._pvBookActive) { _resetPrivWiz(); window._pvBookActive = true; }
+  window.addEventListener('hashchange', () => { window._pvBookActive = false; setNavHidden(false); }, { once: true });
+  setNavHidden(_privWiz.step === 2);
+  _renderPrivStep(container, ctx);
+}
+
+function _renderPrivStep(container, ctx) {
+  container.innerHTML = '';
+  const wrap = document.createElement('div');
+
+  if (_privWiz.step === 2) {
+    setNavHidden(true);
+    wrap.innerHTML = pageHead('');
+    container.appendChild(wrap);
+    const titleRow = wrap.querySelector('.page-head > div');
+    titleRow.style.alignItems = 'center';
+    const h1 = titleRow.querySelector('h1');
+    if (h1) h1.remove();
+    const backBtn = document.createElement('button');
+    backBtn.type = 'button';
+    backBtn.style.cssText = "flex-shrink:0;display:inline-flex;align-items:center;gap:6px;padding:8px 14px 8px 10px;background:var(--bg-section-soft);border:1px solid var(--line-soft);border-radius:999px;color:#1E2643;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent;";
+    backBtn.innerHTML = iBack() + '<span>Back</span>';
+    titleRow.prepend(backBtn);
+    backBtn.addEventListener('click', () => {
+      _privWiz.step = 1;
+      setNavHidden(false);
+      _renderPrivStep(container, ctx);
+    });
+  } else {
+    setNavHidden(false);
+    wrap.innerHTML = pageHead('Private Lesson', '', '/guest/book');
+    container.appendChild(wrap);
+  }
+
+  const body = document.createElement('div');
+  body.style.padding = '0 20px 32px';
+  container.appendChild(body);
+
+  if (_privWiz.step === 1) _privStep1(body, container, ctx);
+  else _privStep2(body, container, ctx);
+}
+
+function _privStep1(body, container, ctx) {
+  const chips = [];
+  for (let i = 0; i < 14; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    chips.push(d);
+  }
+  if (!_privWiz.date) {
+    const firstOpen = chips.find(d => !_bookingCutoffPassed(isoDate(d)));
+    if (firstOpen) _privWiz.date = isoDate(firstOpen);
+  }
+
+  const sessions = DB.getPrivateSessions();
+  const levels   = _privLevels(_privWiz.age, _privWiz.discipline);
+  if (_privWiz.level && !levels.some(t => t.id === _privWiz.level)) _privWiz.level = null;
+
+  const canContinue = _privWiz.date && _privWiz.sessionId && _privWiz.level;
+
+  body.innerHTML = `
+    <!-- Date picker -->
+    <div class="glass" style="margin-bottom:20px;padding:14px 16px;border-radius:16px;background:var(--bg-section);">
+      <div style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#8A6B53;margin-bottom:10px;">
+        Pick your date
+      </div>
+      <div class="sx" style="display:flex;gap:8px;padding:4px 0;">
+        ${chips.map(d => {
+          const ds     = isoDate(d);
+          const dow    = d.toLocaleDateString('en-US', { weekday:'short' });
+          const day    = d.getDate();
+          const mon    = d.toLocaleDateString('en-US', { month:'short' });
+          const sel    = ds === _privWiz.date;
+          const cutoff = _bookingCutoffPassed(ds);
+          return `
+            <div class="date-chip${sel ? ' selected' : ''}${ds === todayStr() ? ' today' : ''}"
+              data-date="${ds}" style="flex-shrink:0;${cutoff && !sel ? 'opacity:0.38;' : ''}">
+              <div class="date-chip-dow">${dow}</div>
+              <div class="date-chip-day">${day}</div>
+              <div style="font-size:9px;color:${sel ? 'rgba(255,255,255,0.7)' : '#AAA'};margin-top:1px;">${mon}</div>
+            </div>`;
+        }).join('')}
+      </div>
+    </div>
+
+    <!-- Session time -->
+    <div style="margin-bottom:20px;">
+      <div style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#8A6B53;margin-bottom:10px;">
+        Session time
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        ${sessions.map(s => `
+          <button class="pill-filter${_privWiz.sessionId === s.id ? ' active' : ''}" data-session="${s.id}">
+            ${s.label}
+          </button>`).join('')}
+        ${sessions.length === 0 ? `<div style="font-size:14px;color:#aaa;">No session times configured.</div>` : ''}
+      </div>
+    </div>
+
+    <!-- Age -->
+    <div style="margin-bottom:20px;">
+      <div style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#8A6B53;margin-bottom:10px;">
+        Age group
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="pill-filter${_privWiz.age === 'adult' ? ' active' : ''}" data-age="adult">Adult</button>
+        <button class="pill-filter${_privWiz.age === 'kids' ? ' active' : ''}" data-age="kids">Kids</button>
+      </div>
+    </div>
+
+    <!-- Discipline -->
+    <div style="margin-bottom:20px;">
+      <div style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#8A6B53;margin-bottom:10px;">
+        Discipline
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="pill-filter${_privWiz.discipline === 'ski' ? ' active' : ''}" data-disc="ski">⛷ Ski</button>
+        <button class="pill-filter${_privWiz.discipline === 'snowboard' ? ' active' : ''}" data-disc="snowboard">🏂 Snowboard</button>
+      </div>
+    </div>
+
+    <!-- Level -->
+    <div style="margin-bottom:24px;">
+      <div style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#8A6B53;margin-bottom:10px;">
+        Your level
+      </div>
+      <div id="prv-levels" style="display:flex;gap:8px;flex-wrap:wrap;">
+        ${levels.map(t => `
+          <button class="pill-filter${_privWiz.level === t.id ? ' active' : ''}" data-level="${t.id}">
+            ${t.name}
+          </button>`).join('')}
+      </div>
+    </div>
+
+    <button id="prv-continue" class="btn btn-primary btn-lg btn-full"
+      ${canContinue ? '' : 'disabled'}>
+      Continue →
+    </button>`;
+
+  // Date chips
+  body.querySelectorAll('.date-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      _privWiz.date = chip.dataset.date;
+      body.querySelectorAll('.date-chip').forEach(c => {
+        const sel = c.dataset.date === _privWiz.date;
+        c.classList.toggle('selected', sel);
+        const monEl = c.querySelector('div:last-child');
+        if (monEl) monEl.style.color = sel ? 'rgba(255,255,255,0.7)' : '#AAA';
+      });
+      _updatePrivContinue(body);
+    });
+  });
+
+  // Session chips
+  body.querySelectorAll('[data-session]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      _privWiz.sessionId = btn.dataset.session;
+      body.querySelectorAll('[data-session]').forEach(b => b.classList.toggle('active', b.dataset.session === _privWiz.sessionId));
+      _updatePrivContinue(body);
+    });
+  });
+
+  // Age
+  body.querySelectorAll('[data-age]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      _privWiz.age = btn.dataset.age;
+      _privWiz.level = null;
+      body.querySelectorAll('[data-age]').forEach(b => b.classList.toggle('active', b.dataset.age === _privWiz.age));
+      _refreshPrivLevels(body);
+      _updatePrivContinue(body);
+    });
+  });
+
+  // Discipline
+  body.querySelectorAll('[data-disc]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      _privWiz.discipline = btn.dataset.disc;
+      _privWiz.level = null;
+      body.querySelectorAll('[data-disc]').forEach(b => b.classList.toggle('active', b.dataset.disc === _privWiz.discipline));
+      _refreshPrivLevels(body);
+      _updatePrivContinue(body);
+    });
+  });
+
+  // Level
+  body.querySelectorAll('[data-level]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      _privWiz.level = btn.dataset.level;
+      body.querySelectorAll('[data-level]').forEach(b => b.classList.toggle('active', b.dataset.level === _privWiz.level));
+      _updatePrivContinue(body);
+    });
+  });
+
+  // Continue
+  body.querySelector('#prv-continue')?.addEventListener('click', () => {
+    if (!_privWiz.date || !_privWiz.sessionId || !_privWiz.level) return;
+    _privWiz.step = 2;
+    setNavHidden(true);
+    _renderPrivStep(container, ctx);
+  });
+}
+
+function _refreshPrivLevels(body) {
+  const levels = _privLevels(_privWiz.age, _privWiz.discipline);
+  const el = body.querySelector('#prv-levels');
+  if (el) el.innerHTML = levels.map(t => `
+    <button class="pill-filter${_privWiz.level === t.id ? ' active' : ''}" data-level="${t.id}">
+      ${t.name}
+    </button>`).join('');
+  el?.querySelectorAll('[data-level]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      _privWiz.level = btn.dataset.level;
+      el.querySelectorAll('[data-level]').forEach(b => b.classList.toggle('active', b.dataset.level === _privWiz.level));
+      _updatePrivContinue(btn.closest('div[style]')?.parentElement ?? btn.closest('[style]'));
+    });
+  });
+}
+
+function _updatePrivContinue(body) {
+  const btn = body.querySelector('#prv-continue');
+  if (btn) btn.disabled = !(_privWiz.date && _privWiz.sessionId && _privWiz.level);
+}
+
+function _privStep2(body, container, ctx) {
+  const { session } = ctx;
+  const sessions = DB.getPrivateSessions();
+  const ps = sessions.find(s => s.id === _privWiz.sessionId);
+  if (!ps) { _privWiz.step = 1; _renderPrivStep(container, ctx); return; }
+
+  const sportEmoji = _privWiz.discipline === 'ski' ? '⛷️' : '🏂';
+  const ageLabel   = _privWiz.age === 'adult' ? 'Adult' : 'Kids';
+  const discLabel  = _privWiz.discipline === 'ski' ? 'Ski' : 'Snowboard';
+  const tmplForLevel = getTemplate(_privWiz.level);
+  const levLabel   = tmplForLevel ? tmplForLevel.name : _privWiz.level;
+
+  // Duration calculation
+  const [sh, sm] = ps.startTime.split(':').map(Number);
+  const [eh, em] = ps.endTime.split(':').map(Number);
+  const durMins = (eh * 60 + em) - (sh * 60 + sm);
+  const durLabel = durMins >= 60 ? `${durMins / 60}h` : `${durMins}min`;
+
+  body.innerHTML = `
+    <!-- Hero -->
+    <div style="text-align:center;padding:12px 0 32px;">
+      <div style="font-size:64px;line-height:1;margin-bottom:16px;">${sportEmoji}</div>
+      <div style="display:inline-flex;align-items:center;gap:6px;margin-bottom:16px;">
+        ${privateBadge()}
+      </div>
+      <div style="font-family:'Newsreader',serif;font-size:34px;font-weight:800;color:#1E2643;
+        line-height:1.1;margin-bottom:10px;">${ps.label}</div>
+      <div style="font-size:16px;color:#888;">${fmtDateLong(_privWiz.date)}</div>
+    </div>
+
+    <!-- Info grid -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px;">
+      <div style="background:var(--bg-section-soft);border-radius:16px;padding:16px 14px;text-align:center;">
+        <div class="sec-label" style="margin-bottom:6px;">Age Group</div>
+        <div style="font-family:'Newsreader',serif;font-weight:800;font-size:26px;color:#1E2643;line-height:1;">${ageLabel}</div>
+      </div>
+      <div style="background:var(--bg-section-soft);border-radius:16px;padding:16px 14px;text-align:center;">
+        <div class="sec-label" style="margin-bottom:6px;">Discipline</div>
+        <div style="font-family:'Newsreader',serif;font-weight:800;font-size:26px;color:#1E2643;line-height:1;">${discLabel}</div>
+      </div>
+      <div style="background:var(--bg-section-soft);border-radius:16px;padding:16px 14px;text-align:center;">
+        <div class="sec-label" style="margin-bottom:6px;">Level</div>
+        <div style="font-family:'Newsreader',serif;font-weight:800;font-size:26px;color:#1E2643;line-height:1;">${levLabel}</div>
+      </div>
+      <div style="background:var(--bg-section-soft);border-radius:16px;padding:16px 14px;text-align:center;">
+        <div class="sec-label" style="margin-bottom:6px;">Duration</div>
+        <div style="font-family:'Newsreader',serif;font-weight:800;font-size:26px;color:#1E2643;line-height:1;">${durLabel}</div>
+      </div>
+    </div>
+
+    <!-- Payment notice -->
+    <div style="background:linear-gradient(135deg,rgba(255,248,220,0.9),rgba(255,235,153,0.5));
+      border:1.5px solid rgba(253,190,0,0.32);border-radius:14px;
+      padding:16px 18px;margin-bottom:24px;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:20px;">💳</span>
+      <div>
+        <div style="font-weight:700;font-size:14px;color:#5C3A00;">Payment</div>
+        <div style="font-size:13px;color:#8a6b40;margin-top:2px;">Will be charged to your room at checkout.</div>
+      </div>
+    </div>
+
+    <button id="prv-confirm" class="btn btn-primary btn-lg btn-full">
+      ${iCheck()} Confirm &amp; Reserve
+    </button>`;
+
+  body.querySelector('#prv-confirm')?.addEventListener('click', () => {
+    const lessonId = 'les-prv-' + uid();
+    DB.upsertLesson({
+      id:           lessonId,
+      type:         'private',
+      date:         _privWiz.date,
+      startTime:    ps.startTime,
+      endTime:      ps.endTime,
+      instructorId: null,
+      status:       'scheduled',
+      guestId:      session.id,
+      age:          _privWiz.age,
+      discipline:   _privWiz.discipline,
+      level:        _privWiz.level,
+    });
+    const bookingId = 'bkg-prv-' + uid();
+    DB.upsertBooking({
+      id:        bookingId,
+      guestId:   session.id,
+      lessonId,
+      createdAt: new Date().toISOString(),
+      status:    'confirmed',
+    });
+    sessionStorage.setItem('snow_new_booking_id', bookingId);
+    toast('Private lesson reserved! See you on the mountain. ⛷️', 'success');
+    _resetPrivWiz();
+    window._pvBookActive = false;
+    setNavHidden(false);
+    navigate('/guest/bookings');
+  });
 }
