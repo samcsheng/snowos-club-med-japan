@@ -49,7 +49,8 @@ const NAV_CONFIG = {
   ],
   instructor: [
     { href: '/instructor/dashboard', label: 'Today',    icon: iHome() },
-    { href: '/instructor/schedule',  label: 'Schedule', icon: iCalendar() },
+    { href: '/instructor/plan',      label: 'Plan',     icon: iCalendar() },
+    { href: '/instructor/schedule',  label: 'Schedule', icon: iList() },
   ],
   supervisor: [
     { href: '/supervisor/today',       label: 'Today',       icon: iHome() },

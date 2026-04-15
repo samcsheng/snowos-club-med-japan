@@ -11,6 +11,7 @@ import {
 } from './views/guest.js';
 import {
   renderInstructorDashboard,
+  renderInstructorPlan,
   renderMySchedule,
   renderLessonDetail,
 } from './views/instructor.js';
@@ -47,6 +48,7 @@ const ROUTES = [
   { pat: /^\/guest\/book$/,                   view: renderBookLanding,         roles: ['guest'], noAvatar: true },
   { pat: /^\/guest\/bookings$/,               view: renderMyBookings,          roles: ['guest'] },
   { pat: /^\/instructor\/dashboard$/,         view: renderInstructorDashboard, roles: ['instructor'] },
+  { pat: /^\/instructor\/plan$/,              view: renderInstructorPlan,      roles: ['instructor'] },
   { pat: /^\/instructor\/schedule$/,          view: renderMySchedule,          roles: ['instructor'] },
   { pat: /^\/instructor\/lesson\/(?<id>.+)$/, view: renderLessonDetail,        roles: ['instructor'], hideNav: true },
   { pat: /^\/supervisor\/dashboard$/,         view: (c,o) => { navigate('/supervisor/today'); }, roles: ['supervisor'] },

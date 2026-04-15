@@ -77,6 +77,16 @@ function _initStripConfirm(stripEl, containerEl, { confirmLabel, confirmBtnText,
   bindPrimary();
 }
 
+// ── Instructor Plan filter state (persists across nav) ────────────────────────
+const _instructorPlanFilter = { date: null };
+
+function _dateOffset(dateStr, days) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  dt.setDate(dt.getDate() + days);
+  return isoDate(dt);
+}
+
 // ── Instructor Dashboard ──────────────────────────────────────────────────────
 export function renderInstructorDashboard(container, { session }) {
   const today   = todayStr();
@@ -215,7 +225,181 @@ export function renderInstructorDashboard(container, { session }) {
   injectHeadAvatar(session, container);
 }
 
-function _instructorLessonCard(lesson) {
+// ── Instructor Plan Tab ───────────────────────────────────────────────────────
+export function renderInstructorPlan(container, { session }) {
+  if (!_instructorPlanFilter.date) _instructorPlanFilter.date = todayStr();
+  const f = _instructorPlanFilter;
+  const firstName = session.name.split(' ')[0];
+
+  function _render() {
+    const selectedDate = f.date;
+    const today = todayStr();
+    const lessons = DB.getLessonsByInstructor(session.id).filter(l => l.date === selectedDate);
+
+    // Same state logic as Today tab
+    let viewState = 'scheduled';
+    if (lessons.some(l => l.status === 'on-mountain'))  viewState = 'on-mountain';
+    else if (lessons.some(l => l.status === 'completed')) viewState = 'completed';
+    else if (lessons.length > 0 && lessons.every(l => l.status === 'reported')) viewState = 'reported';
+
+    let headTitle, stateBanner;
+    switch (viewState) {
+      case 'on-mountain':
+        headTitle  = 'On the Mountain';
+        stateBanner = `
+          <div class="mlp-wave" style="margin:0 -1px;"></div>
+          <div style="padding:24px 12px 20px;">
+            <div class="glass-strong" style="padding:16px;border-radius:14px;
+              background:rgba(30,38,67,0.07);border:1.5px solid rgba(30,38,67,0.15);">
+              <div style="display:flex;align-items:center;gap:12px;">
+                <span style="font-size:22px;line-height:1;">🏔</span>
+                <div>
+                  <div style="font-weight:700;color:#1E2643;font-size:15px;">Lesson in progress</div>
+                  <div style="font-size:13px;color:#5a6070;margin-top:2px;">Enjoy your time with the guests. Show them the best you have :)</div>
+                </div>
+              </div>
+            </div>
+          </div>`;
+        break;
+      case 'completed':
+        headTitle  = 'Sessions';
+        stateBanner = `
+          <div style="padding:0 20px 20px;">
+            <div class="glass-strong" style="padding:16px;border-radius:14px;
+              background:rgba(253,190,0,0.09);border:1.5px solid rgba(253,190,0,0.28);">
+              <div style="display:flex;align-items:center;gap:12px;">
+                <span style="font-size:22px;line-height:1;">📋</span>
+                <div>
+                  <div style="font-weight:700;color:#875700;font-size:15px;">Lesson report due</div>
+                  <div style="font-size:13px;color:#a07000;margin-top:2px;">Please submit your report before end of day</div>
+                </div>
+              </div>
+            </div>
+          </div>`;
+        break;
+      case 'reported':
+        headTitle  = `Well done, ${firstName}!`;
+        stateBanner = `
+          <div style="padding:0 20px 20px;">
+            <div class="glass-strong" style="padding:16px;border-radius:14px;
+              background:rgba(8,138,32,0.06);border:1.5px solid rgba(8,138,32,0.17);">
+              <div style="display:flex;align-items:center;gap:12px;">
+                <span style="font-size:22px;line-height:1;">🌟</span>
+                <div>
+                  <div style="font-weight:700;color:#076b1a;font-size:15px;">All reports submitted</div>
+                  <div style="font-size:13px;color:#2d8a4a;margin-top:2px;">All done for ${fmtDate(selectedDate)}!</div>
+                </div>
+              </div>
+            </div>
+          </div>`;
+        break;
+      default:
+        headTitle  = 'Sessions';
+        stateBanner = '';
+    }
+
+    const dateLabel = selectedDate === today ? 'Today' : fmtDate(selectedDate);
+
+    container.innerHTML = `
+      ${pageHead(headTitle, fmtDateLong(selectedDate))}
+
+      <!-- Date picker with prev/next arrows -->
+      <div style="padding:0 20px 16px;display:flex;align-items:center;gap:8px;">
+        <button id="plan-prev"
+          style="flex-shrink:0;padding:10px 12px;background:var(--bg-section);
+          border:1.5px solid var(--line-soft);border-radius:10px;cursor:pointer;
+          color:#1E2643;display:flex;align-items:center;justify-content:center;
+          -webkit-tap-highlight-color:transparent;">
+          ${iBack()}
+        </button>
+        <input type="date" class="field-input" id="plan-date"
+          value="${selectedDate}" style="flex:1;text-align:center;">
+        <button id="plan-next"
+          style="flex-shrink:0;padding:10px 12px;background:var(--bg-section);
+          border:1.5px solid var(--line-soft);border-radius:10px;cursor:pointer;
+          color:#1E2643;display:flex;align-items:center;justify-content:center;
+          -webkit-tap-highlight-color:transparent;">
+          ${iChevR()}
+        </button>
+      </div>
+
+      ${stateBanner}
+
+      <div style="padding:0 20px 20px;display:flex;flex-direction:column;gap:8px;" id="plan-list">
+        ${lessons.length === 0
+          ? emptyState('🎿', 'No sessions', 'No lessons scheduled for this day.')
+          : lessons.map(l => _instructorLessonCard(l, dateLabel)).join('')}
+      </div>
+    `;
+
+    // Date picker change
+    container.querySelector('#plan-date')?.addEventListener('change', e => {
+      if (e.target.value) { f.date = e.target.value; _render(); }
+    });
+
+    // Prev/next day arrows
+    container.querySelector('#plan-prev')?.addEventListener('click', () => {
+      f.date = _dateOffset(f.date, -1); _render();
+    });
+    container.querySelector('#plan-next')?.addEventListener('click', () => {
+      f.date = _dateOffset(f.date, 1); _render();
+    });
+
+    // Lesson detail modal
+    container.querySelectorAll('[data-lesson-id]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const lesson = DB.getLessonById(btn.dataset.lessonId);
+        if (lesson) _openInstructorLessonModal(lesson, session, _render);
+      });
+    });
+
+    // Start Lesson: scheduled → on-mountain
+    container.querySelectorAll('[data-start-lesson]').forEach(btn => {
+      const stripEl = document.getElementById(`strip-${btn.dataset.startLesson}`);
+      if (!stripEl) return;
+      const lessonId = btn.dataset.startLesson;
+      _initStripConfirm(stripEl, container, {
+        confirmLabel:   'Start lesson now?',
+        confirmBtnText: 'Start',
+        confirmBg:      '#1E2643',
+        successLabel:   `${iCheck()} Lesson started`,
+        onCommit: () => { const l = DB.getLessonById(lessonId); if (l) DB.upsertLesson({ ...l, status: 'on-mountain' }); },
+        onUndo:   () => { const l = DB.getLessonById(lessonId); if (l) DB.upsertLesson({ ...l, status: 'scheduled' }); },
+        onDone:   _render,
+      });
+    });
+
+    // Complete Lesson: on-mountain → completed
+    container.querySelectorAll('[data-complete-lesson]').forEach(btn => {
+      const stripEl = document.getElementById(`strip-${btn.dataset.completeLesson}`);
+      if (!stripEl) return;
+      const lessonId = btn.dataset.completeLesson;
+      _initStripConfirm(stripEl, container, {
+        confirmLabel:   'Mark lesson complete?',
+        confirmBtnText: 'Complete',
+        confirmBg:      '#875700',
+        successLabel:   `${iCheck()} Lesson complete`,
+        onCommit: () => { const l = DB.getLessonById(lessonId); if (l) DB.upsertLesson({ ...l, status: 'completed' }); },
+        onUndo:   () => { const l = DB.getLessonById(lessonId); if (l) DB.upsertLesson({ ...l, status: 'on-mountain' }); },
+        onDone:   _render,
+      });
+    });
+
+    // Submit report: opens report modal
+    container.querySelectorAll('[data-report-id]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const lesson = DB.getLessonById(btn.dataset.reportId);
+        if (lesson) openReportModal(lesson, session, _render);
+      });
+    });
+
+    injectHeadAvatar(session, container);
+  }
+
+  _render();
+}
+
+function _instructorLessonCard(lesson, dateLabel = 'Today') {
   const isPrivate  = lesson.type === 'private';
   const tmpl       = isPrivate ? null : getTemplate(lesson.templateId);
   const bkgs       = DB.getConfirmedByLesson(lesson.id);
@@ -275,7 +459,7 @@ function _instructorLessonCard(lesson) {
       <div data-lesson-id="${lesson.id}" style="padding:22px;cursor:pointer;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
           <div style="display:flex;align-items:center;gap:6px;">
-            <span class="badge badge-in-progress" style="font-size:12px;padding:5px 14px;">Today</span>
+            <span class="badge badge-in-progress" style="font-size:12px;padding:5px 14px;">${dateLabel}</span>
             ${isPrivate ? privateBadge() : ''}
           </div>
           ${statusBadge(lesson.status)}
