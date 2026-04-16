@@ -993,10 +993,26 @@ export function renderSupervisorPlan(container, { session }) {
 
   container.innerHTML = `
     ${pageHead('Plan')}
-    <div style="padding:0 20px 16px;">
-      <label class="field-label">Date</label>
+    <div style="padding:0 20px 16px;display:flex;align-items:center;gap:8px;">
+      <button id="plan-prev"
+        ${f.date <= tomorrowDate ? 'disabled' : ''}
+        style="flex-shrink:0;padding:10px 12px;background:var(--bg-section);
+        border:1.5px solid var(--line-soft);border-radius:10px;
+        cursor:${f.date <= tomorrowDate ? 'default' : 'pointer'};
+        color:${f.date <= tomorrowDate ? '#ccc' : '#1E2643'};
+        display:flex;align-items:center;justify-content:center;
+        -webkit-tap-highlight-color:transparent;">
+        ${iBack()}
+      </button>
       <input type="date" class="field-input" id="plan-date"
-        value="${f.date}" min="${tomorrowDate}">
+        value="${f.date}" min="${tomorrowDate}" style="flex:1;text-align:center;">
+      <button id="plan-next"
+        style="flex-shrink:0;padding:10px 12px;background:var(--bg-section);
+        border:1.5px solid var(--line-soft);border-radius:10px;cursor:pointer;
+        color:#1E2643;display:flex;align-items:center;justify-content:center;
+        -webkit-tap-highlight-color:transparent;">
+        ${iChevR()}
+      </button>
     </div>
     ${_filterRow(f.sport, f.audience)}
     <div style="padding:0 20px 32px;display:flex;flex-direction:column;gap:8px;"
@@ -1010,8 +1026,19 @@ export function renderSupervisorPlan(container, { session }) {
     _renderLessons(container, f.date, f.sport, f.audience);
   }
 
+  function _setDate(newDate) {
+    f.date = newDate < tomorrowDate ? tomorrowDate : newDate;
+    renderSupervisorPlan(container, { session });
+  }
+
   container.querySelector('#plan-date')?.addEventListener('change', e => {
-    if (e.target.value) { f.date = e.target.value; _renderLessons(container, f.date, f.sport, f.audience); }
+    if (e.target.value) _setDate(e.target.value);
+  });
+  container.querySelector('#plan-prev')?.addEventListener('click', () => {
+    _setDate(dateOffset(f.date, -1));
+  });
+  container.querySelector('#plan-next')?.addEventListener('click', () => {
+    _setDate(dateOffset(f.date, 1));
   });
   container.querySelectorAll('[data-sport]').forEach(btn =>
     btn.addEventListener('click', () => { f.sport = btn.dataset.sport; _applyFilter(); }));
